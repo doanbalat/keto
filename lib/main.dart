@@ -1,0 +1,164 @@
+import 'package:flutter/material.dart';
+import 'ban_hang.dart';
+import 'chi_tieu.dart';
+import 'thong_ke.dart';
+import 'debug_screen.dart';
+import 'kho_hang.dart';
+
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Note: Permissions are requested on-demand when user needs them
+  // Camera/Photo permissions: requested when user chooses "Add Image"
+  // Storage permission: automatically granted on iOS, optional on Android
+
+  runApp(const KetoApp());
+}
+
+class KetoApp extends StatelessWidget {
+  const KetoApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Keto App',
+      theme: ThemeData(primarySwatch: Colors.blue, useMaterial3: true),
+      home: const KetoHomepage(),
+    );
+  }
+}
+
+class KetoHomepage extends StatefulWidget {
+  const KetoHomepage({super.key});
+
+  @override
+  State<KetoHomepage> createState() => _KetoHomepageState();
+}
+
+class _KetoHomepageState extends State<KetoHomepage> {
+  int _selectedIndex = 0;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
+  final List<Widget> _pages = [
+    const SalesPage(),
+    const ExpensesPage(),
+    const InventoryPage(),
+    const StatisticsPage(),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      key: _scaffoldKey,
+      appBar: AppBar(
+        title: const Text('Keto - Sổ Tay Bán Hàng'),
+        backgroundColor: Colors.blue,
+        foregroundColor: Colors.white,
+        leading: IconButton(
+          icon: const Icon(Icons.menu),
+          onPressed: () {
+            _scaffoldKey.currentState?.openDrawer();
+          },
+        ),
+      ),
+      drawer: NavigationDrawer(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Keto (Free version)',
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 12),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    // Add upgrade action here
+                  },
+                  icon: const Icon(Icons.star),
+                  label: const Text('Upgrade to Pro'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.amber,
+                    foregroundColor: Colors.black,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Divider(),
+          NavigationDrawerDestination(
+            icon: const Icon(Icons.settings),
+            label: const Text('Cài đặt'),
+          ),
+          NavigationDrawerDestination(
+            icon: const Icon(Icons.bug_report, color: Colors.orange),
+            label: const Text('Debug / Quản lý Database'),
+          ),
+          NavigationDrawerDestination(
+            icon: const Icon(Icons.privacy_tip),
+            label: const Text('Chính sách bảo mật'),
+          ),
+          NavigationDrawerDestination(
+            icon: const Icon(Icons.person),
+            label: const Text('Tác giả'),
+          ),
+        ],
+        onDestinationSelected: (index) {
+          Navigator.pop(context); // Close drawer
+          
+          if (index == 1) {
+            // Debug screen
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const DebugScreen()),
+            );
+          }
+          // Add other menu actions here
+        },
+      ),
+      body: _pages[_selectedIndex],
+      bottomNavigationBar: BottomNavigationBar(
+        backgroundColor: Colors.white70,
+        currentIndex: _selectedIndex,
+        onTap: (index) {
+          setState(() {
+            _selectedIndex = index;
+          });
+        },
+        type: BottomNavigationBarType.fixed,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.monetization_on, color: Colors.green),
+            label: 'Bán Hàng',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.monetization_on, color: Colors.red),
+            label: 'Chi Tiêu',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.shelves, color: Colors.orange),
+            label: 'Kho Hàng',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.poll, color: Colors.blue),
+            label: 'Thống Kê',
+          ),
+        ],
+        selectedItemColor: Colors.blue,
+        unselectedItemColor: Colors.black,
+      ),
+    );
+  }
+}
+
+class AccountingPage extends StatelessWidget {
+  const AccountingPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const SizedBox.expand();
+  }
+}

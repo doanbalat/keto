@@ -1,0 +1,7 @@
+🎯 Next Steps (Optional Enhancements):
+1. Add cost price input field in product creation dialog
+2. Implement image storage using imagePath field
+3. Create statistics/reports screen with date filters
+4. Add product categories/filtering
+5. Implement backup/export to CSV
+6. Add customer tracking features
