@@ -1,6 +1,6 @@
 # keto
 
-A new Flutter project.
+App so tay kinh doanh
 
 ## Getting Started
 
