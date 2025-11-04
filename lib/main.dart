@@ -4,7 +4,7 @@ import 'chi_tieu.dart';
 import 'thong_ke.dart';
 import 'debug_screen.dart';
 import 'kho_hang.dart';
-
+import 'cong_thuc_co_ban.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -90,12 +90,16 @@ class _KetoHomepageState extends State<KetoHomepage> {
           ),
           const Divider(),
           NavigationDrawerDestination(
+            icon: const Icon(Icons.calculate),
+            label: const Text('Các công thức cơ bản'),
+          ),
+          NavigationDrawerDestination(
             icon: const Icon(Icons.settings),
             label: const Text('Cài đặt'),
           ),
           NavigationDrawerDestination(
-            icon: const Icon(Icons.bug_report, color: Colors.orange),
-            label: const Text('Debug / Quản lý Database'),
+            icon: const Icon(Icons.auto_stories),
+            label: const Text('Quản lý Dữ liệu'),
           ),
           NavigationDrawerDestination(
             icon: const Icon(Icons.privacy_tip),
@@ -108,9 +112,17 @@ class _KetoHomepageState extends State<KetoHomepage> {
         ],
         onDestinationSelected: (index) {
           Navigator.pop(context); // Close drawer
-          
-          if (index == 1) {
-            // Debug screen
+
+          if (index == 0) {
+            // Basic Formulas
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const BasicFormulasPage(),
+              ),
+            );
+          } else if (index == 2) {
+            // Debug screen (Data Management)
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const DebugScreen()),

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'database/database_helper.dart';
 import 'scripts/generate_test_data.dart';
 
-
 class DebugScreen extends StatefulWidget {
   const DebugScreen({super.key});
 
@@ -12,7 +11,7 @@ class DebugScreen extends StatefulWidget {
 
 class _DebugScreenState extends State<DebugScreen> {
   final DatabaseHelper _db = DatabaseHelper();
-  
+
   bool _isLoading = false;
   String _statusMessage = '';
 
@@ -32,7 +31,7 @@ class _DebugScreenState extends State<DebugScreen> {
 
     try {
       await _db.clearAllData();
-      
+
       setState(() {
         _statusMessage = '✅ Đã xóa toàn bộ dữ liệu thành công!';
         _isLoading = false;
@@ -73,7 +72,7 @@ class _DebugScreenState extends State<DebugScreen> {
       for (var item in soldItems) {
         await _db.deleteSoldItem(item.id);
       }
-      
+
       setState(() {
         _statusMessage = '✅ Đã xóa ${soldItems.length} giao dịch bán hàng!';
         _isLoading = false;
@@ -114,7 +113,7 @@ class _DebugScreenState extends State<DebugScreen> {
       for (var expense in expenses) {
         await _db.deleteExpense(expense.id);
       }
-      
+
       setState(() {
         _statusMessage = '✅ Đã xóa ${expenses.length} chi phí!';
         _isLoading = false;
@@ -146,12 +145,13 @@ class _DebugScreenState extends State<DebugScreen> {
       final products = await _db.getAllProducts();
       final soldItems = await _db.getAllSoldItems();
       final expenses = await _db.getAllExpenses();
-      
+
       final totalRevenue = await _db.getTotalSalesToday();
       final totalExpenses = await _db.getTotalExpensesToday();
 
       setState(() {
-        _statusMessage = '''
+        _statusMessage =
+            '''
 📊 Thống kê Database:
 ━━━━━━━━━━━━━━━━━━━━━━
 📦 Sản phẩm: ${products.length}
@@ -173,10 +173,7 @@ Hôm nay:
   }
 
   String _formatCurrency(int amount) {
-    return '${amount.toString().replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-      (Match m) => '${m[1]},',
-    )}₫';
+    return '${amount.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}₫';
   }
 
   Future<void> _generateTestData() async {
@@ -194,7 +191,7 @@ Hôm nay:
 
     try {
       await TestDataGenerator.generateTestData();
-      
+
       setState(() {
         _statusMessage = '✅ Đã tạo dữ liệu test thành công!';
         _isLoading = false;
@@ -362,7 +359,10 @@ Hôm nay:
                         children: [
                           Row(
                             children: [
-                              Icon(Icons.lightbulb_outline, color: Colors.blue.shade700),
+                              Icon(
+                                Icons.lightbulb_outline,
+                                color: Colors.blue.shade700,
+                              ),
                               const SizedBox(width: 8),
                               Text(
                                 'Gợi ý',
@@ -419,9 +419,7 @@ Hôm nay:
         backgroundColor: color,
         foregroundColor: Colors.white,
         padding: const EdgeInsets.all(16),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
     );
   }

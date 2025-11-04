@@ -30,22 +30,17 @@ class ProductService {
     }
   }
 
-  /// Add new product
-  Future<bool> addProduct(
+  /// Add new product and return the inserted product ID
+  Future<int?> addProduct(
     String name,
     int price,
     int costPrice, {
     String category = 'Khác',
     String? description,
     String unit = 'cái',
+    int stock = 0,
   }) async {
     try {
-      // Check if product already exists
-      if (await _dbHelper.productExists(name, price)) {
-        print('Product already exists');
-        return false;
-      }
-
       final product = Product(
         id: 0, // Will be auto-generated
         name: name,
@@ -54,13 +49,14 @@ class ProductService {
         category: category,
         description: description,
         unit: unit,
+        stock: stock,
       );
 
-      await _dbHelper.insertProduct(product);
-      return true;
+      final id = await _dbHelper.insertProduct(product);
+      return id;
     } catch (e) {
       print('Error adding product: $e');
-      return false;
+      return null;
     }
   }
 

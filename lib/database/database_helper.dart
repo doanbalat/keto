@@ -106,7 +106,7 @@ class DatabaseHelper {
         )
       ''');
     }
-    
+
     if (oldVersion < 3) {
       // Add unit column for version 3
       await db.execute('''
@@ -195,17 +195,6 @@ class DatabaseHelper {
     await db.delete(soldItemTable, where: 'productId = ?', whereArgs: [id]);
     // Then delete the product
     return await db.delete(productTable, where: 'id = ?', whereArgs: [id]);
-  }
-
-  /// Check if product exists
-  Future<bool> productExists(String name, int price) async {
-    final db = await database;
-    final List<Map<String, dynamic>> maps = await db.query(
-      productTable,
-      where: 'name = ? AND price = ? AND isActive = ?',
-      whereArgs: [name, price, 1],
-    );
-    return maps.isNotEmpty;
   }
 
   // ============ SOLD ITEM OPERATIONS ============

@@ -15,7 +15,7 @@ class StatisticsPage extends StatefulWidget {
 
 class _StatisticsPageState extends State<StatisticsPage> {
   final DatabaseHelper _db = DatabaseHelper();
-  
+
   // Color palette for pie charts
   static const List<Color> _pieChartColors = [
     Colors.red,
@@ -27,24 +27,24 @@ class _StatisticsPageState extends State<StatisticsPage> {
     Colors.teal,
     Colors.indigo,
   ];
-  
+
   // Date range
   DateTime _startDate = DateTime.now();
   DateTime _endDate = DateTime.now();
   String _selectedPeriod = 'Hôm nay';
-  
+
   // Week selector for sales chart (0 = current week, -1 = last week, etc.)
   int _weekOffset = 0;
-  
+
   // Statistics data
   int _totalRevenue = 0;
   int _totalExpenses = 0;
   int _netProfit = 0;
   int _itemsSold = 0;
-  
+
   List<SoldItem> _soldItems = [];
   List<Expense> _expenses = [];
-  
+
   bool _isLoading = true;
 
   @override
@@ -60,23 +60,26 @@ class _StatisticsPageState extends State<StatisticsPage> {
 
   Future<void> _loadStatistics() async {
     setState(() => _isLoading = true);
-    
+
     try {
       // Load data based on date range
       final soldItems = await _db.getSoldItemsByDateRange(_startDate, _endDate);
       final expenses = await _db.getExpensesByDateRange(_startDate, _endDate);
-      
+
       // Calculate totals
       int totalRevenue = 0;
       int totalItemsSold = 0;
-      
+
       for (var item in soldItems) {
         totalRevenue += item.priceAfterDiscount;
         totalItemsSold += item.quantity;
       }
-      
-      int totalExpenses = expenses.fold(0, (sum, expense) => sum + expense.amount);
-      
+
+      int totalExpenses = expenses.fold(
+        0,
+        (sum, expense) => sum + expense.amount,
+      );
+
       setState(() {
         _soldItems = soldItems;
         _expenses = expenses;
@@ -89,9 +92,9 @@ class _StatisticsPageState extends State<StatisticsPage> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi tải dữ liệu: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Lỗi tải dữ liệu: $e')));
       }
     }
   }
@@ -100,7 +103,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
     final now = DateTime.now();
     setState(() {
       _selectedPeriod = period;
-      
+
       switch (period) {
         case 'Hôm nay':
           _startDate = DateTime(now.year, now.month, now.day);
@@ -109,7 +112,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
         case 'Tuần này':
           final weekday = now.weekday;
           _startDate = now.subtract(Duration(days: weekday - 1));
-          _startDate = DateTime(_startDate.year, _startDate.month, _startDate.day);
+          _startDate = DateTime(
+            _startDate.year,
+            _startDate.month,
+            _startDate.day,
+          );
           _endDate = now;
           break;
         case 'Tháng này':
@@ -123,7 +130,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
           break;
       }
     });
-    
+
     _loadStatistics();
   }
 
@@ -135,7 +142,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
       initialDateRange: DateTimeRange(start: _startDate, end: _endDate),
       locale: const Locale('vi', 'VN'),
     );
-    
+
     if (picked != null) {
       setState(() {
         _selectedPeriod = 'Tùy chỉnh';
@@ -314,7 +321,12 @@ class _StatisticsPageState extends State<StatisticsPage> {
     );
   }
 
-  Widget _buildSummaryCard(String title, String value, IconData icon, Color color) {
+  Widget _buildSummaryCard(
+    String title,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Card(
       elevation: 2,
       child: Padding(
@@ -328,10 +340,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
                 const SizedBox(width: 8),
                 Text(
                   title,
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 12,
-                  ),
+                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
                 ),
               ],
             ),
@@ -353,20 +362,24 @@ class _StatisticsPageState extends State<StatisticsPage> {
   Widget _buildDailySalesChart() {
     // Always use last 7 days for this section, regardless of period selector
     final now = DateTime.now();
-    
+
     // Get the start of the week (Monday) with offset
     // weekday: Monday=1, Sunday=7
     final DateTime baseDate = now.subtract(Duration(days: _weekOffset * 7));
-    final DateTime startOfWeek = baseDate.subtract(Duration(days: baseDate.weekday - 1));
-    
+    final DateTime startOfWeek = baseDate.subtract(
+      Duration(days: baseDate.weekday - 1),
+    );
+
     // Generate 7 days starting from Monday
     final List<DateTime> last7Days = List.generate(7, (index) {
       return startOfWeek.add(Duration(days: index));
     });
-    
+
     final sevenDaysAgo = startOfWeek;
-    final endOfWeek = startOfWeek.add(const Duration(days: 6, hours: 23, minutes: 59, seconds: 59));
-    
+    final endOfWeek = startOfWeek.add(
+      const Duration(days: 6, hours: 23, minutes: 59, seconds: 59),
+    );
+
     // Load sold items for the week directly from database
     return FutureBuilder<List<SoldItem>>(
       future: _db.getSoldItemsByDateRange(sevenDaysAgo, endOfWeek),
@@ -379,10 +392,10 @@ class _StatisticsPageState extends State<StatisticsPage> {
         }
 
         final last7DaysSoldItems = snapshot.data ?? [];
-        
+
         // Group sales by date and product
         Map<String, Map<String, dynamic>> dailySalesData = {};
-        
+
         for (var date in last7Days) {
           final dateKey = DateFormat('yyyy-MM-dd').format(date);
           dailySalesData[dateKey] = {
@@ -391,19 +404,22 @@ class _StatisticsPageState extends State<StatisticsPage> {
             'total': 0,
           };
         }
-        
+
         // Process last 7 days sold items
         for (var item in last7DaysSoldItems) {
           final dateKey = DateFormat('yyyy-MM-dd').format(item.timestamp);
           if (dailySalesData.containsKey(dateKey)) {
             final productName = item.product?.name ?? 'Khác';
-            dailySalesData[dateKey]!['products'][productName] = 
-                ((dailySalesData[dateKey]!['products'] as Map<String, int>)[productName] ?? 0) + item.quantity;
-            dailySalesData[dateKey]!['total'] = 
+            dailySalesData[dateKey]!['products'][productName] =
+                ((dailySalesData[dateKey]!['products']
+                        as Map<String, int>)[productName] ??
+                    0) +
+                item.quantity;
+            dailySalesData[dateKey]!['total'] =
                 (dailySalesData[dateKey]!['total'] as int) + item.quantity;
           }
         }
-        
+
         // Find max value for chart scaling
         int maxQuantity = 10; // Minimum scale
         int totalWeek = 0;
@@ -412,33 +428,45 @@ class _StatisticsPageState extends State<StatisticsPage> {
           totalWeek += total;
           if (total > maxQuantity) maxQuantity = total;
         }
-        maxQuantity = ((maxQuantity / 10).ceil() + 1) * 10; // Round up to nearest 10
-        
+        maxQuantity =
+            ((maxQuantity / 10).ceil() + 1) * 10; // Round up to nearest 10
+
         // Calculate average
         final average = totalWeek / 7;
-        
+
         // Always show total week sales
         final referenceTotal = totalWeek;
-        
+
         // Calculate comparison with previous week
-        final previousWeekStartOfWeek = startOfWeek.subtract(const Duration(days: 7));
-        final previousWeekEndOfWeek = previousWeekStartOfWeek.add(const Duration(days: 6, hours: 23, minutes: 59, seconds: 59));
-        
+        final previousWeekStartOfWeek = startOfWeek.subtract(
+          const Duration(days: 7),
+        );
+        final previousWeekEndOfWeek = previousWeekStartOfWeek.add(
+          const Duration(days: 6, hours: 23, minutes: 59, seconds: 59),
+        );
+
         return FutureBuilder<List<SoldItem>>(
-          future: _db.getSoldItemsByDateRange(previousWeekStartOfWeek, previousWeekEndOfWeek),
+          future: _db.getSoldItemsByDateRange(
+            previousWeekStartOfWeek,
+            previousWeekEndOfWeek,
+          ),
           builder: (context, prevSnapshot) {
             int previousWeekTotal = 0;
-            
+
             if (prevSnapshot.hasData) {
               for (var item in (prevSnapshot.data ?? [])) {
                 previousWeekTotal += item.quantity as int;
               }
             }
-            
+
             int percentChange = 0;
             bool isIncrease = true;
             if (previousWeekTotal > 0) {
-              percentChange = (((referenceTotal - previousWeekTotal) / previousWeekTotal) * 100).abs().round();
+              percentChange =
+                  (((referenceTotal - previousWeekTotal) / previousWeekTotal) *
+                          100)
+                      .abs()
+                      .round();
               isIncrease = referenceTotal >= previousWeekTotal;
             }
 
@@ -492,9 +520,15 @@ class _StatisticsPageState extends State<StatisticsPage> {
                               padding: const EdgeInsets.only(top: 4.0),
                               child: Builder(
                                 builder: (context) {
-                                  final baseDate = now.subtract(Duration(days: _weekOffset * 7));
-                                  final weekStart = baseDate.subtract(Duration(days: baseDate.weekday - 1));
-                                  final weekEnd = weekStart.add(const Duration(days: 6));
+                                  final baseDate = now.subtract(
+                                    Duration(days: _weekOffset * 7),
+                                  );
+                                  final weekStart = baseDate.subtract(
+                                    Duration(days: baseDate.weekday - 1),
+                                  );
+                                  final weekEnd = weekStart.add(
+                                    const Duration(days: 6),
+                                  );
                                   return Text(
                                     '${DateFormat('dd/MM').format(weekStart)} - ${DateFormat('dd/MM').format(weekEnd)}',
                                     style: const TextStyle(
@@ -544,7 +578,9 @@ class _StatisticsPageState extends State<StatisticsPage> {
                             child: Row(
                               children: [
                                 Icon(
-                                  isIncrease ? Icons.arrow_upward : Icons.arrow_downward,
+                                  isIncrease
+                                      ? Icons.arrow_upward
+                                      : Icons.arrow_downward,
                                   size: 16,
                                   color: isIncrease ? Colors.green : Colors.red,
                                 ),
@@ -553,7 +589,9 @@ class _StatisticsPageState extends State<StatisticsPage> {
                                   '$percentChange% so với tuần trước',
                                   style: TextStyle(
                                     fontSize: 12,
-                                    color: isIncrease ? Colors.green : Colors.red,
+                                    color: isIncrease
+                                        ? Colors.green
+                                        : Colors.red,
                                   ),
                                 ),
                               ],
@@ -574,28 +612,42 @@ class _StatisticsPageState extends State<StatisticsPage> {
                             children: last7Days.asMap().entries.map((entry) {
                               final index = entry.key;
                               final date = entry.value;
-                              final dateKey = DateFormat('yyyy-MM-dd').format(date);
+                              final dateKey = DateFormat(
+                                'yyyy-MM-dd',
+                              ).format(date);
                               final dayData = dailySalesData[dateKey]!;
-                              final products = dayData['products'] as Map<String, int>;
+                              final products =
+                                  dayData['products'] as Map<String, int>;
                               final total = dayData['total'] as int;
-                              final isToday = _weekOffset == 0 && dateKey == DateFormat('yyyy-MM-dd').format(now);
-                              
+                              final isToday =
+                                  _weekOffset == 0 &&
+                                  dateKey ==
+                                      DateFormat('yyyy-MM-dd').format(now);
+
                               return Expanded(
                                 child: GestureDetector(
                                   onTap: () {
                                     if (total > 0) {
-                                      _showProductDetails(date, products, total);
+                                      _showProductDetails(
+                                        date,
+                                        products,
+                                        total,
+                                      );
                                     }
                                   },
                                   child: Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 3.0),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 3.0,
+                                    ),
                                     child: Column(
                                       mainAxisAlignment: MainAxisAlignment.end,
                                       children: [
                                         // Number above bar
                                         if (total > 0)
                                           Padding(
-                                            padding: const EdgeInsets.only(bottom: 4.0),
+                                            padding: const EdgeInsets.only(
+                                              bottom: 4.0,
+                                            ),
                                             child: Text(
                                               '$total',
                                               style: const TextStyle(
@@ -608,14 +660,19 @@ class _StatisticsPageState extends State<StatisticsPage> {
                                         // Bar
                                         Container(
                                           width: double.infinity,
-                                          height: total > 0 ? (total / maxQuantity) * 120 : 2,
+                                          height: total > 0
+                                              ? (total / maxQuantity) * 120
+                                              : 2,
                                           decoration: BoxDecoration(
                                             color: total > 0
-                                                ? (isToday ? Colors.blue : Colors.blue.shade300)
+                                                ? (isToday
+                                                      ? Colors.blue
+                                                      : Colors.blue.shade300)
                                                 : Colors.grey[300],
-                                            borderRadius: const BorderRadius.vertical(
-                                              top: Radius.circular(4),
-                                            ),
+                                            borderRadius:
+                                                const BorderRadius.vertical(
+                                                  top: Radius.circular(4),
+                                                ),
                                           ),
                                         ),
                                         const SizedBox(height: 8),
@@ -624,8 +681,12 @@ class _StatisticsPageState extends State<StatisticsPage> {
                                           _getFixedDayLabel(index),
                                           style: TextStyle(
                                             fontSize: 12,
-                                            color: isToday ? Colors.black : Colors.grey,
-                                            fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
+                                            color: isToday
+                                                ? Colors.black
+                                                : Colors.grey,
+                                            fontWeight: isToday
+                                                ? FontWeight.bold
+                                                : FontWeight.normal,
                                           ),
                                         ),
                                       ],
@@ -644,9 +705,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
                               child: Row(
                                 children: [
                                   Expanded(
-                                    child: DashedLine(
-                                      color: Colors.green,
-                                    ),
+                                    child: DashedLine(color: Colors.green),
                                   ),
                                 ],
                               ),
@@ -683,7 +742,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
     return days[index];
   }
 
-  void _showProductDetails(DateTime date, Map<String, int> products, int total) {
+  void _showProductDetails(
+    DateTime date,
+    Map<String, int> products,
+    int total,
+  ) {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -692,7 +755,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
       builder: (BuildContext context) {
         final sortedProducts = products.entries.toList()
           ..sort((a, b) => b.value.compareTo(a.value));
-        
+
         return Container(
           padding: const EdgeInsets.all(24.0),
           child: Column(
@@ -715,18 +778,12 @@ class _StatisticsPageState extends State<StatisticsPage> {
               const SizedBox(height: 8),
               Text(
                 'Bán được $total sản phẩm',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[600],
-                ),
+                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
               ),
               const Divider(height: 24),
               const Text(
                 'Số lượng bán ra:',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
               ...sortedProducts.map((entry) {
@@ -772,31 +829,41 @@ class _StatisticsPageState extends State<StatisticsPage> {
   Widget _buildTrendLineChart() {
     // Group data by date
     Map<DateTime, Map<String, int>> dailyData = {};
-    
+
     // Process sold items
     for (var item in _soldItems) {
-      final dateOnly = DateTime(item.timestamp.year, item.timestamp.month, item.timestamp.day);
+      final dateOnly = DateTime(
+        item.timestamp.year,
+        item.timestamp.month,
+        item.timestamp.day,
+      );
       if (!dailyData.containsKey(dateOnly)) {
         dailyData[dateOnly] = {'revenue': 0, 'expenses': 0};
       }
-      dailyData[dateOnly]!['revenue'] = 
+      dailyData[dateOnly]!['revenue'] =
           (dailyData[dateOnly]!['revenue'] ?? 0) + item.priceAfterDiscount;
     }
-    
+
     // Process expenses
     for (var expense in _expenses) {
-      final dateOnly = DateTime(expense.timestamp.year, expense.timestamp.month, expense.timestamp.day);
+      final dateOnly = DateTime(
+        expense.timestamp.year,
+        expense.timestamp.month,
+        expense.timestamp.day,
+      );
       if (!dailyData.containsKey(dateOnly)) {
         dailyData[dateOnly] = {'revenue': 0, 'expenses': 0};
       }
-      dailyData[dateOnly]!['expenses'] = 
+      dailyData[dateOnly]!['expenses'] =
           (dailyData[dateOnly]!['expenses'] ?? 0) + expense.amount;
     }
-    
+
     // Sort by date (oldest to newest)
     final sortedDates = dailyData.keys.toList()..sort();
-    final sortedDateStrings = sortedDates.map((date) => DateFormat('dd/MM').format(date)).toList();
-    
+    final sortedDateStrings = sortedDates
+        .map((date) => DateFormat('dd/MM').format(date))
+        .toList();
+
     if (sortedDates.isEmpty) {
       return Card(
         elevation: 2,
@@ -806,10 +873,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
             children: [
               const Text(
                 'Xu hướng Doanh thu & Chi phí',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
               Text(
@@ -821,22 +885,24 @@ class _StatisticsPageState extends State<StatisticsPage> {
         ),
       );
     }
-    
+
     // Prepare chart data (ensure no negative values)
     List<FlSpot> revenueSpots = [];
     List<FlSpot> expenseSpots = [];
-    
+
     for (int i = 0; i < sortedDates.length; i++) {
       final date = sortedDates[i];
       final data = dailyData[date]!;
       final revenue = (data['revenue'] ?? 0).toDouble();
       final expenses = (data['expenses'] ?? 0).toDouble();
-      
+
       // Ensure values are never negative
       revenueSpots.add(FlSpot(i.toDouble(), revenue.clamp(0, double.infinity)));
-      expenseSpots.add(FlSpot(i.toDouble(), expenses.clamp(0, double.infinity)));
+      expenseSpots.add(
+        FlSpot(i.toDouble(), expenses.clamp(0, double.infinity)),
+      );
     }
-    
+
     // Calculate max value for Y axis
     double maxY = 0;
     for (var data in dailyData.values) {
@@ -847,7 +913,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
     }
     maxY = (maxY * 1.2); // Add 20% padding
     if (maxY == 0) maxY = 100000; // Default if no data
-    
+
     return Card(
       elevation: 2,
       child: Padding(
@@ -857,10 +923,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
           children: [
             const Text(
               'Xu hướng Doanh thu & Chi phí',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             const SizedBox(height: 20),
@@ -876,10 +939,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
                     getDrawingHorizontalLine: (value) {
                       // Don't draw grid lines below 0
                       if (value < 0) return FlLine(strokeWidth: 0);
-                      return FlLine(
-                        color: Colors.grey[300]!,
-                        strokeWidth: 1,
-                      );
+                      return FlLine(color: Colors.grey[300]!, strokeWidth: 1);
                     },
                   ),
                   titlesData: FlTitlesData(
@@ -896,7 +956,8 @@ class _StatisticsPageState extends State<StatisticsPage> {
                         reservedSize: 30,
                         interval: 1,
                         getTitlesWidget: (double value, TitleMeta meta) {
-                          if (value.toInt() >= 0 && value.toInt() < sortedDateStrings.length) {
+                          if (value.toInt() >= 0 &&
+                              value.toInt() < sortedDateStrings.length) {
                             return Padding(
                               padding: const EdgeInsets.only(top: 8.0),
                               child: Text(
@@ -988,17 +1049,51 @@ class _StatisticsPageState extends State<StatisticsPage> {
                   lineTouchData: LineTouchData(
                     touchTooltipData: LineTouchTooltipData(
                       getTooltipItems: (List<LineBarSpot> touchedSpots) {
-                        return touchedSpots.map((spot) {
-                          return LineTooltipItem(
-                            _formatCurrency(spot.y.toInt()),
-                            TextStyle(
-                              color: spot.bar.color,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
-                          );
+                        if (touchedSpots.isEmpty) return [];
+
+                        // Get date from first spot (show only once)
+                        final index = touchedSpots.first.x.toInt();
+                        final date = sortedDates[index];
+                        final dateStr = DateFormat('dd/MM/yyyy').format(date);
+
+                        return touchedSpots.asMap().entries.map((entry) {
+                          final spotIndex = entry.key;
+                          final spot = entry.value;
+
+                          // Show date in white only for the first item
+                          if (spotIndex == 0) {
+                            return LineTooltipItem(
+                              '$dateStr\n',
+                              const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                              children: [
+                                TextSpan(
+                                  text: _formatCurrency(spot.y.toInt()),
+                                  style: TextStyle(
+                                    color: spot.bar.color,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            );
+                          } else {
+                            return LineTooltipItem(
+                              _formatCurrency(spot.y.toInt()),
+                              TextStyle(
+                                color: spot.bar.color,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            );
+                          }
                         }).toList();
                       },
+                      tooltipRoundedRadius: 8,
+                      tooltipPadding: const EdgeInsets.all(8),
                     ),
                   ),
                 ),
@@ -1022,7 +1117,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
   Widget _buildTopProductsList() {
     // Calculate top selling products
     final Map<int, Map<String, dynamic>> productStats = {};
-    
+
     for (var item in _soldItems) {
       if (!productStats.containsKey(item.productId)) {
         productStats[item.productId] = {
@@ -1034,10 +1129,13 @@ class _StatisticsPageState extends State<StatisticsPage> {
       productStats[item.productId]!['quantity'] += item.quantity;
       productStats[item.productId]!['revenue'] += item.priceAfterDiscount;
     }
-    
+
     final topProducts = productStats.entries.toList()
-      ..sort((a, b) => (b.value['revenue'] as int).compareTo(a.value['revenue'] as int));
-    
+      ..sort(
+        (a, b) =>
+            (b.value['revenue'] as int).compareTo(a.value['revenue'] as int),
+      );
+
     final top5 = topProducts.take(5).toList();
 
     if (top5.isEmpty) {
@@ -1049,10 +1147,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
             children: [
               const Text(
                 'Sản phẩm bán chạy',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
               Text(
@@ -1074,17 +1169,14 @@ class _StatisticsPageState extends State<StatisticsPage> {
           children: [
             const Text(
               'Sản phẩm bán chạy',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
             ...top5.map((entry) {
               final product = entry.value['product'];
               final quantity = entry.value['quantity'];
               final revenue = entry.value['revenue'];
-              
+
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8.0),
                 child: Row(
@@ -1137,12 +1229,12 @@ class _StatisticsPageState extends State<StatisticsPage> {
   Widget _buildExpensesPieChart() {
     // Calculate expenses by category
     final Map<String, int> categoryTotals = {};
-    
+
     for (var expense in _expenses) {
-      categoryTotals[expense.category] = 
+      categoryTotals[expense.category] =
           (categoryTotals[expense.category] ?? 0) + expense.amount;
     }
-    
+
     if (categoryTotals.isEmpty) {
       return Card(
         elevation: 2,
@@ -1152,10 +1244,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
             children: [
               const Text(
                 'Biểu đồ Chi phí',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
               Text(
@@ -1167,18 +1256,20 @@ class _StatisticsPageState extends State<StatisticsPage> {
         ),
       );
     }
-    
+
     // Sort by value (largest first) to ensure consistent ordering
     final sortedCategoriesForChart = categoryTotals.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
-    
+
     // Create pie chart sections
     List<PieChartSectionData> sections = [];
     int colorIndex = 0;
-    
+
     for (var entry in sortedCategoriesForChart) {
-      final percent = _totalExpenses > 0 ? (entry.value / _totalExpenses * 100) : 0.0;
-      
+      final percent = _totalExpenses > 0
+          ? (entry.value / _totalExpenses * 100)
+          : 0.0;
+
       sections.add(
         PieChartSectionData(
           color: _pieChartColors[colorIndex % _pieChartColors.length],
@@ -1194,7 +1285,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
       );
       colorIndex++;
     }
-    
+
     return Card(
       elevation: 2,
       child: Padding(
@@ -1204,10 +1295,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
           children: [
             const Text(
               'Biểu đồ Chi phí',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 20),
             // Pie Chart only (larger, full width)
@@ -1266,12 +1354,12 @@ class _StatisticsPageState extends State<StatisticsPage> {
   Widget _buildExpensesCategoryBreakdown() {
     // Calculate expenses by category
     final Map<String, int> categoryTotals = {};
-    
+
     for (var expense in _expenses) {
-      categoryTotals[expense.category] = 
+      categoryTotals[expense.category] =
           (categoryTotals[expense.category] ?? 0) + expense.amount;
     }
-    
+
     final sortedCategories = categoryTotals.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
@@ -1284,10 +1372,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
             children: [
               const Text(
                 'Chi phí theo danh mục',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
               Text(
@@ -1309,18 +1394,18 @@ class _StatisticsPageState extends State<StatisticsPage> {
           children: [
             const Text(
               'Chi phí theo danh mục',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
             ...sortedCategories.asMap().entries.map((entry) {
               final colorIndex = entry.key;
               final categoryEntry = entry.value;
-              final pieColor = _pieChartColors[colorIndex % _pieChartColors.length];
-              final percent = _totalExpenses > 0 ? (categoryEntry.value / _totalExpenses) : 0.0;
-              
+              final pieColor =
+                  _pieChartColors[colorIndex % _pieChartColors.length];
+              final percent = _totalExpenses > 0
+                  ? (categoryEntry.value / _totalExpenses)
+                  : 0.0;
+
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 10.0),
                 child: Column(
@@ -1366,7 +1451,9 @@ class _StatisticsPageState extends State<StatisticsPage> {
                             child: LinearProgressIndicator(
                               value: percent,
                               backgroundColor: Colors.grey[200],
-                              valueColor: AlwaysStoppedAnimation<Color>(pieColor),
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                pieColor,
+                              ),
                               minHeight: 8,
                             ),
                           ),
@@ -1397,14 +1484,14 @@ class DashedLine extends StatelessWidget {
   final Color color;
   final double dashWidth;
   final double dashSpace;
-  
+
   const DashedLine({
     super.key,
     required this.color,
     this.dashWidth = 5,
     this.dashSpace = 3,
   });
-  
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
@@ -1418,9 +1505,7 @@ class DashedLine extends StatelessWidget {
             return SizedBox(
               width: dashWidth,
               height: 1,
-              child: DecoratedBox(
-                decoration: BoxDecoration(color: color),
-              ),
+              child: DecoratedBox(decoration: BoxDecoration(color: color)),
             );
           }),
         );

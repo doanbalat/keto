@@ -11,16 +11,66 @@ class TestDataGenerator {
 
   // Sample products for Keto business (Vietnamese names)
   static final List<Map<String, dynamic>> _sampleProducts = [
-    {'name': 'Trà Dâu', 'price': 45000, 'costPrice': 15000, 'category': 'Đồ uống'},
-    {'name': 'Trà Sữa', 'price': 50000, 'costPrice': 18000, 'category': 'Đồ uống'},
-    {'name': 'Cà Phê', 'price': 35000, 'costPrice': 12000, 'category': 'Đồ uống'},
-    {'name': 'Nước Ép Cà Chua', 'price': 40000, 'costPrice': 14000, 'category': 'Đồ uống'},
-    {'name': 'Smoothie Xoài', 'price': 55000, 'costPrice': 20000, 'category': 'Đồ uống'},
-    {'name': 'Bánh Mì Keto', 'price': 65000, 'costPrice': 25000, 'category': 'Thức ăn'},
-    {'name': 'Salad Rau', 'price': 60000, 'costPrice': 22000, 'category': 'Thức ăn'},
-    {'name': 'Cơm Chiên Cauliflower', 'price': 70000, 'costPrice': 28000, 'category': 'Thức ăn'},
-    {'name': 'Muffin Chocolate', 'price': 45000, 'costPrice': 16000, 'category': 'Bánh'},
-    {'name': 'Cookie Bơ Đậu Phộng', 'price': 50000, 'costPrice': 18000, 'category': 'Bánh'},
+    {
+      'name': 'Trà Dâu',
+      'price': 45000,
+      'costPrice': 15000,
+      'category': 'Đồ uống',
+    },
+    {
+      'name': 'Trà Sữa',
+      'price': 50000,
+      'costPrice': 18000,
+      'category': 'Đồ uống',
+    },
+    {
+      'name': 'Cà Phê',
+      'price': 35000,
+      'costPrice': 12000,
+      'category': 'Đồ uống',
+    },
+    {
+      'name': 'Nước Ép Cà Chua',
+      'price': 40000,
+      'costPrice': 14000,
+      'category': 'Đồ uống',
+    },
+    {
+      'name': 'Smoothie Xoài',
+      'price': 55000,
+      'costPrice': 20000,
+      'category': 'Đồ uống',
+    },
+    {
+      'name': 'Bánh Mì Keto',
+      'price': 65000,
+      'costPrice': 25000,
+      'category': 'Thức ăn',
+    },
+    {
+      'name': 'Salad Rau',
+      'price': 60000,
+      'costPrice': 22000,
+      'category': 'Thức ăn',
+    },
+    {
+      'name': 'Cơm Chiên Cauliflower',
+      'price': 70000,
+      'costPrice': 28000,
+      'category': 'Thức ăn',
+    },
+    {
+      'name': 'Muffin Chocolate',
+      'price': 45000,
+      'costPrice': 16000,
+      'category': 'Bánh',
+    },
+    {
+      'name': 'Cookie Bơ Đậu Phộng',
+      'price': 50000,
+      'costPrice': 18000,
+      'category': 'Bánh',
+    },
   ];
 
   // Expense categories
@@ -122,11 +172,13 @@ class TestDataGenerator {
     // Generate data for each day in the last 2 months
     for (int dayOffset = 60; dayOffset >= 0; dayOffset--) {
       final date = twoMonthsAgo.add(Duration(days: 60 - dayOffset));
-      final isWeekend = date.weekday == 6 || date.weekday == 7; // Saturday or Sunday
+      final isWeekend =
+          date.weekday == 6 || date.weekday == 7; // Saturday or Sunday
 
       // Generate 2-6 transactions per day (more on weekends)
       final transactionCount = isWeekend
-          ? _random.nextInt(5) + 3 // 3-7 for weekend
+          ? _random.nextInt(5) +
+                3 // 3-7 for weekend
           : _random.nextInt(4) + 2; // 2-5 for weekday
 
       for (int i = 0; i < transactionCount; i++) {
@@ -162,7 +214,8 @@ class TestDataGenerator {
             timestamp: transactionTime,
             totalPrice: totalPrice,
             discount: discount,
-            paymentMethod: _paymentMethods[_random.nextInt(_paymentMethods.length)],
+            paymentMethod:
+                _paymentMethods[_random.nextInt(_paymentMethods.length)],
             customerName: _random.nextDouble() > 0.5
                 ? _customerNames[_random.nextInt(_customerNames.length)]
                 : null,
@@ -204,7 +257,8 @@ class TestDataGenerator {
           minute,
         );
 
-        final category = _expenseCategories[_random.nextInt(_expenseCategories.length)];
+        final category =
+            _expenseCategories[_random.nextInt(_expenseCategories.length)];
         final amount = _getExpenseAmountForCategory(category);
 
         final expense = Expense(
@@ -213,7 +267,8 @@ class TestDataGenerator {
           description: _getExpenseDescription(category),
           amount: amount,
           timestamp: expenseTime,
-          paymentMethod: _paymentMethods[_random.nextInt(_paymentMethods.length)],
+          paymentMethod:
+              _paymentMethods[_random.nextInt(_paymentMethods.length)],
           note: _random.nextDouble() > 0.7 ? 'Ghi chú chi phí' : null,
         );
 
@@ -255,21 +310,9 @@ class TestDataGenerator {
         'Mua sữa',
         'Mua trái cây',
       ],
-      'Điện nước': [
-        'Hóa đơn điện',
-        'Hóa đơn nước',
-        'Thanh toán chứng chỉ',
-      ],
-      'Vận chuyển': [
-        'Giao hàng nguyên liệu',
-        'Ship đơn hàng',
-        'Xăng xe',
-      ],
-      'Nhân công': [
-        'Lương nhân viên',
-        'Thưởng hiệu suất',
-        'Phúc lợi',
-      ],
+      'Điện nước': ['Hóa đơn điện', 'Hóa đơn nước', 'Thanh toán chứng chỉ'],
+      'Vận chuyển': ['Giao hàng nguyên liệu', 'Ship đơn hàng', 'Xăng xe'],
+      'Nhân công': ['Lương nhân viên', 'Thưởng hiệu suất', 'Phúc lợi'],
       'Quảng cáo': [
         'Quảng cáo Facebook',
         'Quảng cáo Instagram',
@@ -280,11 +323,7 @@ class TestDataGenerator {
         'Vệ sinh quán',
         'Bảo dưỡng trang thiết bị',
       ],
-      'Khác': [
-        'Chi phí khác',
-        'Tiền phạt',
-        'Chi phí đặc biệt',
-      ],
+      'Khác': ['Chi phí khác', 'Tiền phạt', 'Chi phí đặc biệt'],
     };
 
     final categoryDescriptions = descriptions[category] ?? ['Chi phí'];
