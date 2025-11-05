@@ -22,7 +22,7 @@ class KetoApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Keto App',
+      title: 'Keto',
       theme: ThemeData(primarySwatch: Colors.blue, useMaterial3: true),
       home: const KetoHomepage(),
     );
@@ -64,28 +64,57 @@ class _KetoHomepageState extends State<KetoHomepage> {
       ),
       drawer: NavigationDrawer(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Keto (Free version)',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          Container(
+            decoration: BoxDecoration(
+              image: DecorationImage(
+                image: const AssetImage('assets/images/bg.png'),
+                fit: BoxFit.cover,
+                // Optional: Add color overlay for better text readability
+                colorFilter: ColorFilter.mode(
+                  Colors.black.withValues(alpha: 0.3),
+                  BlendMode.darken,
                 ),
-                const SizedBox(height: 12),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    // Add upgrade action here
-                  },
-                  icon: const Icon(Icons.star),
-                  label: const Text('Upgrade to Pro'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.amber,
-                    foregroundColor: Colors.black,
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Keto (Free version)',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 12),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      showDialog(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text('Coming Soon!'),
+                        content: const Text('Bản Pro sẽ sớm ra mắt với nhiều tính năng hơn! Hãy chờ đón nhé!'),
+                        actions: [
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          child: const Text('OK'),
+                        ),
+                        ],
+                      ),
+                      );
+                    },
+                    icon: const Icon(Icons.star),
+                    label: const Text('Upgrade to Pro'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.amber,
+                      foregroundColor: Colors.black,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           const Divider(),

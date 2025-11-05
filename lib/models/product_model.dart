@@ -15,7 +15,7 @@ class Product {
     required this.id,
     required this.name,
     required this.price,
-    required this.costPrice,
+    this.costPrice = 0,
     this.imagePath,
     this.stock = 0,
     this.category = 'Khác',

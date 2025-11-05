@@ -1,5 +1,5 @@
 name: keto
-description: "A new Flutter project."
+description: "Keto"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -34,10 +34,12 @@ dependencies:
   sqflite: ^2.3.0
   path: ^1.9.0
   permission_handler: 12.0.1
-  intl: ^0.19.0
-  fl_chart: ^0.69.0
+  intl: ^0.20.2
+  fl_chart: ^1.1.1
   flutter_native_splash: ^2.4.7
-  just_audio: ^0.9.0
+  just_audio: ^0.10.5
+  palette_generator: ^0.3.3+4
+  flutter_launcher_icons: ^0.14.4
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -52,7 +54,7 @@ dev_dependencies:
   # activated in the `analysis_options.yaml` file located at the root of your
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
-  flutter_lints: ^5.0.0
+  flutter_lints: ^6.0.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -102,8 +104,8 @@ flutter_native_splash:
   ios: true
   web: false
 
-  # Background (choose color OR background_image, not both)
-  color: "#000000"
+  # Background color (use a color that matches your bg.png or theme)
+  color: "#1a1a1a"
   
   # Main splash image (PNG, sized for 4x pixel density)
   image: assets/images/splash.png
@@ -118,5 +120,15 @@ flutter_native_splash:
   
   # Android 12+ configuration
   android_12:
-    color: "#000000"
+    color: "#1a1a1a"
     image: assets/images/splash.png
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  web:
+    background_color: "#1a1a1a"
+    theme_color: "#ffffff"
+  image_path: "assets/images/logo.png"
+  adaptive_icon_background: "#1a1a1a"
+  adaptive_icon_foreground: "assets/images/logo.png"

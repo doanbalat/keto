@@ -3,6 +3,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:intl/intl.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:palette_generator/palette_generator.dart';
 import 'models/product_model.dart';
 import 'models/sold_item_model.dart';
 import 'services/product_service.dart';
@@ -30,6 +31,9 @@ class _SalesPageState extends State<SalesPage> {
   final Map<int, int> quantities = {};
   String _sortBy = 'name'; // 'bestselling', 'name', 'price'
   bool _sortAscending = true; // true = ascending, false = descending
+  
+  // Cache for extracted image colors
+  final Map<int, List<Color>> _productColorCache = {};
 
   /// Check if a product has duplicates with the same name and price
   bool _hasDuplicatesWithSamePricing(Product product, List<Product> productList) {
@@ -38,6 +42,66 @@ class _SalesPageState extends State<SalesPage> {
       p.price == product.price && 
       p.id != product.id
     ).isNotEmpty;
+  }
+
+  /// Extract colors from product image or use default gradient
+  Future<List<Color>> _extractColorsFromImage(Product product) async {
+    // Check cache first
+    if (_productColorCache.containsKey(product.id)) {
+      return _productColorCache[product.id]!;
+    }
+
+    // If product has an image, extract colors
+    if (product.imagePath != null && product.imagePath!.isNotEmpty) {
+      try {
+        final imageFile = File(product.imagePath!);
+        if (await imageFile.exists()) {
+          final paletteGenerator = await PaletteGenerator.fromImageProvider(
+            FileImage(imageFile),
+            size: const Size(100, 100), // Small size for faster processing
+          );
+
+          // Get dominant colors
+          Color primaryColor = paletteGenerator.dominantColor?.color ?? 
+                               paletteGenerator.vibrantColor?.color ?? 
+                               Colors.blue[200]!;
+          
+          Color secondaryColor = paletteGenerator.lightVibrantColor?.color ?? 
+                                 paletteGenerator.mutedColor?.color ?? 
+                                 Colors.blue[100]!;
+
+          // Make colors lighter for better readability
+          primaryColor = _lightenColor(primaryColor, 0.7);
+          secondaryColor = _lightenColor(secondaryColor, 0.8);
+
+          final colors = [secondaryColor, primaryColor];
+          _productColorCache[product.id] = colors;
+          return colors;
+        }
+      } catch (e) {
+        print('Error extracting colors from image: $e');
+      }
+    }
+
+    // Fallback to grey color
+    final colors = [Colors.white, Color.fromARGB(255, 233, 240, 234)];
+    _productColorCache[product.id] = colors;
+    return colors;
+  }
+
+  /// Lighten a color by a percentage (0.0 to 1.0)
+  Color _lightenColor(Color color, double amount) {
+    final hsl = HSLColor.fromColor(color);
+    final lightness = (hsl.lightness + (1.0 - hsl.lightness) * amount).clamp(0.0, 1.0);
+    return hsl.withLightness(lightness).toColor();
+  }
+
+  /// Get cached gradient colors (synchronous getter for FutureBuilder)
+  List<Color> _getProductGradientColorsSync(int productId) {
+    return _productColorCache[productId] ?? [
+      Color(0xFFF5F5F5),
+      Color(0xFFE0E0E0),
+    ];
   }
 
   @override
@@ -83,6 +147,15 @@ class _SalesPageState extends State<SalesPage> {
           quantities[product.id] = 1;
         }
       });
+      
+      // Pre-extract colors for all products in background
+      for (var product in products) {
+        _extractColorsFromImage(product).then((colors) {
+          if (mounted) {
+            setState(() {}); // Trigger rebuild to show extracted colors
+          }
+        });
+      }
     } catch (e) {
       // Check if widget is still mounted before showing error
       if (!mounted) return;
@@ -445,7 +518,7 @@ class _SalesPageState extends State<SalesPage> {
                                 controller: costPriceController,
                                 keyboardType: TextInputType.number,
                                 decoration: InputDecoration(
-                                  labelText: 'Giá vốn (VND)',
+                                  labelText: 'Giá vốn (VND) *0 nếu chưa biết*',
                                   prefixIcon: const Icon(Icons.shopping_bag),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
@@ -1870,6 +1943,12 @@ class _SalesPageState extends State<SalesPage> {
                         itemBuilder: (context, index) {
                           final product = filteredProducts[index];
                           final quantity = quantities[product.id] ?? 1;
+                          
+                          // Extract colors asynchronously on first build
+                          if (!_productColorCache.containsKey(product.id)) {
+                            _extractColorsFromImage(product);
+                          }
+                          
                           return Card(
                             margin: const EdgeInsets.symmetric(
                               horizontal: 12,
@@ -1883,14 +1962,28 @@ class _SalesPageState extends State<SalesPage> {
                               children: [
                                 // Product Info and Image (Clickable)
                                 Expanded(
-                                  child: InkWell(
-                                    onTap: () {
-                                      // Add product to sold items
-                                      // SnackBar feedback is handled inside addToSoldItems()
-                                      addToSoldItems(product, quantity);
-                                    },
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(16),
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: _getProductGradientColorsSync(product.id),
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      ),
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: Material(
+                                      color: Colors.transparent,
+                                      child: InkWell(
+                                        onTap: () {
+                                          // Add product to sold items
+                                          // SnackBar feedback is handled inside addToSoldItems()
+                                          addToSoldItems(product, quantity);
+                                        },
+                                        borderRadius: BorderRadius.circular(20),
+                                        splashColor: Colors.white.withValues(alpha: 0.3),
+                                        highlightColor: Colors.white.withValues(alpha: 0.1),
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(16),
                                       child: Row(
                                         children: [
                                           // Product Info
@@ -1949,6 +2042,8 @@ class _SalesPageState extends State<SalesPage> {
                                             ),
                                           ),
                                         ],
+                                      ),
+                                    ),
                                       ),
                                     ),
                                   ),

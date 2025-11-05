@@ -773,7 +773,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                 controller: costPriceController,
                                 keyboardType: TextInputType.number,
                                 decoration: InputDecoration(
-                                  labelText: 'Giá vốn (VND)',
+                                  labelText: 'Giá vốn (VND) *0 nếu chưa biết*',
                                   prefixIcon: const Icon(Icons.shopping_bag),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),

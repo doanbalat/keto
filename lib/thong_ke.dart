@@ -1092,7 +1092,6 @@ class _StatisticsPageState extends State<StatisticsPage> {
                           }
                         }).toList();
                       },
-                      tooltipRoundedRadius: 8,
                       tooltipPadding: const EdgeInsets.all(8),
                     ),
                   ),
