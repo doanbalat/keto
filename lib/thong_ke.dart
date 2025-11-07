@@ -766,11 +766,13 @@ class _StatisticsPageState extends State<StatisticsPage> {
                 children: [
                   const Icon(Icons.calendar_today, color: Colors.blue),
                   const SizedBox(width: 12),
-                  Text(
-                    DateFormat('EEEE, dd/MM/yyyy', 'vi').format(date),
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                  Expanded(
+                    child: Text(
+                      DateFormat('EEEE, dd/MM/yyyy', 'vi').format(date),
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ],
@@ -786,38 +788,45 @@ class _StatisticsPageState extends State<StatisticsPage> {
                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
-              ...sortedProducts.map((entry) {
-                final percent = (entry.value / total * 100).toStringAsFixed(1);
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 6.0),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 8,
-                        height: 8,
-                        decoration: const BoxDecoration(
-                          color: Colors.blue,
-                          shape: BoxShape.circle,
-                        ),
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: sortedProducts.length,
+                  itemBuilder: (context, index) {
+                    final entry = sortedProducts[index];
+                    final percent = (entry.value / total * 100).toStringAsFixed(1);
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 6.0),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 8,
+                            height: 8,
+                            decoration: const BoxDecoration(
+                              color: Colors.blue,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              entry.key,
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                          ),
+                          Text(
+                            '${entry.value} ($percent%)',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          entry.key,
-                          style: const TextStyle(fontSize: 14),
-                        ),
-                      ),
-                      Text(
-                        '${entry.value} ($percent%)',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }),
+                    );
+                  },
+                ),
+              ),
               const SizedBox(height: 16),
             ],
           ),

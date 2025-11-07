@@ -3,10 +3,11 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:intl/intl.dart';
 import 'package:just_audio/just_audio.dart';
-import 'package:palette_generator/palette_generator.dart';
 import 'models/product_model.dart';
 import 'models/sold_item_model.dart';
 import 'services/product_service.dart';
+import 'services/image_service.dart';
+import 'services/permission_service.dart';
 
 class SalesPage extends StatefulWidget {
   const SalesPage({super.key});
@@ -45,12 +46,20 @@ class _SalesPageState extends State<SalesPage> {
   }
 
   /// Extract colors from product image or use default gradient
+  /// DISABLED for performance - use default colors instead
   Future<List<Color>> _extractColorsFromImage(Product product) async {
     // Check cache first
     if (_productColorCache.containsKey(product.id)) {
       return _productColorCache[product.id]!;
     }
 
+    // Return default colors immediately without processing images
+    // Image processing is too slow on mobile devices
+    final colors = [Colors.white, Color.fromARGB(255, 233, 240, 234)];
+    _productColorCache[product.id] = colors;
+    return colors;
+    
+    /* DISABLED - Too slow on real devices
     // If product has an image, extract colors
     if (product.imagePath != null && product.imagePath!.isNotEmpty) {
       try {
@@ -87,20 +96,16 @@ class _SalesPageState extends State<SalesPage> {
     final colors = [Colors.white, Color.fromARGB(255, 233, 240, 234)];
     _productColorCache[product.id] = colors;
     return colors;
+    */
   }
 
-  /// Lighten a color by a percentage (0.0 to 1.0)
-  Color _lightenColor(Color color, double amount) {
-    final hsl = HSLColor.fromColor(color);
-    final lightness = (hsl.lightness + (1.0 - hsl.lightness) * amount).clamp(0.0, 1.0);
-    return hsl.withLightness(lightness).toColor();
-  }
-
-  /// Get cached gradient colors (synchronous getter for FutureBuilder)
+  /// Get gradient colors for product card (simplified for performance)
   List<Color> _getProductGradientColorsSync(int productId) {
-    return _productColorCache[productId] ?? [
-      Color(0xFFF5F5F5),
-      Color(0xFFE0E0E0),
+    // Use simple default gradient - no image processing
+    // This improves performance significantly on mobile devices
+    return [
+      Colors.white,
+      Color.fromARGB(255, 233, 240, 234),
     ];
   }
 
@@ -148,14 +153,8 @@ class _SalesPageState extends State<SalesPage> {
         }
       });
       
-      // Pre-extract colors for all products in background
-      for (var product in products) {
-        _extractColorsFromImage(product).then((colors) {
-          if (mounted) {
-            setState(() {}); // Trigger rebuild to show extracted colors
-          }
-        });
-      }
+      // Don't pre-extract colors - it causes slowdown
+      // Colors will be extracted lazily on first view if needed
     } catch (e) {
       // Check if widget is still mounted before showing error
       if (!mounted) return;
@@ -307,7 +306,7 @@ class _SalesPageState extends State<SalesPage> {
   void _showAddProductDialog(BuildContext context) {
     final nameController = TextEditingController();
     final priceController = TextEditingController();
-    final costPriceController = TextEditingController();
+    final costPriceController = TextEditingController(text: '0');
     final quantityController = TextEditingController(text: '0');
     final unitController = TextEditingController(text: 'cái');
     File? selectedImage;
@@ -322,7 +321,10 @@ class _SalesPageState extends State<SalesPage> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
-              insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+              insetPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 24,
+              ),
               child: Container(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(16),
@@ -402,6 +404,53 @@ class _SalesPageState extends State<SalesPage> {
                               // Image picker section
                               GestureDetector(
                                 onTap: () async {
+                                  // Check if permission is already granted
+                                  bool hasPermission =
+                                      await PermissionService.isPhotoLibraryPermissionGranted();
+
+                                  // If not granted, request permission
+                                  if (!hasPermission) {
+                                    hasPermission =
+                                        await PermissionService.requestPhotoLibraryPermission();
+
+                                    // If still not granted after request, user denied it
+                                    if (!hasPermission) {
+                                      if (!mounted) return;
+                                      showDialog(
+                                        context: context,
+                                        builder: (BuildContext ctx) {
+                                          return AlertDialog(
+                                            title: const Text(
+                                              'Yêu cầu quyền truy cập',
+                                            ),
+                                            content: const Text(
+                                              'Ứng dụng cần quyền truy cập thư viện ảnh để chọn ảnh sản phẩm. '
+                                              'Vui lòng cấp quyền trong cài đặt.',
+                                            ),
+                                            actions: [
+                                              TextButton(
+                                                onPressed: () =>
+                                                    Navigator.pop(ctx),
+                                                child: const Text('Hủy'),
+                                              ),
+                                              ElevatedButton(
+                                                onPressed: () async {
+                                                  Navigator.pop(ctx);
+                                                  await PermissionService.openSettings();
+                                                },
+                                                child: const Text(
+                                                  'Mở cài đặt',
+                                                ),
+                                              ),
+                                            ],
+                                          );
+                                        },
+                                      );
+                                      return;
+                                    }
+                                  }
+
+                                  // Permission granted - open image picker
                                   final XFile? image = await _picker.pickImage(
                                     source: ImageSource.gallery,
                                   );
@@ -424,14 +473,17 @@ class _SalesPageState extends State<SalesPage> {
                                   ),
                                   child: selectedImage != null
                                       ? ClipRRect(
-                                          borderRadius: BorderRadius.circular(10),
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
                                           child: Image.file(
                                             selectedImage!,
                                             fit: BoxFit.cover,
                                           ),
                                         )
                                       : Column(
-                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
                                           children: [
                                             Icon(
                                               Icons.image_outlined,
@@ -457,6 +509,8 @@ class _SalesPageState extends State<SalesPage> {
                                 controller: nameController,
                                 decoration: InputDecoration(
                                   labelText: 'Tên sản phẩm',
+                                  labelStyle: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                                  floatingLabelBehavior: FloatingLabelBehavior.always,
                                   prefixIcon: const Icon(Icons.label_outline),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
@@ -488,6 +542,8 @@ class _SalesPageState extends State<SalesPage> {
                                 keyboardType: TextInputType.number,
                                 decoration: InputDecoration(
                                   labelText: 'Giá bán (VND)',
+                                  labelStyle: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                                  floatingLabelBehavior: FloatingLabelBehavior.always,
                                   prefixIcon: const Icon(Icons.attach_money),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
@@ -518,7 +574,8 @@ class _SalesPageState extends State<SalesPage> {
                                 controller: costPriceController,
                                 keyboardType: TextInputType.number,
                                 decoration: InputDecoration(
-                                  labelText: 'Giá vốn (VND) *0 nếu chưa biết*',
+                                  labelText: 'Giá vốn (VND)',
+                                  labelStyle: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
                                   prefixIcon: const Icon(Icons.shopping_bag),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
@@ -550,6 +607,7 @@ class _SalesPageState extends State<SalesPage> {
                                 keyboardType: TextInputType.number,
                                 decoration: InputDecoration(
                                   labelText: 'Số lượng hàng',
+                                  labelStyle: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
                                   prefixIcon: const Icon(Icons.inventory_2),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
@@ -579,7 +637,9 @@ class _SalesPageState extends State<SalesPage> {
                               TextField(
                                 controller: unitController,
                                 decoration: InputDecoration(
-                                  labelText: 'Đơn vị (cái, kg, ly, hộp, phần, ...)',
+                                  labelText:
+                                      'Đơn vị (cái, kg, ly, hộp, phần, ...)',
+                                  labelStyle: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
                                   prefixIcon: const Icon(Icons.straighten),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
@@ -618,7 +678,9 @@ class _SalesPageState extends State<SalesPage> {
                             child: TextButton(
                               onPressed: () => Navigator.pop(context),
                               style: TextButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
                                 side: BorderSide(
                                   color: Colors.grey[300]!,
                                   width: 1.5,
@@ -647,7 +709,9 @@ class _SalesPageState extends State<SalesPage> {
                                       costPriceController.text.isEmpty) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
-                                        content: Text('Vui lòng điền đầy đủ thông tin'),
+                                        content: Text(
+                                          'Vui lòng điền đầy đủ thông tin',
+                                        ),
                                         backgroundColor: Colors.red,
                                       ),
                                     );
@@ -656,28 +720,58 @@ class _SalesPageState extends State<SalesPage> {
 
                                   final name = nameController.text;
                                   final price = int.parse(priceController.text);
-                                  final costPrice = int.parse(costPriceController.text);
-                                  final quantity = int.parse(quantityController.text);
-                                  final unit = unitController.text.isEmpty ? 'cái' : unitController.text;
+                                  final costPrice = int.parse(
+                                    costPriceController.text,
+                                  );
+                                  final quantity = int.parse(
+                                    quantityController.text,
+                                  );
+                                  final unit = unitController.text.isEmpty
+                                      ? 'cái'
+                                      : unitController.text;
 
-                                  if (price <= 0 || costPrice <= 0 || quantity < 0) {
+                                  if (price < 0 ||
+                                      costPrice < 0 ||
+                                      quantity < 0) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
-                                        content: Text('Giá phải dương, số lượng không được âm'),
+                                        content: Text(
+                                          'Giá phải dương, số lượng không được âm',
+                                        ),
                                         backgroundColor: Colors.red,
                                       ),
                                     );
                                     return;
                                   }
 
-                                  // Add product with initial quantity directly
-                                  final productId = await _productService.addProduct(
-                                    name,
-                                    price,
-                                    costPrice,
-                                    unit: unit,
-                                    stock: quantity,
-                                  );
+                                  // Step 5 & 6: Save image file and get its path
+                                  String? savedImagePath;
+                                  if (selectedImage != null) {
+                                    savedImagePath = await ImageService
+                                        .saveProductImage(selectedImage!);
+                                    if (savedImagePath == null) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'Lỗi khi lưu ảnh sản phẩm',
+                                          ),
+                                          backgroundColor: Colors.red,
+                                        ),
+                                      );
+                                      return;
+                                    }
+                                  }
+
+                                  // Step 7: Add product with image path (link image to product)
+                                  final productId = await _productService
+                                      .addProduct(
+                                        name,
+                                        price,
+                                        costPrice,
+                                        unit: unit,
+                                        stock: quantity,
+                                        imagePath: savedImagePath,
+                                      );
 
                                   if (productId == null) {
                                     ScaffoldMessenger.of(context).showSnackBar(
@@ -696,14 +790,14 @@ class _SalesPageState extends State<SalesPage> {
 
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
-                                      content: Text('Thêm sản phẩm "$name" thành công'),
+                                      content: Text(
+                                        'Thêm sản phẩm "$name" thành công',
+                                      ),
                                       backgroundColor: Colors.green,
                                     ),
                                   );
                                 } catch (e) {
-                                  ScaffoldMessenger.of(
-                                    context,
-                                  ).showSnackBar(
+                                  ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: Text('Lỗi: $e'),
                                       backgroundColor: Colors.red,
@@ -714,7 +808,9 @@ class _SalesPageState extends State<SalesPage> {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.blue,
                                 foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
@@ -1054,6 +1150,41 @@ class _SalesPageState extends State<SalesPage> {
                                                                   child: Column(
                                                                     crossAxisAlignment: CrossAxisAlignment.start,
                                                                     children: [
+                                                                      // Product image if available
+                                                                      if (product.imagePath != null && product.imagePath!.isNotEmpty)
+                                                                        Center(
+                                                                          child: Container(
+                                                                            margin: const EdgeInsets.only(bottom: 16),
+                                                                            decoration: BoxDecoration(
+                                                                              borderRadius: BorderRadius.circular(8),
+                                                                              border: Border.all(
+                                                                                color: Colors.grey[300]!,
+                                                                                width: 1,
+                                                                              ),
+                                                                            ),
+                                                                            child: ClipRRect(
+                                                                              borderRadius: BorderRadius.circular(8),
+                                                                              child: Image.file(
+                                                                                File(product.imagePath!),
+                                                                                height: 120,
+                                                                                width: 120,
+                                                                                fit: BoxFit.cover,
+                                                                                errorBuilder: (context, error, stackTrace) {
+                                                                                  return Container(
+                                                                                    height: 120,
+                                                                                    width: 120,
+                                                                                    color: Colors.grey[200],
+                                                                                    child: Icon(
+                                                                                      Icons.image,
+                                                                                      size: 40,
+                                                                                      color: Colors.grey[400],
+                                                                                    ),
+                                                                                  );
+                                                                                },
+                                                                              ),
+                                                                            ),
+                                                                          ),
+                                                                        ),
                                                                       Row(
                                                                         children: [
                                                                           Expanded(
@@ -2023,7 +2154,7 @@ class _SalesPageState extends State<SalesPage> {
                                               ],
                                             ),
                                           ),
-                                          // Product Image Placeholder
+                                          // Product Image or Placeholder
                                           Container(
                                             width: 60,
                                             height: 60,
@@ -2035,10 +2166,26 @@ class _SalesPageState extends State<SalesPage> {
                                               borderRadius:
                                                   BorderRadius.circular(8),
                                             ),
-                                            child: const Icon(
-                                              Icons.image,
-                                              size: 30,
-                                              color: Colors.grey,
+                                            child: ClipRRect(
+                                              borderRadius: BorderRadius.circular(8),
+                                              child: product.imagePath != null && 
+                                                     product.imagePath!.isNotEmpty
+                                                ? Image.file(
+                                                    File(product.imagePath!),
+                                                    fit: BoxFit.cover,
+                                                    errorBuilder: (context, error, stackTrace) {
+                                                      return const Icon(
+                                                        Icons.image,
+                                                        size: 30,
+                                                        color: Colors.grey,
+                                                      );
+                                                    },
+                                                  )
+                                                : const Icon(
+                                                    Icons.image,
+                                                    size: 30,
+                                                    color: Colors.grey,
+                                                  ),
                                             ),
                                           ),
                                         ],

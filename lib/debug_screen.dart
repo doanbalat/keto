@@ -14,6 +14,9 @@ class _DebugScreenState extends State<DebugScreen> {
 
   bool _isLoading = false;
   String _statusMessage = '';
+  String _currentStage = '';
+  int _progress = 0;
+  int _progressTotal = 100;
 
   Future<void> _resetDatabase() async {
     final confirmed = await _showConfirmationDialog(
@@ -179,14 +182,28 @@ Hôm nay:
   Future<void> _generateTestData() async {
     final confirmed = await _showConfirmationDialog(
       'Tạo dữ liệu test',
-      'Bạn có muốn tạo 2 tháng dữ liệu test (bao gồm 10 sản phẩm, 60 ngày giao dịch và chi phí)?',
+      'Bạn có muốn tạo 1 tháng dữ liệu test (bao gồm 10 sản phẩm, 30 ngày giao dịch và chi phí)?',
     );
 
     if (confirmed != true) return;
 
+    // Set progress callback
+    TestDataGenerator.setProgressCallback((stage, current, total) {
+      if (mounted) {
+        setState(() {
+          _currentStage = stage;
+          _progress = current;
+          _progressTotal = total;
+        });
+      }
+    });
+
     setState(() {
       _isLoading = true;
       _statusMessage = 'Đang tạo dữ liệu test...';
+      _currentStage = '';
+      _progress = 0;
+      _progressTotal = 100;
     });
 
     try {
@@ -195,6 +212,7 @@ Hôm nay:
       setState(() {
         _statusMessage = '✅ Đã tạo dữ liệu test thành công!';
         _isLoading = false;
+        _currentStage = '';
       });
 
       if (mounted) {
@@ -204,12 +222,18 @@ Hôm nay:
             backgroundColor: Colors.green,
           ),
         );
+        // Auto-refresh the app by popping with true
+        Navigator.of(context).pop(true);
       }
     } catch (e) {
       setState(() {
         _statusMessage = '❌ Lỗi: $e';
         _isLoading = false;
+        _currentStage = '';
       });
+    } finally {
+      // Clear callback
+      TestDataGenerator.setProgressCallback((stage, current, total) {});
     }
   }
 
@@ -251,7 +275,53 @@ Hôm nay:
         foregroundColor: Colors.white,
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const CircularProgressIndicator(),
+                    const SizedBox(height: 24),
+                    if (_statusMessage.isNotEmpty) ...[
+                      Text(
+                        _statusMessage,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                      const SizedBox(height: 24),
+                    ],
+                    if (_currentStage.isNotEmpty) ...[
+                      Text(
+                        _currentStage,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: LinearProgressIndicator(
+                          value: _progress / _progressTotal,
+                          minHeight: 30,
+                          backgroundColor: Colors.grey.shade300,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.blue.shade500,
+                          ),
+                          semanticsLabel: 'Progress bar',
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        '${_progress}/${_progressTotal}',
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            )
           : SingleChildScrollView(
               padding: const EdgeInsets.all(16.0),
               child: Column(

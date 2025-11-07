@@ -39,13 +39,30 @@ class KetoHomepage extends StatefulWidget {
 class _KetoHomepageState extends State<KetoHomepage> {
   int _selectedIndex = 0;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  // Keys for each page to force rebuild on refresh
+  UniqueKey _salesPageKey = UniqueKey();
+  UniqueKey _expensesPageKey = UniqueKey();
+  UniqueKey _inventoryPageKey = UniqueKey();
+  UniqueKey _statisticsPageKey = UniqueKey();
 
-  final List<Widget> _pages = [
-    const SalesPage(),
-    const ExpensesPage(),
-    const InventoryPage(),
-    const StatisticsPage(),
-  ];
+  List<Widget> _buildPages() {
+    return [
+      SalesPage(key: _salesPageKey),
+      ExpensesPage(key: _expensesPageKey),
+      InventoryPage(key: _inventoryPageKey),
+      StatisticsPage(key: _statisticsPageKey),
+    ];
+  }
+
+  void _refreshCurrentPage() {
+    setState(() {
+      // Create new keys to force rebuild of pages
+      _salesPageKey = UniqueKey();
+      _expensesPageKey = UniqueKey();
+      _inventoryPageKey = UniqueKey();
+      _statisticsPageKey = UniqueKey();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -139,7 +156,7 @@ class _KetoHomepageState extends State<KetoHomepage> {
             label: const Text('Tác giả'),
           ),
         ],
-        onDestinationSelected: (index) {
+        onDestinationSelected: (index) async {
           Navigator.pop(context); // Close drawer
 
           if (index == 0) {
@@ -152,15 +169,20 @@ class _KetoHomepageState extends State<KetoHomepage> {
             );
           } else if (index == 2) {
             // Debug screen (Data Management)
-            Navigator.push(
+            final result = await Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const DebugScreen()),
             );
+            
+            // If data was modified, refresh the current page
+            if (result == true && mounted) {
+              _refreshCurrentPage();
+            }
           }
           // Add other menu actions here
         },
       ),
-      body: _pages[_selectedIndex],
+      body: _buildPages()[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor: Colors.white70,
         currentIndex: _selectedIndex,

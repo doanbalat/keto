@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'dart:io';
 import 'models/product_model.dart';
 import 'services/product_service.dart';
+import 'services/image_service.dart';
+import 'services/permission_service.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -150,6 +152,53 @@ class _InventoryPageState extends State<InventoryPage> {
                     // Image picker section
                     GestureDetector(
                       onTap: () async {
+                        // Check if permission is already granted
+                        bool hasPermission =
+                            await PermissionService.isPhotoLibraryPermissionGranted();
+
+                        // If not granted, request permission
+                        if (!hasPermission) {
+                          hasPermission =
+                              await PermissionService.requestPhotoLibraryPermission();
+
+                          // If still not granted after request, user denied it
+                          if (!hasPermission) {
+                            if (!mounted) return;
+                            showDialog(
+                              context: context,
+                              builder: (BuildContext ctx) {
+                                return AlertDialog(
+                                  title: const Text(
+                                    'Yêu cầu quyền truy cập',
+                                  ),
+                                  content: const Text(
+                                    'Ứng dụng cần quyền truy cập thư viện ảnh để chọn ảnh sản phẩm. '
+                                    'Vui lòng cấp quyền trong cài đặt.',
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.pop(ctx),
+                                      child: const Text('Hủy'),
+                                    ),
+                                    ElevatedButton(
+                                      onPressed: () async {
+                                        Navigator.pop(ctx);
+                                        await PermissionService.openSettings();
+                                      },
+                                      child: const Text(
+                                        'Mở cài đặt',
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
+                            );
+                            return;
+                          }
+                        }
+
+                        // Permission granted - open image picker
                         final XFile? image = await _picker.pickImage(
                           source: ImageSource.gallery,
                         );
@@ -505,12 +554,32 @@ class _InventoryPageState extends State<InventoryPage> {
                                 return;
                               }
 
+                              // Save image if a new one was selected
+                              String? imagePath = product.imagePath;
+                              if (selectedImage != null) {
+                                final savedPath =
+                                    await ImageService.saveProductImage(
+                                  selectedImage!,
+                                );
+                                if (savedPath == null) {
+                                  if (!mounted) return;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content:
+                                          Text('Lỗi khi lưu ảnh sản phẩm'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                  return;
+                                }
+                                imagePath = savedPath;
+                              }
+
                               // Update product with new stock, unit, and optionally new image
                               final updatedProduct = product.copyWith(
                                 stock: newQuantity,
                                 unit: newUnit,
-                                imagePath:
-                                    selectedImage?.path ?? product.imagePath,
+                                imagePath: imagePath,
                               );
                               await _productService.updateProduct(
                                 updatedProduct,
@@ -556,7 +625,7 @@ class _InventoryPageState extends State<InventoryPage> {
   void _showAddProductDialog() {
     final nameController = TextEditingController();
     final priceController = TextEditingController();
-    final costPriceController = TextEditingController();
+    final costPriceController = TextEditingController(text: '0');
     final quantityController = TextEditingController(text: '0');
     final unitController = TextEditingController(text: 'cái');
     File? selectedImage;
@@ -654,6 +723,53 @@ class _InventoryPageState extends State<InventoryPage> {
                               // Image picker section
                               GestureDetector(
                                 onTap: () async {
+                                  // Check if permission is already granted
+                                  bool hasPermission =
+                                      await PermissionService.isPhotoLibraryPermissionGranted();
+
+                                  // If not granted, request permission
+                                  if (!hasPermission) {
+                                    hasPermission =
+                                        await PermissionService.requestPhotoLibraryPermission();
+
+                                    // If still not granted after request, user denied it
+                                    if (!hasPermission) {
+                                      if (!mounted) return;
+                                      showDialog(
+                                        context: context,
+                                        builder: (BuildContext ctx) {
+                                          return AlertDialog(
+                                            title: const Text(
+                                              'Yêu cầu quyền truy cập',
+                                            ),
+                                            content: const Text(
+                                              'Ứng dụng cần quyền truy cập thư viện ảnh để chọn ảnh sản phẩm. '
+                                              'Vui lòng cấp quyền trong cài đặt.',
+                                            ),
+                                            actions: [
+                                              TextButton(
+                                                onPressed: () =>
+                                                    Navigator.pop(ctx),
+                                                child: const Text('Hủy'),
+                                              ),
+                                              ElevatedButton(
+                                                onPressed: () async {
+                                                  Navigator.pop(ctx);
+                                                  await PermissionService.openSettings();
+                                                },
+                                                child: const Text(
+                                                  'Mở cài đặt',
+                                                ),
+                                              ),
+                                            ],
+                                          );
+                                        },
+                                      );
+                                      return;
+                                    }
+                                  }
+
+                                  // Permission granted - open image picker
                                   final XFile? image = await _picker.pickImage(
                                     source: ImageSource.gallery,
                                   );
@@ -712,6 +828,8 @@ class _InventoryPageState extends State<InventoryPage> {
                                 controller: nameController,
                                 decoration: InputDecoration(
                                   labelText: 'Tên sản phẩm',
+                                  labelStyle: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                                  floatingLabelBehavior: FloatingLabelBehavior.always,
                                   prefixIcon: const Icon(Icons.label_outline),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
@@ -743,6 +861,8 @@ class _InventoryPageState extends State<InventoryPage> {
                                 keyboardType: TextInputType.number,
                                 decoration: InputDecoration(
                                   labelText: 'Giá bán (VND)',
+                                  labelStyle: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                                  floatingLabelBehavior: FloatingLabelBehavior.always,
                                   prefixIcon: const Icon(Icons.attach_money),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
@@ -773,7 +893,8 @@ class _InventoryPageState extends State<InventoryPage> {
                                 controller: costPriceController,
                                 keyboardType: TextInputType.number,
                                 decoration: InputDecoration(
-                                  labelText: 'Giá vốn (VND) *0 nếu chưa biết*',
+                                  labelText: 'Giá vốn (VND)',
+                                  labelStyle: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
                                   prefixIcon: const Icon(Icons.shopping_bag),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
@@ -805,6 +926,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                 keyboardType: TextInputType.number,
                                 decoration: InputDecoration(
                                   labelText: 'Số lượng hàng',
+                                  labelStyle: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
                                   prefixIcon: const Icon(Icons.inventory_2),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
@@ -836,6 +958,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                 decoration: InputDecoration(
                                   labelText:
                                       'Đơn vị (cái, kg, ly, hộp, phần, ...)',
+                                  labelStyle: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
                                   prefixIcon: const Icon(Icons.straighten),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
@@ -926,8 +1049,8 @@ class _InventoryPageState extends State<InventoryPage> {
                                       ? 'cái'
                                       : unitController.text;
 
-                                  if (price <= 0 ||
-                                      costPrice <= 0 ||
+                                  if (price < 0 ||
+                                      costPrice < 0 ||
                                       quantity < 0) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
@@ -940,6 +1063,28 @@ class _InventoryPageState extends State<InventoryPage> {
                                     return;
                                   }
 
+                                  // Save image if selected
+                                  String? savedImagePath;
+                                  if (selectedImage != null) {
+                                    savedImagePath =
+                                        await ImageService.saveProductImage(
+                                      selectedImage!,
+                                    );
+                                    if (savedImagePath == null) {
+                                      if (!mounted) return;
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'Lỗi khi lưu ảnh sản phẩm',
+                                          ),
+                                          backgroundColor: Colors.red,
+                                        ),
+                                      );
+                                      return;
+                                    }
+                                  }
+
                                   // Add product with initial quantity directly
                                   final productId = await _productService
                                       .addProduct(
@@ -948,6 +1093,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                         costPrice,
                                         unit: unit,
                                         stock: quantity,
+                                        imagePath: savedImagePath,
                                       );
 
                                   if (productId == null) {
@@ -1542,6 +1688,41 @@ class _InventoryPageState extends State<InventoryPage> {
                                                                       CrossAxisAlignment
                                                                           .start,
                                                                   children: [
+                                                                    // Product image if available
+                                                                    if (product.imagePath != null && product.imagePath!.isNotEmpty)
+                                                                      Center(
+                                                                        child: Container(
+                                                                          margin: const EdgeInsets.only(bottom: 16),
+                                                                          decoration: BoxDecoration(
+                                                                            borderRadius: BorderRadius.circular(8),
+                                                                            border: Border.all(
+                                                                              color: Colors.grey[300]!,
+                                                                              width: 1,
+                                                                            ),
+                                                                          ),
+                                                                          child: ClipRRect(
+                                                                            borderRadius: BorderRadius.circular(8),
+                                                                            child: Image.file(
+                                                                              File(product.imagePath!),
+                                                                              height: 120,
+                                                                              width: 120,
+                                                                              fit: BoxFit.cover,
+                                                                              errorBuilder: (context, error, stackTrace) {
+                                                                                return Container(
+                                                                                  height: 120,
+                                                                                  width: 120,
+                                                                                  color: Colors.grey[200],
+                                                                                  child: Icon(
+                                                                                    Icons.image,
+                                                                                    size: 40,
+                                                                                    color: Colors.grey[400],
+                                                                                  ),
+                                                                                );
+                                                                              },
+                                                                            ),
+                                                                          ),
+                                                                        ),
+                                                                      ),
                                                                     Row(
                                                                       children: [
                                                                         Expanded(

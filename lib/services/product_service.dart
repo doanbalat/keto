@@ -31,6 +31,8 @@ class ProductService {
   }
 
   /// Add new product and return the inserted product ID
+  /// 
+  /// [imagePath] is optional - if provided, the image is linked to the product
   Future<int?> addProduct(
     String name,
     int price,
@@ -39,6 +41,7 @@ class ProductService {
     String? description,
     String unit = 'cái',
     int stock = 0,
+    String? imagePath,
   }) async {
     try {
       final product = Product(
@@ -50,6 +53,7 @@ class ProductService {
         description: description,
         unit: unit,
         stock: stock,
+        imagePath: imagePath,
       );
 
       final id = await _dbHelper.insertProduct(product);
