@@ -1,13 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'ban_hang.dart';
 import 'chi_tieu.dart';
 import 'thong_ke.dart';
-import 'debug_screen.dart';
+import 'quan_ly_database.dart';
 import 'kho_hang.dart';
 import 'cong_thuc_co_ban.dart';
+import 'privacy_policy_page.dart';
+import 'settings_page.dart';
+import 'theme/app_theme.dart';
+import 'theme/theme_manager.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize ThemeManager
+  await ThemeManager().init();
 
   // Note: Permissions are requested on-demand when user needs them
   // Camera/Photo permissions: requested when user chooses "Add Image"
@@ -16,21 +24,102 @@ void main() async {
   runApp(const KetoApp());
 }
 
-class KetoApp extends StatelessWidget {
+class KetoApp extends StatefulWidget {
   const KetoApp({super.key});
+
+  @override
+  State<KetoApp> createState() => _KetoAppState();
+}
+
+class _KetoAppState extends State<KetoApp> {
+  bool _isDarkMode = false;
+  String _shopName = 'Keto - Sổ Tay Bán Hàng';
+  bool _soundEnabled = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _isDarkMode = ThemeManager().isDarkMode;
+    _loadShopName();
+    _loadSoundEnabled();
+    print('KetoApp initialized - isDarkMode: $_isDarkMode');
+  }
+
+  Future<void> _loadShopName() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _shopName = prefs.getString('shopName') ?? 'Keto - Sổ Tay Bán Hàng';
+    });
+  }
+
+  Future<void> _loadSoundEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _soundEnabled = prefs.getBool('soundEnabled') ?? true;
+    });
+  }
+
+  void _setTheme(bool isDarkMode) async {
+    print('Setting theme to: $isDarkMode');
+    await ThemeManager().setDarkMode(isDarkMode);
+    setState(() {
+      _isDarkMode = isDarkMode;
+      print('KetoApp state updated - isDarkMode: $_isDarkMode');
+    });
+  }
+
+  void _setShopName(String shopName) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('shopName', shopName);
+    setState(() {
+      _shopName = shopName;
+    });
+  }
+
+  void _setSoundEnabled(bool soundEnabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('soundEnabled', soundEnabled);
+    setState(() {
+      _soundEnabled = soundEnabled;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Keto',
-      theme: ThemeData(primarySwatch: Colors.blue, useMaterial3: true),
-      home: const KetoHomepage(),
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: _isDarkMode ? ThemeMode.dark : ThemeMode.light,
+      home: KetoHomepage(
+        isDarkMode: _isDarkMode,
+        onThemeChanged: _setTheme,
+        shopName: _shopName,
+        onShopNameChanged: _setShopName,
+        soundEnabled: _soundEnabled,
+        onSoundEnabledChanged: _setSoundEnabled,
+      ),
     );
   }
 }
 
 class KetoHomepage extends StatefulWidget {
-  const KetoHomepage({super.key});
+  final bool isDarkMode;
+  final Function(bool) onThemeChanged;
+  final String shopName;
+  final Function(String) onShopNameChanged;
+  final bool soundEnabled;
+  final Function(bool) onSoundEnabledChanged;
+
+  const KetoHomepage({
+    super.key,
+    required this.isDarkMode,
+    required this.onThemeChanged,
+    required this.shopName,
+    required this.onShopNameChanged,
+    required this.soundEnabled,
+    required this.onSoundEnabledChanged,
+  });
 
   @override
   State<KetoHomepage> createState() => _KetoHomepageState();
@@ -39,17 +128,36 @@ class KetoHomepage extends StatefulWidget {
 class _KetoHomepageState extends State<KetoHomepage> {
   int _selectedIndex = 0;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  int _lowStockThreshold = 5;
   // Keys for each page to force rebuild on refresh
   UniqueKey _salesPageKey = UniqueKey();
   UniqueKey _expensesPageKey = UniqueKey();
   UniqueKey _inventoryPageKey = UniqueKey();
   UniqueKey _statisticsPageKey = UniqueKey();
 
+  @override
+  void initState() {
+    super.initState();
+    _loadLowStockThreshold();
+  }
+
+  Future<void> _loadLowStockThreshold() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _lowStockThreshold = prefs.getInt('lowStockThreshold') ?? 5;
+    });
+  }
+
+  Future<void> _saveLowStockThreshold(int value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('lowStockThreshold', value);
+  }
+
   List<Widget> _buildPages() {
     return [
-      SalesPage(key: _salesPageKey),
+      SalesPage(key: _salesPageKey, soundEnabled: widget.soundEnabled),
       ExpensesPage(key: _expensesPageKey),
-      InventoryPage(key: _inventoryPageKey),
+      InventoryPage(key: _inventoryPageKey, lowStockThreshold: _lowStockThreshold),
       StatisticsPage(key: _statisticsPageKey),
     ];
   }
@@ -69,9 +177,7 @@ class _KetoHomepageState extends State<KetoHomepage> {
     return Scaffold(
       key: _scaffoldKey,
       appBar: AppBar(
-        title: const Text('Keto - Sổ Tay Bán Hàng'),
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
+        title: Text(widget.shopName),
         leading: IconButton(
           icon: const Icon(Icons.menu),
           onPressed: () {
@@ -136,16 +242,16 @@ class _KetoHomepageState extends State<KetoHomepage> {
           ),
           const Divider(),
           NavigationDrawerDestination(
-            icon: const Icon(Icons.calculate),
-            label: const Text('Các công thức cơ bản'),
-          ),
-          NavigationDrawerDestination(
             icon: const Icon(Icons.settings),
             label: const Text('Cài đặt'),
           ),
           NavigationDrawerDestination(
             icon: const Icon(Icons.auto_stories),
             label: const Text('Quản lý Dữ liệu'),
+          ),
+          NavigationDrawerDestination(
+            icon: const Icon(Icons.calculate),
+            label: const Text('Các công thức cơ bản'),
           ),
           NavigationDrawerDestination(
             icon: const Icon(Icons.privacy_tip),
@@ -160,14 +266,28 @@ class _KetoHomepageState extends State<KetoHomepage> {
           Navigator.pop(context); // Close drawer
 
           if (index == 0) {
-            // Basic Formulas
+            // Settings
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => const BasicFormulasPage(),
+                builder: (context) => SettingsPage(
+                  isDarkMode: widget.isDarkMode,
+                  onThemeChanged: widget.onThemeChanged,
+                  lowStockThreshold: _lowStockThreshold,
+                  onLowStockThresholdChanged: (value) {
+                    setState(() {
+                      _lowStockThreshold = value;
+                    });
+                    _saveLowStockThreshold(value);
+                  },
+                  shopName: widget.shopName,
+                  onShopNameChanged: widget.onShopNameChanged,
+                  soundEnabled: widget.soundEnabled,
+                  onSoundEnabledChanged: widget.onSoundEnabledChanged,
+                ),
               ),
             );
-          } else if (index == 2) {
+          } else if (index == 1) {
             // Debug screen (Data Management)
             final result = await Navigator.push(
               context,
@@ -178,6 +298,22 @@ class _KetoHomepageState extends State<KetoHomepage> {
             if (result == true && mounted) {
               _refreshCurrentPage();
             }
+          } else if (index == 2) {
+            // Basic Formulas
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const BasicFormulasPage(),
+              ),
+            );
+          } else if (index == 3) {
+            // Privacy Policy
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const PrivacyPolicyPage(),
+              ),
+            );
           }
           // Add other menu actions here
         },

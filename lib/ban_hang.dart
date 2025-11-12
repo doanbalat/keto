@@ -10,7 +10,12 @@ import 'services/image_service.dart';
 import 'services/permission_service.dart';
 
 class SalesPage extends StatefulWidget {
-  const SalesPage({super.key});
+  final bool soundEnabled;
+
+  const SalesPage({
+    super.key,
+    this.soundEnabled = true,
+  });
 
   @override
   State<SalesPage> createState() => _SalesPageState();
@@ -99,15 +104,6 @@ class _SalesPageState extends State<SalesPage> {
     */
   }
 
-  /// Get gradient colors for product card (simplified for performance)
-  List<Color> _getProductGradientColorsSync(int productId) {
-    // Use simple default gradient - no image processing
-    // This improves performance significantly on mobile devices
-    return [
-      Colors.white,
-      Color.fromARGB(255, 233, 240, 234),
-    ];
-  }
 
   @override
   void initState() {
@@ -227,8 +223,8 @@ class _SalesPageState extends State<SalesPage> {
       );
 
       if (success) {
-        // Play success sound with error handling
-        if (_audioPlayerInitialized) {
+        // Play success sound with error handling (only if sound is enabled)
+        if (_audioPlayerInitialized && widget.soundEnabled) {
           try {
             // Play sound from assets
             await _audioPlayer.setAsset('assets/sounds/Kaching.mp3');
@@ -328,11 +324,9 @@ class _SalesPageState extends State<SalesPage> {
               child: Container(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(16),
-                  gradient: LinearGradient(
-                    colors: [Colors.white, Colors.grey[50]!],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                  ),
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? const Color(0xFF1E1E1E)
+                      : Colors.white,
                 ),
                 constraints: BoxConstraints(
                   maxHeight: MediaQuery.of(context).size.height * 0.9,
@@ -509,7 +503,12 @@ class _SalesPageState extends State<SalesPage> {
                                 controller: nameController,
                                 decoration: InputDecoration(
                                   labelText: 'Tên sản phẩm',
-                                  labelStyle: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                                  labelStyle: TextStyle(
+                                    color: Theme.of(context).brightness == Brightness.dark
+                                        ? Colors.grey[300]
+                                        : Colors.black,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                   floatingLabelBehavior: FloatingLabelBehavior.always,
                                   prefixIcon: const Icon(Icons.label_outline),
                                   border: OutlineInputBorder(
@@ -542,7 +541,12 @@ class _SalesPageState extends State<SalesPage> {
                                 keyboardType: TextInputType.number,
                                 decoration: InputDecoration(
                                   labelText: 'Giá bán (VND)',
-                                  labelStyle: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                                  labelStyle: TextStyle(
+                                    color: Theme.of(context).brightness == Brightness.dark
+                                        ? Colors.grey[300]
+                                        : Colors.black,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                   floatingLabelBehavior: FloatingLabelBehavior.always,
                                   prefixIcon: const Icon(Icons.attach_money),
                                   border: OutlineInputBorder(
@@ -575,7 +579,12 @@ class _SalesPageState extends State<SalesPage> {
                                 keyboardType: TextInputType.number,
                                 decoration: InputDecoration(
                                   labelText: 'Giá vốn (VND)',
-                                  labelStyle: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                                  labelStyle: TextStyle(
+                                    color: Theme.of(context).brightness == Brightness.dark
+                                        ? Colors.grey[300]
+                                        : Colors.black,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                   prefixIcon: const Icon(Icons.shopping_bag),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
@@ -607,7 +616,12 @@ class _SalesPageState extends State<SalesPage> {
                                 keyboardType: TextInputType.number,
                                 decoration: InputDecoration(
                                   labelText: 'Số lượng hàng',
-                                  labelStyle: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                                  labelStyle: TextStyle(
+                                    color: Theme.of(context).brightness == Brightness.dark
+                                        ? Colors.grey[300]
+                                        : Colors.black,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                   prefixIcon: const Icon(Icons.inventory_2),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
@@ -639,7 +653,12 @@ class _SalesPageState extends State<SalesPage> {
                                 decoration: InputDecoration(
                                   labelText:
                                       'Đơn vị (cái, kg, ly, hộp, phần, ...)',
-                                  labelStyle: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                                  labelStyle: TextStyle(
+                                    color: Theme.of(context).brightness == Brightness.dark
+                                        ? Colors.grey[300]
+                                        : Colors.black,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                   prefixIcon: const Icon(Icons.straighten),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
@@ -694,7 +713,7 @@ class _SalesPageState extends State<SalesPage> {
                                 style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
-                                  color: Colors.black87,
+                                  color: Colors.red,
                                 ),
                               ),
                             ),
@@ -855,7 +874,7 @@ class _SalesPageState extends State<SalesPage> {
             children: [
               // Search Bar with Add Button and Delete Button
               Padding(
-                padding: const EdgeInsets.all(12.0),
+                padding: const EdgeInsets.all(5.0),
                 child: Row(
                   children: [
                     Expanded(
@@ -946,11 +965,9 @@ class _SalesPageState extends State<SalesPage> {
                                   child: Container(
                                     decoration: BoxDecoration(
                                       borderRadius: BorderRadius.circular(16),
-                                      gradient: LinearGradient(
-                                        colors: [Colors.white, Colors.grey[50]!],
-                                        begin: Alignment.topCenter,
-                                        end: Alignment.bottomCenter,
-                                      ),
+                                      color: Theme.of(context).brightness == Brightness.dark
+                                          ? const Color(0xFF1E1E1E)
+                                          : Colors.white,
                                     ),
                                     child: Column(
                                       children: [
@@ -1060,7 +1077,7 @@ class _SalesPageState extends State<SalesPage> {
                                                     });
                                                   },
                                                   icon: const Icon(Icons.attach_money, size: 16),
-                                                  label: const Text('Giá', style: TextStyle(fontSize: 12)),
+                                                  label: const Text('Giá bán', style: TextStyle(fontSize: 12)),
                                                   style: ElevatedButton.styleFrom(
                                                     backgroundColor: sortBy == 'price' ? Colors.blue : Colors.grey[200],
                                                     foregroundColor: sortBy == 'price' ? Colors.white : Colors.black87,
@@ -1103,11 +1120,7 @@ class _SalesPageState extends State<SalesPage> {
                                                           child: Container(
                                                             decoration: BoxDecoration(
                                                               borderRadius: BorderRadius.circular(16),
-                                                              gradient: LinearGradient(
-                                                                colors: [Colors.white, Colors.grey[50]!],
-                                                                begin: Alignment.topCenter,
-                                                                end: Alignment.bottomCenter,
-                                                              ),
+                                                              color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : Colors.white,
                                                             ),
                                                             padding: const EdgeInsets.all(24),
                                                             child: Column(
@@ -1139,10 +1152,10 @@ class _SalesPageState extends State<SalesPage> {
                                                                 // Product info card
                                                                 Container(
                                                                   decoration: BoxDecoration(
-                                                                    color: Colors.blue[50],
+                                                                    color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF2A2A2A) : Colors.blue[50],
                                                                     borderRadius: BorderRadius.circular(12),
                                                                     border: Border.all(
-                                                                      color: Colors.blue[200]!,
+                                                                      color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF3A3A3A) : Colors.blue[200]!,
                                                                       width: 1,
                                                                     ),
                                                                   ),
@@ -1195,16 +1208,17 @@ class _SalesPageState extends State<SalesPage> {
                                                                                   'Tên sản phẩm',
                                                                                   style: TextStyle(
                                                                                     fontSize: 12,
-                                                                                    color: Colors.grey[600],
+                                                                                    color: Theme.of(context).brightness == Brightness.dark ? Colors.grey[400] : Colors.grey[600],
                                                                                     fontWeight: FontWeight.w500,
                                                                                   ),
                                                                                 ),
                                                                                 const SizedBox(height: 4),
                                                                                 Text(
                                                                                   product.name,
-                                                                                  style: const TextStyle(
+                                                                                  style: TextStyle(
                                                                                     fontSize: 16,
                                                                                     fontWeight: FontWeight.bold,
+                                                                                    color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
                                                                                   ),
                                                                                   maxLines: 2,
                                                                                   overflow: TextOverflow.ellipsis,
@@ -1244,7 +1258,7 @@ class _SalesPageState extends State<SalesPage> {
                                                                                   'Giá bán',
                                                                                   style: TextStyle(
                                                                                     fontSize: 12,
-                                                                                    color: Colors.grey[600],
+                                                                                    color: Theme.of(context).brightness == Brightness.dark ? Colors.grey[400] : Colors.grey[600],
                                                                                     fontWeight: FontWeight.w500,
                                                                                   ),
                                                                                 ),
@@ -1272,7 +1286,7 @@ class _SalesPageState extends State<SalesPage> {
                                                                                   'Giá vốn',
                                                                                   style: TextStyle(
                                                                                     fontSize: 12,
-                                                                                    color: Colors.grey[600],
+                                                                                    color: Theme.of(context).brightness == Brightness.dark ? Colors.grey[400] : Colors.grey[600],
                                                                                     fontWeight: FontWeight.w500,
                                                                                   ),
                                                                                 ),
@@ -1304,7 +1318,7 @@ class _SalesPageState extends State<SalesPage> {
                                                                   text: TextSpan(
                                                                     style: TextStyle(
                                                                       fontSize: 14,
-                                                                      color: Colors.grey[700],
+                                                                      color: Theme.of(context).brightness == Brightness.dark ? Colors.grey[300] : Colors.grey[700],
                                                                     ),
                                                                     children: [
                                                                       const TextSpan(
@@ -1337,18 +1351,18 @@ class _SalesPageState extends State<SalesPage> {
                                                                           ),
                                                                           shape: RoundedRectangleBorder(
                                                                             borderRadius: BorderRadius.circular(8),
-                                                                            side: const BorderSide(
-                                                                              color: Colors.grey,
+                                                                            side: BorderSide(
+                                                                              color: Theme.of(context).brightness == Brightness.dark ? Colors.grey[600]! : Colors.grey,
                                                                               width: 1,
                                                                             ),
                                                                           ),
                                                                         ),
-                                                                        child: const Text(
+                                                                        child: Text(
                                                                           'Hủy',
                                                                           style: TextStyle(
                                                                             fontSize: 14,
                                                                             fontWeight: FontWeight.w600,
-                                                                            color: Colors.grey,
+                                                                            color: Theme.of(context).brightness == Brightness.dark ? Colors.grey[300] : Colors.grey,
                                                                           ),
                                                                         ),
                                                                       ),
@@ -1470,8 +1484,8 @@ class _SalesPageState extends State<SalesPage> {
                                                       children: [
                                                         // Product number badge
                                                         Container(
-                                                          width: 40,
-                                                          height: 40,
+                                                          width: 25,
+                                                          height: 25,
                                                           decoration: BoxDecoration(
                                                             gradient: LinearGradient(
                                                               colors: [Colors.orange[400]!, Colors.orange[600]!],
@@ -1501,6 +1515,7 @@ class _SalesPageState extends State<SalesPage> {
                                                               Text(
                                                                 product.name,
                                                                 style: const TextStyle(
+                                                                  color: Colors.black54,
                                                                   fontSize: 15,
                                                                   fontWeight: FontWeight.bold,
                                                                 ),
@@ -1515,7 +1530,7 @@ class _SalesPageState extends State<SalesPage> {
                                                                       'Giá bán: ${NumberFormat.currency(locale: 'vi', symbol: 'đ', decimalDigits: 0).format(product.price)}',
                                                                       style: TextStyle(
                                                                         fontSize: 12,
-                                                                        color: Colors.grey[600],
+                                                                        color: Colors.green,
                                                                       ),
                                                                       maxLines: 1,
                                                                       overflow: TextOverflow.ellipsis,
@@ -1528,7 +1543,7 @@ class _SalesPageState extends State<SalesPage> {
                                                                 'Giá vốn: ${NumberFormat.currency(locale: 'vi', symbol: 'đ', decimalDigits: 0).format(product.costPrice)}',
                                                                 style: TextStyle(
                                                                   fontSize: 12,
-                                                                  color: Colors.grey[600],
+                                                                  color: Colors.purple,
                                                                 ),
                                                                 maxLines: 1,
                                                                 overflow: TextOverflow.ellipsis,
@@ -1591,11 +1606,7 @@ class _SalesPageState extends State<SalesPage> {
                                                                     child: Container(
                                                                       decoration: BoxDecoration(
                                                                         borderRadius: BorderRadius.circular(16),
-                                                                        gradient: LinearGradient(
-                                                                          colors: [Colors.white, Colors.grey[50]!],
-                                                                          begin: Alignment.topCenter,
-                                                                          end: Alignment.bottomCenter,
-                                                                        ),
+                                                                        color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : Colors.white,
                                                                       ),
                                                                       padding: const EdgeInsets.all(24),
                                                                       child: Column(
@@ -1627,10 +1638,10 @@ class _SalesPageState extends State<SalesPage> {
                                                                           // Product info card
                                                                           Container(
                                                                             decoration: BoxDecoration(
-                                                                              color: Colors.blue[50],
+                                                                              color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF2A2A2A) : Colors.blue[50],
                                                                               borderRadius: BorderRadius.circular(12),
                                                                               border: Border.all(
-                                                                                color: Colors.blue[200]!,
+                                                                                color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF3A3A3A) : Colors.blue[200]!,
                                                                                 width: 1,
                                                                               ),
                                                                             ),
@@ -1648,16 +1659,17 @@ class _SalesPageState extends State<SalesPage> {
                                                                                             'Tên sản phẩm',
                                                                                             style: TextStyle(
                                                                                               fontSize: 12,
-                                                                                              color: Colors.grey[600],
+                                                                                              color: Theme.of(context).brightness == Brightness.dark ? Colors.grey[400] : Colors.grey[600],
                                                                                               fontWeight: FontWeight.w500,
                                                                                             ),
                                                                                           ),
                                                                                           const SizedBox(height: 4),
                                                                                           Text(
                                                                                             product.name,
-                                                                                            style: const TextStyle(
+                                                                                            style: TextStyle(
                                                                                               fontSize: 16,
                                                                                               fontWeight: FontWeight.bold,
+                                                                                              color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
                                                                                             ),
                                                                                             maxLines: 2,
                                                                                             overflow: TextOverflow.ellipsis,
@@ -1697,7 +1709,7 @@ class _SalesPageState extends State<SalesPage> {
                                                                                             'Giá bán',
                                                                                             style: TextStyle(
                                                                                               fontSize: 12,
-                                                                                              color: Colors.grey[600],
+                                                                                              color: Theme.of(context).brightness == Brightness.dark ? Colors.grey[400] : Colors.grey[600],
                                                                                               fontWeight: FontWeight.w500,
                                                                                             ),
                                                                                           ),
@@ -1725,7 +1737,7 @@ class _SalesPageState extends State<SalesPage> {
                                                                                             'Giá vốn',
                                                                                             style: TextStyle(
                                                                                               fontSize: 12,
-                                                                                              color: Colors.grey[600],
+                                                                                              color: Theme.of(context).brightness == Brightness.dark ? Colors.grey[400] : Colors.grey[600],
                                                                                               fontWeight: FontWeight.w500,
                                                                                             ),
                                                                                           ),
@@ -1757,7 +1769,7 @@ class _SalesPageState extends State<SalesPage> {
                                                                             text: TextSpan(
                                                                               style: TextStyle(
                                                                                 fontSize: 14,
-                                                                                color: Colors.grey[700],
+                                                                                color: Theme.of(context).brightness == Brightness.dark ? Colors.grey[300] : Colors.grey[700],
                                                                               ),
                                                                               children: [
                                                                                 const TextSpan(
@@ -1790,18 +1802,18 @@ class _SalesPageState extends State<SalesPage> {
                                                                                     ),
                                                                                     shape: RoundedRectangleBorder(
                                                                                       borderRadius: BorderRadius.circular(8),
-                                                                                      side: const BorderSide(
-                                                                                        color: Colors.grey,
+                                                                                      side: BorderSide(
+                                                                                        color: Theme.of(context).brightness == Brightness.dark ? Colors.grey[600]! : Colors.grey,
                                                                                         width: 1,
                                                                                       ),
                                                                                     ),
                                                                                   ),
-                                                                                  child: const Text(
+                                                                                  child: Text(
                                                                                     'Hủy',
                                                                                     style: TextStyle(
                                                                                       fontSize: 14,
                                                                                       fontWeight: FontWeight.w600,
-                                                                                      color: Colors.grey,
+                                                                                      color: Theme.of(context).brightness == Brightness.dark ? Colors.grey[300] : Colors.grey,
                                                                                     ),
                                                                                   ),
                                                                                 ),
@@ -1946,7 +1958,7 @@ class _SalesPageState extends State<SalesPage> {
               ),
               // Sort buttons section
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+                padding: const EdgeInsets.symmetric(horizontal: 25.0, vertical: 1.0),
                 child: Row(
                   children: [
                     Expanded(
@@ -1960,7 +1972,8 @@ class _SalesPageState extends State<SalesPage> {
                         icon: const Icon(Icons.local_fire_department, size: 20, color: Colors.orange),
                         label: const Text('Bán chạy', style: TextStyle(fontSize: 15)),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: _sortBy == 'bestselling' ? Colors.blue : Colors.grey[200],
+                          elevation: 4,
+                          backgroundColor: _sortBy == 'bestselling' ? Colors.blue : Colors.grey[300],
                           foregroundColor: _sortBy == 'bestselling' ? Colors.white : Colors.black87,
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
                           shape: RoundedRectangleBorder(
@@ -1984,7 +1997,8 @@ class _SalesPageState extends State<SalesPage> {
                           });
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: _sortBy == 'name' ? const Color.fromARGB(255, 233, 247, 114) : Colors.grey[200],
+                          elevation: 4,
+                          backgroundColor: _sortBy == 'name' ? const Color.fromARGB(255, 233, 247, 114) : Colors.grey[300],
                           foregroundColor: Colors.black87,
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
                           shape: RoundedRectangleBorder(
@@ -2022,7 +2036,8 @@ class _SalesPageState extends State<SalesPage> {
                           });
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: _sortBy == 'price' ? const Color.fromARGB(255, 255, 151, 53) : Colors.grey[200],
+                          elevation: 4,
+                          backgroundColor: _sortBy == 'price' ? const Color.fromARGB(255, 255, 151, 53) : Colors.grey[300],
                           foregroundColor: _sortBy == 'price' ? Colors.white : Colors.black87,
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
                           shape: RoundedRectangleBorder(
@@ -2095,11 +2110,9 @@ class _SalesPageState extends State<SalesPage> {
                                 Expanded(
                                   child: Container(
                                     decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        colors: _getProductGradientColorsSync(product.id),
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                      ),
+                                      color: Theme.of(context).brightness == Brightness.dark
+                                          ? const Color.fromARGB(116, 20, 5, 5)
+                                          : const Color.fromARGB(255, 255, 253, 191),
                                       borderRadius: BorderRadius.circular(20),
                                     ),
                                     child: Material(
@@ -2125,9 +2138,12 @@ class _SalesPageState extends State<SalesPage> {
                                               children: [
                                                 Text(
                                                   product.name,
-                                                  style: const TextStyle(
+                                                  style: TextStyle(
                                                     fontSize: 16,
                                                     fontWeight: FontWeight.bold,
+                                                    color: Theme.of(context).brightness == Brightness.dark
+                                                        ? Colors.white
+                                                        : Colors.black,
                                                   ),
                                                 ),
                                                 Text(
@@ -2380,7 +2396,7 @@ class _SalesPageState extends State<SalesPage> {
               left: 0,
               right: 0,
               child: Container(
-                color: Colors.blue[50],
+                color: const Color.fromARGB(255, 26, 27, 80),
                 padding: const EdgeInsets.all(8),
                 constraints: BoxConstraints(
                   maxHeight: MediaQuery.of(context).size.height * 0.5,
@@ -2393,11 +2409,14 @@ class _SalesPageState extends State<SalesPage> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
+                          Text(
                             'Đã bán hôm nay',
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.bold,
+                              color: Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.white
+                                  : Colors.black,
                             ),
                           ),
                           ElevatedButton.icon(
@@ -2592,17 +2611,17 @@ class _SalesPageState extends State<SalesPage> {
                                             const SizedBox(width: 15),
                                             Text(
                                               'SL: ${item.quantity}',
-                                              style: const TextStyle(
+                                              style: TextStyle(
                                                 fontSize: 15,
-                                                color: Colors.black87,
+                                                color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87,
                                               ),
                                             ),
                                             const SizedBox(width: 15),
                                             Text(
                                               timeString,
-                                              style: const TextStyle(
+                                              style: TextStyle(
                                                 fontSize: 15,
-                                                color: Colors.black87,
+                                                color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87,
                                               ),
                                             ),
                                           ],
@@ -2642,16 +2661,21 @@ class _SalesPageState extends State<SalesPage> {
               left: 0,
               right: 0,
               child: Container(
-                color: Colors.blue[50],
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? const Color(0xFF2A2A2A)
+                    : Colors.blue[50],
                 padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
                       'Đã bán hôm nay: ${soldItems.length}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : Colors.black,
                       ),
                     ),
                     Text(

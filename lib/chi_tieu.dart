@@ -29,8 +29,30 @@ class _ExpensesPageState extends State<ExpensesPage> {
 
   Future<void> _loadExpenses() async {
     try {
-      final expenses = await _expenseService.getTodayExpenses();
-      final total = await _expenseService.getTotalExpensesToday();
+      late List<Expense> expenses;
+      late int total;
+
+      final now = DateTime.now();
+      
+      if (_selectedFilter == 'Hôm nay') {
+        expenses = await _expenseService.getTodayExpenses();
+        total = await _expenseService.getTotalExpensesToday();
+      } else if (_selectedFilter == 'Tuần này') {
+        // Calculate the start of the current week (Monday)
+        final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+        final startOfWeekDate = DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
+        final endOfWeekDate = startOfWeekDate.add(const Duration(days: 7));
+        
+        expenses = await _expenseService.getExpensesByDateRange(startOfWeekDate, endOfWeekDate);
+        total = await _expenseService.getTotalExpensesByDateRange(startOfWeekDate, endOfWeekDate);
+      } else if (_selectedFilter == 'Tháng này') {
+        // Calculate the start and end of the current month
+        final startOfMonth = DateTime(now.year, now.month, 1);
+        final endOfMonth = DateTime(now.year, now.month + 1, 1);
+        
+        expenses = await _expenseService.getExpensesByDateRange(startOfMonth, endOfMonth);
+        total = await _expenseService.getTotalExpensesByDateRange(startOfMonth, endOfMonth);
+      }
 
       if (!mounted) return;
 
@@ -54,120 +76,348 @@ class _ExpensesPageState extends State<ExpensesPage> {
     String selectedCategory = ExpenseService.defaultCategories[0];
     String selectedPaymentMethod = 'Tiền mặt';
     XFile? pickedReceipt;
+    int step = 1; // 1 for amount/category, 2 for details
+    bool showMoreDetails = false;
 
     showDialog(
       context: context,
       builder: (BuildContext dialogContext) {
         return StatefulBuilder(
           builder: (context, setStateDialog) {
-            return AlertDialog(
-              title: const Text('Thêm Chi Tiêu'),
-              contentPadding: const EdgeInsets.fromLTRB(24.0, 20.0, 24.0, 0.0),
-              content: SizedBox(
-                width: MediaQuery.of(context).size.width * 0.9,
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Category Dropdown
-                      DropdownButtonFormField<String>(
-                        initialValue: selectedCategory,
-                        decoration: InputDecoration(
-                          labelText: 'Danh Mục',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
+            if (step == 1) {
+              // STEP 1: Amount
+              return AlertDialog(
+                title: const Text('Bước 1: Số Tiền'),
+                contentPadding: const EdgeInsets.all(24.0),
+                content: SizedBox(
+                  width: MediaQuery.of(context).size.width * 0.9,
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Category Selection (First)
+                        const Text(
+                          'Chọn Danh Mục',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
                           ),
                         ),
-                        items: ExpenseService.defaultCategories
-                            .map(
-                              (category) => DropdownMenuItem(
-                                value: category,
-                                child: Text(category),
+                        const SizedBox(height: 5),
+                        SizedBox(
+                          height: MediaQuery.of(context).size.height * 0.5,
+                          child: GridView.count(
+                            crossAxisCount: 2,
+                            mainAxisSpacing: 8,
+                            crossAxisSpacing: 8,
+                            childAspectRatio: 1.8,
+                            children: ExpenseService.defaultCategories
+                                .map((category) {
+                              final isSelected =
+                                  category == selectedCategory;
+                              return Material(
+                                child: InkWell(
+                                  onTap: () {
+                                    setStateDialog(() {
+                                      selectedCategory = category;
+                                    });
+                                  },
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      border: Border.all(
+                                        color: isSelected
+                                            ? Colors.blue
+                                            : Colors.grey[400]!,
+                                        width: isSelected ? 3 : 2,
+                                      ),
+                                      borderRadius:
+                                          BorderRadius.circular(10),
+                                      color: isSelected
+                                          ? Colors.blue
+                                          : Colors.grey[200],
+                                    ),
+                                    child: Center(
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(6.0),
+                                        child: Text(
+                                          category,
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.bold,
+                                            color: isSelected
+                                                ? Colors.white
+                                                : Colors.black,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ),
+
+                        // Large Amount Input (Second)
+                        const Text(
+                          'Số Tiền (VND)',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        const SizedBox(height: 5),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.blue, width: 2),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: TextField(
+                            controller: amountController,
+                            keyboardType: TextInputType.number,
+                            style: const TextStyle(
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.red,
+                            ),
+                            decoration: InputDecoration(
+                              border: InputBorder.none,
+                              hintText: '0',
+                              hintStyle: TextStyle(
+                                fontSize: 32,
+                                color: Colors.grey[400],
                               ),
-                            )
-                            .toList(),
-                        onChanged: (value) {
-                          if (value != null) {
-                            setStateDialog(() {
-                              selectedCategory = value;
-                            });
-                          }
-                        },
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Description
-                      TextField(
-                        controller: descriptionController,
-                        decoration: InputDecoration(
-                          labelText: 'Mô Tả',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          hintText: 'Nhập mô tả chi tiêu',
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Amount
-                      TextField(
-                        controller: amountController,
-                        keyboardType: TextInputType.number,
-                        decoration: InputDecoration(
-                          labelText: 'Số Tiền (VND)',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          hintText: 'Nhập số tiền',
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Payment Method
-                      DropdownButtonFormField<String>(
-                        value: selectedPaymentMethod,
-                        decoration: InputDecoration(
-                          labelText: 'Phương Thức Thanh Toán',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        items: ['Tiền mặt', 'Chuyển khoản', 'Thẻ']
-                            .map(
-                              (method) => DropdownMenuItem(
-                                value: method,
-                                child: Text(method),
+                              suffixText: 'đ',
+                              suffixStyle: const TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.red,
                               ),
-                            )
-                            .toList(),
-                        onChanged: (value) {
-                          if (value != null) {
-                            setStateDialog(() {
-                              selectedPaymentMethod = value;
-                            });
-                          }
-                        },
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Note
-                      TextField(
-                        controller: noteController,
-                        maxLines: 2,
-                        decoration: InputDecoration(
-                          labelText: 'Ghi Chú (Tùy Chọn)',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
-                          hintText: 'Ghi chú thêm',
                         ),
+                      ],
+                    ),
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
                       ),
-                      const SizedBox(height: 16),
+                    ),
+                    child: const Text('Hủy', style: TextStyle(fontSize: 16)),
+                  ),
+                  ElevatedButton(
+                    onPressed: () {
+                      final amountText = amountController.text.trim();
+                      if (amountText.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Vui lòng nhập số tiền'),
+                          ),
+                        );
+                        return;
+                      }
 
-                      // Receipt Image Picker
-                      Column(
-                        children: [
+                      final amount = int.tryParse(amountText);
+                      if (amount == null || amount <= 0) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Vui lòng nhập số tiền hợp lệ'),
+                          ),
+                        );
+                        return;
+                      }
+
+                      setStateDialog(() {
+                        step = 2;
+                      });
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 32,
+                        vertical: 12,
+                      ),
+                    ),
+                    child: const Text('Tiếp Tục', style: TextStyle(fontSize: 16)),
+                  ),
+                ],
+              );
+            } else {
+              // STEP 2: Optional Details
+              return AlertDialog(
+                title: const Text('Bước 2: Chi Tiết (Tùy Chọn)', style: TextStyle(fontSize: 18)),
+                contentPadding: const EdgeInsets.all(24.0),
+                content: SizedBox(
+                  width: MediaQuery.of(context).size.width * 0.9,
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Description (Main field - always visible)
+                        const Text(
+                          'Mô Tả Ngắn Gọn',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: descriptionController,
+                          style: const TextStyle(fontSize: 16),
+                          decoration: InputDecoration(
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            hintText: 'Nhập mô tả chi tiêu',
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 12,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // More Details Toggle Button
+                        Material(
+                          child: InkWell(
+                            onTap: () {
+                              setStateDialog(() {
+                                showMoreDetails = !showMoreDetails;
+                              });
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 12,
+                                horizontal: 12,
+                              ),
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                  color: Theme.of(context).brightness == Brightness.dark
+                                      ? Colors.grey[700]!
+                                      : Colors.grey[400]!,
+                                ),
+                                borderRadius: BorderRadius.circular(8),
+                                color: Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.grey[800]
+                                    : Colors.grey[100],
+                              ),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'Chi tiết thêm',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                      color: Theme.of(context).brightness == Brightness.dark
+                                          ? Colors.white
+                                          : Colors.black,
+                                    ),
+                                  ),
+                                  Icon(
+                                    showMoreDetails
+                                        ? Icons.expand_less
+                                        : Icons.expand_more,
+                                    color: Theme.of(context).brightness == Brightness.dark
+                                        ? Colors.grey[400]
+                                        : Colors.grey[700],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        // Collapsible More Details Section
+                        if (showMoreDetails) ...[
+                          const SizedBox(height: 16),
+
+                          // Payment Method
+                          const Text(
+                            'Phương Thức Thanh Toán',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          DropdownButtonFormField<String>(
+                            value: selectedPaymentMethod,
+                            decoration: InputDecoration(
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 12,
+                              ),
+                            ),
+                            items: ['Tiền mặt', 'Chuyển khoản', 'Thẻ']
+                                .map(
+                                  (method) => DropdownMenuItem(
+                                    value: method,
+                                    child: Text(method),
+                                  ),
+                                )
+                                .toList(),
+                            onChanged: (value) {
+                              if (value != null) {
+                                setStateDialog(() {
+                                  selectedPaymentMethod = value;
+                                });
+                              }
+                            },
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Note
+                          const Text(
+                            'Ghi Chú',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          TextField(
+                            controller: noteController,
+                            maxLines: 2,
+                            style: const TextStyle(fontSize: 14),
+                            decoration: InputDecoration(
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              hintText: 'Ghi chú thêm (tùy chọn)',
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 12,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Receipt Image Picker
+                          const Text(
+                            'Ảnh Hóa Đơn',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
                           ElevatedButton.icon(
                             icon: const Icon(Icons.receipt_long),
                             label: const Text('Chọn Ảnh Hóa Đơn'),
@@ -204,7 +454,8 @@ class _ExpensesPageState extends State<ExpensesPage> {
                                             ElevatedButton(
                                               onPressed: () async {
                                                 Navigator.pop(ctx);
-                                                await PermissionService.openSettings();
+                                                await PermissionService
+                                                    .openSettings();
                                               },
                                               child: const Text(
                                                 'Open Settings',
@@ -230,15 +481,24 @@ class _ExpensesPageState extends State<ExpensesPage> {
                                 });
                               }
                             },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.grey[400],
+                              foregroundColor: Colors.black,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                            ),
                           ),
                           if (pickedReceipt != null)
                             Padding(
-                              padding: const EdgeInsets.only(top: 8.0),
+                              padding: const EdgeInsets.only(top: 12.0),
                               child: Stack(
                                 children: [
                                   Image.file(
                                     File(pickedReceipt!.path),
-                                    height: 100,
+                                    height: 150,
+                                    fit: BoxFit.cover,
                                   ),
                                   Positioned(
                                     right: 0,
@@ -259,82 +519,91 @@ class _ExpensesPageState extends State<ExpensesPage> {
                               ),
                             ),
                         ],
+                      ],
+                    ),
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      setStateDialog(() {
+                        step = 1;
+                      });
+                    },
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
                       ),
-                    ],
+                    ),
+                    child: const Text('Quay Lại', style: TextStyle(fontSize: 16)),
                   ),
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Hủy'),
-                ),
-                ElevatedButton(
-                  onPressed: () async {
-                    final description = descriptionController.text.trim();
-                    final amountText = amountController.text.trim();
-                    final note = noteController.text.trim();
+                  ElevatedButton(
+                    onPressed: () async {
+                      final amountText = amountController.text.trim();
+                      final description = descriptionController.text.trim();
+                      final note = noteController.text.trim();
 
-                    if (description.isEmpty || amountText.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Vui lòng điền đầy đủ thông tin'),
-                        ),
+                      final amount = int.tryParse(amountText);
+                      if (amount == null || amount <= 0) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Số tiền không hợp lệ'),
+                          ),
+                        );
+                        return;
+                      }
+
+                      // Add expense to database
+                      final success = await _expenseService.addExpense(
+                        category: selectedCategory,
+                        description: description.isEmpty
+                            ? selectedCategory
+                            : description,
+                        amount: amount,
+                        receiptImagePath: pickedReceipt?.path,
+                        note: note.isEmpty ? null : note,
+                        paymentMethod: selectedPaymentMethod,
                       );
-                      return;
-                    }
 
-                    final amount = int.tryParse(amountText);
-                    if (amount == null || amount <= 0) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Vui lòng nhập số tiền hợp lệ'),
-                        ),
-                      );
-                      return;
-                    }
+                      if (success) {
+                        await _loadExpenses();
 
-                    // Add expense to database
-                    final success = await _expenseService.addExpense(
-                      category: selectedCategory,
-                      description: description,
-                      amount: amount,
-                      receiptImagePath: pickedReceipt?.path,
-                      note: note.isEmpty ? null : note,
-                      paymentMethod: selectedPaymentMethod,
-                    );
+                        if (!mounted) return;
 
-                    if (success) {
-                      await _loadExpenses();
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Chi tiêu đã được thêm',
+                            ),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                      } else {
+                        if (!mounted) return;
 
-                      if (!mounted) return;
-
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Chi tiêu "$description" đã được thêm'),
-                          backgroundColor: Colors.green,
-                        ),
-                      );
-                    } else {
-                      if (!mounted) return;
-
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          backgroundColor: Colors.red,
-                          content: Text('Lỗi khi thêm chi tiêu'),
-                        ),
-                      );
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    foregroundColor: Colors.white,
-                    backgroundColor: Colors.blue,
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            backgroundColor: Colors.red,
+                            content: Text('Lỗi khi thêm chi tiêu'),
+                          ),
+                        );
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 32,
+                        vertical: 12,
+                      ),
+                    ),
+                    child: const Text('Lưu', style: TextStyle(fontSize: 16)),
                   ),
-                  child: const Text('Thêm'),
-                ),
-              ],
-            );
+                ],
+              );
+            }
           },
         );
       },
@@ -465,6 +734,37 @@ class _ExpensesPageState extends State<ExpensesPage> {
     }
   }
 
+  Future<Map<String, int>> _getExpensesByCategoryForFilter() async {
+    try {
+      late List<Expense> expenses;
+      final now = DateTime.now();
+      
+      if (_selectedFilter == 'Hôm nay') {
+        expenses = await _expenseService.getTodayExpenses();
+      } else if (_selectedFilter == 'Tuần này') {
+        final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+        final startOfWeekDate = DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
+        final endOfWeekDate = startOfWeekDate.add(const Duration(days: 7));
+        expenses = await _expenseService.getExpensesByDateRange(startOfWeekDate, endOfWeekDate);
+      } else if (_selectedFilter == 'Tháng này') {
+        final startOfMonth = DateTime(now.year, now.month, 1);
+        final endOfMonth = DateTime(now.year, now.month + 1, 1);
+        expenses = await _expenseService.getExpensesByDateRange(startOfMonth, endOfMonth);
+      }
+      
+      final Map<String, int> categoryTotals = {};
+      for (var expense in expenses) {
+        categoryTotals[expense.category] =
+            (categoryTotals[expense.category] ?? 0) + expense.amount;
+      }
+      
+      return categoryTotals;
+    } catch (e) {
+      print('Error getting expenses by category for filter: $e');
+      return {};
+    }
+  }
+
   @override
   void dispose() {
     _expenseListScrollController.dispose();
@@ -495,7 +795,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'Tổng Chi Tiêu $_selectedFilter',
+                          'Tổng Chi Tiêu - $_selectedFilter',
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 18,
@@ -523,7 +823,6 @@ class _ExpensesPageState extends State<ExpensesPage> {
                               setState(() {
                                 _selectedFilter = value;
                               });
-                              // TODO: Implement filter logic for week/month
                               _loadExpenses();
                             }
                           },
@@ -597,9 +896,9 @@ class _ExpensesPageState extends State<ExpensesPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Danh Mục Chi Tiêu',
-                      style: TextStyle(
+                    Text(
+                      'Danh Mục Chi Tiêu - $_selectedFilter',
+                      style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                       ),
@@ -608,7 +907,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                     SizedBox(
                       height: 80,
                       child: FutureBuilder<Map<String, int>>(
-                        future: _expenseService.getExpensesByCategoryToday(),
+                        future: _getExpensesByCategoryForFilter(),
                         builder: (context, snapshot) {
                           if (snapshot.hasData && snapshot.data!.isNotEmpty) {
                             final categories = snapshot.data!;
@@ -687,11 +986,14 @@ class _ExpensesPageState extends State<ExpensesPage> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
-                            'Chi tiêu hôm nay',
+                          Text(
+                            'Chi tiêu $_selectedFilter',
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.bold,
+                              color: Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.white
+                                  : Colors.black,
                             ),
                           ),
                           ElevatedButton.icon(
@@ -835,16 +1137,21 @@ class _ExpensesPageState extends State<ExpensesPage> {
               left: 0,
               right: 0,
               child: Container(
-                color: Colors.red[50],
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? const Color(0xFF2A2A2A)
+                    : Colors.red[50],
                 padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Chi tiêu hôm nay: ${todayExpenses.length} mục',
-                      style: const TextStyle(
+                      'Chi tiêu $_selectedFilter: ${todayExpenses.length} mục',
+                      style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : Colors.black,
                       ),
                     ),
                     ElevatedButton.icon(

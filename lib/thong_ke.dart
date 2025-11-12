@@ -135,21 +135,28 @@ class _StatisticsPageState extends State<StatisticsPage> {
   }
 
   Future<void> _selectCustomDateRange() async {
-    final DateTimeRange? picked = await showDateRangePicker(
-      context: context,
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
-      initialDateRange: DateTimeRange(start: _startDate, end: _endDate),
-      locale: const Locale('vi', 'VN'),
-    );
+    try {
+      final DateTimeRange? picked = await showDateRangePicker(
+        context: context,
+        firstDate: DateTime(2020),
+        lastDate: DateTime.now(),
+        initialDateRange: DateTimeRange(start: _startDate, end: _endDate),
+      );
 
-    if (picked != null) {
-      setState(() {
-        _selectedPeriod = 'Tùy chỉnh';
-        _startDate = picked.start;
-        _endDate = picked.end;
-      });
-      _loadStatistics();
+      if (picked != null) {
+        setState(() {
+          _selectedPeriod = 'Tùy chỉnh';
+          _startDate = picked.start;
+          _endDate = picked.end;
+        });
+        _loadStatistics();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi chọn ngày: $e')),
+        );
+      }
     }
   }
 
@@ -224,8 +231,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
         },
         selectedColor: Colors.blue,
         labelStyle: TextStyle(
-          color: isSelected ? Colors.white : Colors.black,
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          color: isSelected ? Colors.white : (Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black),
         ),
       ),
     );
@@ -241,8 +247,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
       },
       selectedColor: Colors.blue,
       labelStyle: TextStyle(
-        color: isSelected ? Colors.white : Colors.black,
-        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        color: isSelected ? Colors.white : (Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black),
       ),
     );
   }
@@ -328,7 +333,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
     Color color,
   ) {
     return Card(
-      elevation: 2,
+      elevation: 10,
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -471,7 +476,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
             }
 
             return Card(
-              elevation: 2,
+              elevation: 10,
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
@@ -480,12 +485,14 @@ class _StatisticsPageState extends State<StatisticsPage> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
+                        Text(
                           'Số lượng bán ra',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: Colors.black,
+                            color: Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.white
+                                    : Colors.black,
                             letterSpacing: 0.5,
                           ),
                         ),
@@ -531,9 +538,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
                                   );
                                   return Text(
                                     '${DateFormat('dd/MM').format(weekStart)} - ${DateFormat('dd/MM').format(weekEnd)}',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 11,
-                                      color: Colors.black54,
+                                      color: Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.white
+                                    : Colors.black54,
                                     ),
                                   );
                                 },
@@ -563,10 +572,12 @@ class _StatisticsPageState extends State<StatisticsPage> {
                               padding: const EdgeInsets.only(bottom: 12.0),
                               child: Text(
                                 'bán được tuần này',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w400,
-                                  color: Colors.black54,
+                                  color: Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.white
+                                    : Colors.black54,
                                 ),
                               ),
                             ),
@@ -650,10 +661,12 @@ class _StatisticsPageState extends State<StatisticsPage> {
                                             ),
                                             child: Text(
                                               '$total',
-                                              style: const TextStyle(
+                                              style:  TextStyle(
                                                 fontSize: 11,
                                                 fontWeight: FontWeight.bold,
-                                                color: Colors.black45,
+                                                color: Theme.of(context).brightness == Brightness.dark
+                                                  ? Colors.white
+                                                  : Colors.black45,
                                               ),
                                             ),
                                           ),
@@ -667,7 +680,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
                                             color: total > 0
                                                 ? (isToday
                                                       ? Colors.blue
-                                                      : Colors.blue.shade300)
+                                                      : Colors.blue.shade200)
                                                 : Colors.grey[300],
                                             borderRadius:
                                                 const BorderRadius.vertical(
@@ -682,8 +695,12 @@ class _StatisticsPageState extends State<StatisticsPage> {
                                           style: TextStyle(
                                             fontSize: 12,
                                             color: isToday
-                                                ? Colors.black
-                                                : Colors.grey,
+                                              ? (Theme.of(context).brightness == Brightness.dark
+                                                ? Colors.white
+                                                : Colors.black)
+                                              : (Theme.of(context).brightness == Brightness.dark
+                                                ? Colors.white54
+                                                : Colors.grey),
                                             fontWeight: isToday
                                                 ? FontWeight.bold
                                                 : FontWeight.normal,
@@ -875,7 +892,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
 
     if (sortedDates.isEmpty) {
       return Card(
-        elevation: 2,
+        elevation: 10,
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
@@ -924,7 +941,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
     if (maxY == 0) maxY = 100000; // Default if no data
 
     return Card(
-      elevation: 2,
+      elevation: 10,
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -971,9 +988,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
                               padding: const EdgeInsets.only(top: 8.0),
                               child: Text(
                                 sortedDateStrings[value.toInt()],
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 10,
-                                  color: Colors.black,
+                                  color: Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.white
+                                    : Colors.black,
                                 ),
                               ),
                             );
@@ -992,9 +1011,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
                           if (value < 0) return const Text('');
                           return Text(
                             _formatCompactCurrency(value.toInt()),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 10,
-                              color: Colors.black,
+                              color: Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.white
+                                    : Colors.black,
                             ),
                           );
                         },
@@ -1115,9 +1136,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
 
   String _formatCompactCurrency(int amount) {
     if (amount >= 1000000) {
-      return '${(amount / 1000000).toStringAsFixed(1)}M';
-    } else if (amount >= 1000) {
-      return '${(amount / 1000).toStringAsFixed(0)}K';
+      return '${(amount / 1000000).toStringAsFixed(1)} Tr';
     }
     return amount.toString();
   }
@@ -1148,7 +1167,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
 
     if (top5.isEmpty) {
       return Card(
-        elevation: 2,
+        elevation: 10,
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
@@ -1169,7 +1188,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
     }
 
     return Card(
-      elevation: 2,
+      elevation: 10,
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -1245,7 +1264,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
 
     if (categoryTotals.isEmpty) {
       return Card(
-        elevation: 2,
+        elevation: 10,
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
@@ -1295,7 +1314,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
     }
 
     return Card(
-      elevation: 2,
+      elevation: 10,
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -1373,7 +1392,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
 
     if (sortedCategories.isEmpty) {
       return Card(
-        elevation: 2,
+        elevation: 10,
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
@@ -1394,7 +1413,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
     }
 
     return Card(
-      elevation: 2,
+      elevation: 10,
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(

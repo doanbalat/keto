@@ -17,82 +17,102 @@ class TestDataGenerator {
   static final List<Map<String, dynamic>> _sampleProducts = [
     {
       'name': 'Trà Dâu',
-      'price': 45000,
+      'price': 30000,
       'costPrice': 15000,
       'category': 'Đồ uống',
     },
     {
       'name': 'Trà Sữa',
-      'price': 50000,
-      'costPrice': 18000,
+      'price': 25000,
+      'costPrice': 10000,
       'category': 'Đồ uống',
     },
     {
       'name': 'Cà Phê',
-      'price': 35000,
-      'costPrice': 12000,
+      'price': 15000,
+      'costPrice': 6000,
       'category': 'Đồ uống',
     },
     {
       'name': 'Nước Ép Cà Chua',
-      'price': 40000,
-      'costPrice': 14000,
+      'price': 20000,
+      'costPrice': 10000,
       'category': 'Đồ uống',
     },
     {
       'name': 'Smoothie Xoài',
-      'price': 55000,
-      'costPrice': 20000,
+      'price': 35000,
+      'costPrice': 15000,
       'category': 'Đồ uống',
     },
     {
-      'name': 'Bánh Mì Keto',
-      'price': 65000,
-      'costPrice': 25000,
-      'category': 'Thức ăn',
+      'name': 'Trà Đào Cam Sả',
+      'price': 25000,
+      'costPrice': 10000,
+      'category': 'Đồ uống',
     },
     {
-      'name': 'Salad Rau',
-      'price': 60000,
-      'costPrice': 22000,
-      'category': 'Thức ăn',
+      'name': 'Trà Vải',
+      'price': 30000,
+      'costPrice': 15500,
+      'category': 'Đồ uống',
     },
     {
-      'name': 'Cơm Chiên Cauliflower',
-      'price': 70000,
-      'costPrice': 28000,
-      'category': 'Thức ăn',
+      'name': 'Matcha Latte',
+      'price': 30000,
+      'costPrice': 14000,
+      'category': 'Đồ uống',
     },
     {
-      'name': 'Muffin Chocolate',
-      'price': 45000,
-      'costPrice': 16000,
-      'category': 'Bánh',
+      'name': 'Cacao Nóng',
+      'price': 25000,
+      'costPrice': 9000,
+      'category': 'Đồ uống',
     },
     {
-      'name': 'Cookie Bơ Đậu Phộng',
-      'price': 50000,
-      'costPrice': 18000,
-      'category': 'Bánh',
+      'name': 'Sữa Tươi Trân Châu Đường Đen',
+      'price': 30000,
+      'costPrice': 10000,
+      'category': 'Đồ uống',
+    },
+    {
+      'name': 'Nước Ép Cam',
+      'price': 20000,
+      'costPrice': 4500,
+      'category': 'Đồ uống',
+    },
+    {
+      'name': 'Sinh Tố Bơ',
+      'price': 30000,
+      'costPrice': 15000,
+      'category': 'Đồ uống',
+    },
+    {
+      'name': 'Trà Xanh Macchiato',
+      'price': 30000,
+      'costPrice': 19500,
+      'category': 'Đồ uống',
+    },
+    {
+      'name': 'Soda Việt Quất',
+      'price': 20000,
+      'costPrice': 10000,
+      'category': 'Đồ uống',
+    },
+    {
+      'name': 'Nước Ép Dưa Hấu',
+      'price': 20000,
+      'costPrice': 8000,
+      'category': 'Đồ uống',
     },
   ];
 
   // Expense categories with expanded types
   static final List<String> _expenseCategories = [
     'Nguyên liệu',
-    'Điện nước',
     'Vận chuyển',
     'Nhân công',
-    'Quảng cáo',
     'Bảo trì',
-    'Thuê mặt bằng',
-    'Bao bì',
-    'Đào tạo',
-    'Internet & Điện thoại',
-    'Kế toán & Thuế',
-    'Bảo hiểm',
-    'Văn phòng phẩm',
-    'Sự kiện & Marketing',
     'Khác',
   ];
 
@@ -214,8 +234,8 @@ class TestDataGenerator {
 
       // Generate 30-50 transactions per day (more on weekends)
       final transactionCount = isWeekend
-          ? _random.nextInt(21) + 40 // 40-60 for weekend
-          : _random.nextInt(21) + 30; // 30-50 for weekday
+          ? _random.nextInt(21) + 30 //  weekend
+          : _random.nextInt(21) + 10; //  weekday
 
       // Batch insert for better performance
       final dailySalesItems = <SoldItem>[];
@@ -240,13 +260,9 @@ class TestDataGenerator {
         final productPrice = productPrices[productId];
 
         if (productPrice != null) {
-          // Vary quantities more - 1-5 items
-          final quantity = _random.nextInt(5) + 1;
+          final quantity = _random.nextInt(3) + 1;
           final totalPrice = productPrice * quantity;
-          // 25% chance of discount (increased from 20%)
-          final discount = _random.nextDouble() > 0.75
-              ? _random.nextInt(15000) + 5000 // 5k-20k discount
-              : 0;
+          final discount = 0;
 
           final soldItem = SoldItem(
             id: 0, // Auto-generate ID
@@ -305,9 +321,9 @@ class TestDataGenerator {
     int totalExpenses = 0;
     int totalExpenseAmount = 0;
 
-    // Calculate target expense amount (40% of sales revenue)
+    // Calculate target expense amount
     final targetExpenseAmount = (_totalSalesRevenue * 0.4).toInt();
-    final expensePerDay = (targetExpenseAmount / 30).toInt();
+    final expensePerDay = (targetExpenseAmount / 30).toInt() + 500000;
 
     // Pre-cache descriptions and notes for all categories
     final descriptionsByCategory = <String, List<String>>{};
@@ -321,21 +337,19 @@ class TestDataGenerator {
     // Generate expenses for each day
     for (int dayOffset = 30; dayOffset >= 0; dayOffset--) {
       final date = oneMonthAgo.add(Duration(days: 30 - dayOffset));
-      final isWeekend =
-          date.weekday == 6 || date.weekday == 7; // Saturday or Sunday
+      final isWeekend = date.weekday == 6 || date.weekday == 7; // Saturday or Sunday
 
       // Report progress to callback
       _reportProgress('Expenses', 30 - dayOffset, 31);
 
-      // Generate 3-8 expenses per day for more variety
-      // Adjust the count based on whether it's weekend for variance
-      final expenseCount = isWeekend
-          ? _random.nextInt(6) + 4 // 4-9 for weekend
-          : _random.nextInt(6) + 3; // 3-8 for weekday
+      // Pick 2-3 unique categories for the day
+      final categoriesForDay = List<String>.from(_expenseCategories)..shuffle();
+      final numTypes = isWeekend ? (_random.nextInt(2) + 2) : (_random.nextInt(2) + 1); // 2-3 for weekend, 1-2 for weekday
+      final selectedCategories = categoriesForDay.take(numTypes).toList();
 
       final dailyExpenses = <Expense>[];
 
-      for (int i = 0; i < expenseCount; i++) {
+      for (final category in selectedCategories) {
         final hour = _random.nextInt(12) + 7; // 7 AM - 7 PM
         final minute = _random.nextInt(60);
 
@@ -347,15 +361,12 @@ class TestDataGenerator {
           minute,
         );
 
-        final category =
-            _expenseCategories[_random.nextInt(_expenseCategories.length)];
-        
-        // Get base amount for category
-        int amount = _getExpenseAmountForCategory(category);
-        
-        // Adjust amount based on daily target to keep 40% ratio
+        // Get base amount for category (reduced by 50%)
+        int amount = (_getExpenseAmountForCategory(category) * 0.5).toInt();
+
+        // Adjust amount based on daily target to keep 15% ratio
         final dayAdjustmentFactor = (expensePerDay / 2000000); // Normalize around 2M average
-        amount = (amount * dayAdjustmentFactor).toInt().clamp(50000, 20000000);
+        amount = (amount * dayAdjustmentFactor).toInt().clamp(20000, 5000000);
 
         // Get cached descriptions and notes
         final descriptions = descriptionsByCategory[category] ?? ['Chi phí'];
@@ -417,35 +428,15 @@ class TestDataGenerator {
   static int _getExpenseAmountForCategory(String category) {
     switch (category) {
       case 'Nguyên liệu':
-        return _random.nextInt(3000000) + 500000; // 0.5-3.5M
-      case 'Điện nước':
-        return _random.nextInt(1500000) + 300000; // 0.3-1.8M
+        return _random.nextInt(3000000); // 0-1M
       case 'Vận chuyển':
-        return _random.nextInt(500000) + 50000; // 50k-550k
-      case 'Nhân công':
-        return _random.nextInt(8000000) + 3000000; // 3-11M
-      case 'Quảng cáo':
-        return _random.nextInt(3000000) + 200000; // 0.2-3.2M
+        return _random.nextInt(700000); // 0-500k
       case 'Bảo trì':
-        return _random.nextInt(800000) + 100000; // 100k-900k
-      case 'Thuê mặt bằng':
-        return _random.nextInt(10000000) + 5000000; // 5-15M
-      case 'Bao bì':
-        return _random.nextInt(1000000) + 100000; // 100k-1.1M
-      case 'Đào tạo':
-        return _random.nextInt(2000000) + 500000; // 0.5-2.5M
-      case 'Internet & Điện thoại':
-        return _random.nextInt(500000) + 200000; // 200k-700k
-      case 'Kế toán & Thuế':
-        return _random.nextInt(5000000) + 1000000; // 1-6M
-      case 'Bảo hiểm':
-        return _random.nextInt(3000000) + 500000; // 0.5-3.5M
-      case 'Văn phòng phẩm':
-        return _random.nextInt(500000) + 50000; // 50k-550k
-      case 'Sự kiện & Marketing':
-        return _random.nextInt(5000000) + 1000000; // 1-6M
+        return _random.nextInt(500000); // 0-200k
+      case 'Nhân công':
+        return _random.nextInt(2000000); // 0-200k
       default: // Khác
-        return _random.nextInt(2000000) + 100000; // 0.1-2.1M
+        return _random.nextInt(5000000); // 0-1M
     }
   }
 

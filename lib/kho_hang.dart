@@ -8,7 +8,9 @@ import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 
 class InventoryPage extends StatefulWidget {
-  const InventoryPage({super.key});
+  final int lowStockThreshold;
+
+  const InventoryPage({super.key, this.lowStockThreshold = 5});
 
   @override
   State<InventoryPage> createState() => _InventoryPageState();
@@ -70,11 +72,11 @@ class _InventoryPageState extends State<InventoryPage> {
         if (_activeFilter == null || _activeFilter == 'all') {
           return true;
         } else if (_activeFilter == 'inStock') {
-          return product.stock > 0;
+          return product.stock > widget.lowStockThreshold;
         } else if (_activeFilter == 'outOfStock') {
           return product.stock == 0;
         } else if (_activeFilter == 'lowStock') {
-          return product.stock > 0 && product.stock <= 5;
+          return product.stock > 0 && product.stock <= widget.lowStockThreshold;
         }
         return true;
       }).toList();
@@ -96,13 +98,13 @@ class _InventoryPageState extends State<InventoryPage> {
 
   Color _getStockIndicatorColor(int quantity) {
     if (quantity == 0) return Colors.redAccent;
-    if (quantity < 5) return Colors.orange;
+    if (quantity <= widget.lowStockThreshold) return Colors.orange;
     return Colors.green;
   }
 
   String _getStockStatus(int quantity) {
     if (quantity == 0) return 'Hết hàng / Không Rõ SL';
-    if (quantity < 5) return 'Sắp hết';
+    if (quantity <= widget.lowStockThreshold) return 'Sắp hết';
     return 'Còn hàng';
   }
 
@@ -114,7 +116,7 @@ class _InventoryPageState extends State<InventoryPage> {
   }
 
   int _getProductsInStock() {
-    return allProducts.where((p) => p.stock > 0).length;
+    return allProducts.where((p) => p.stock > widget.lowStockThreshold).length;
   }
 
   int _getProductsOutOfStock() {
@@ -122,7 +124,7 @@ class _InventoryPageState extends State<InventoryPage> {
   }
 
   int _getLowStockProducts() {
-    return allProducts.where((p) => p.stock > 0 && p.stock <= 5).length;
+    return allProducts.where((p) => p.stock > 0 && p.stock <= widget.lowStockThreshold).length;
   }
 
   void _showAdjustStockDialog(Product product) {
@@ -270,7 +272,7 @@ class _InventoryPageState extends State<InventoryPage> {
                             'Kho hiện tại:',
                             style: TextStyle(
                               fontSize: 13,
-                              color: Colors.grey[700],
+                              color: Colors.black87,
                             ),
                           ),
                           Text(
@@ -314,7 +316,7 @@ class _InventoryPageState extends State<InventoryPage> {
                             ),
                             child: const Text(
                               '-10',
-                              style: TextStyle(fontSize: 12),
+                              style: TextStyle(fontSize: 15),
                             ),
                           ),
                         ),
@@ -335,7 +337,7 @@ class _InventoryPageState extends State<InventoryPage> {
                             ),
                             child: const Text(
                               '-1',
-                              style: TextStyle(fontSize: 12),
+                              style: TextStyle(fontSize: 15),
                             ),
                           ),
                         ),
@@ -348,12 +350,12 @@ class _InventoryPageState extends State<InventoryPage> {
                             }),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.green[100],
-                              foregroundColor: Colors.green,
+                              foregroundColor: const Color.fromARGB(255, 19, 97, 20),
                               padding: const EdgeInsets.symmetric(vertical: 8),
                             ),
                             child: const Text(
                               '+1',
-                              style: TextStyle(fontSize: 12),
+                              style: TextStyle(fontSize: 15),
                             ),
                           ),
                         ),
@@ -366,12 +368,12 @@ class _InventoryPageState extends State<InventoryPage> {
                             }),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.green[100],
-                              foregroundColor: Colors.green,
+                              foregroundColor: const Color.fromARGB(255, 19, 97, 20),
                               padding: const EdgeInsets.symmetric(vertical: 8),
                             ),
                             child: const Text(
                               '+10',
-                              style: TextStyle(fontSize: 12),
+                              style: TextStyle(fontSize: 15),
                             ),
                           ),
                         ),
@@ -431,9 +433,9 @@ class _InventoryPageState extends State<InventoryPage> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.orange[50],
+                        color: const Color.fromARGB(255, 252, 236, 210),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.orange[200]!),
+                        border: Border.all(color: const Color.fromARGB(255, 250, 195, 113)),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -445,7 +447,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                 'Giá bán:',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: Colors.grey[700],
+                                  color: Colors.black87,
                                 ),
                               ),
                               Text(
@@ -455,6 +457,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                   decimalDigits: 0,
                                 ).format(product.price),
                                 style: const TextStyle(
+                                  color: Colors.black87,
                                   fontWeight: FontWeight.w600,
                                   fontSize: 13,
                                 ),
@@ -469,7 +472,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                 'Giá vốn:',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: Colors.grey[700],
+                                  color: Colors.black87,
                                 ),
                               ),
                               Text(
@@ -479,6 +482,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                   decimalDigits: 0,
                                 ).format(product.costPrice),
                                 style: const TextStyle(
+                                  color: Colors.black87,
                                   fontWeight: FontWeight.w600,
                                   fontSize: 13,
                                 ),
@@ -491,7 +495,7 @@ class _InventoryPageState extends State<InventoryPage> {
                             'Giá trị kho hiện tại: ${NumberFormat.currency(locale: 'vi', symbol: 'đ', decimalDigits: 0).format(product.stock * product.price)}',
                             style: TextStyle(
                               fontSize: 11,
-                              color: Colors.grey[600],
+                              color: Colors.black87,
                               fontStyle: FontStyle.italic,
                             ),
                           ),
@@ -647,11 +651,9 @@ class _InventoryPageState extends State<InventoryPage> {
               child: Container(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(16),
-                  gradient: LinearGradient(
-                    colors: [Colors.white, Colors.grey[50]!],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                  ),
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? const Color(0xFF1E1E1E)
+                      : Colors.white,
                 ),
                 constraints: BoxConstraints(
                   maxHeight: MediaQuery.of(context).size.height * 0.9,
@@ -828,7 +830,12 @@ class _InventoryPageState extends State<InventoryPage> {
                                 controller: nameController,
                                 decoration: InputDecoration(
                                   labelText: 'Tên sản phẩm',
-                                  labelStyle: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                                  labelStyle: TextStyle(
+                                    color: Theme.of(context).brightness == Brightness.dark
+                                        ? Colors.grey[300]
+                                        : Colors.black,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                   floatingLabelBehavior: FloatingLabelBehavior.always,
                                   prefixIcon: const Icon(Icons.label_outline),
                                   border: OutlineInputBorder(
@@ -861,7 +868,12 @@ class _InventoryPageState extends State<InventoryPage> {
                                 keyboardType: TextInputType.number,
                                 decoration: InputDecoration(
                                   labelText: 'Giá bán (VND)',
-                                  labelStyle: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                                  labelStyle: TextStyle(
+                                    color: Theme.of(context).brightness == Brightness.dark
+                                        ? Colors.grey[300]
+                                        : Colors.black,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                   floatingLabelBehavior: FloatingLabelBehavior.always,
                                   prefixIcon: const Icon(Icons.attach_money),
                                   border: OutlineInputBorder(
@@ -894,7 +906,12 @@ class _InventoryPageState extends State<InventoryPage> {
                                 keyboardType: TextInputType.number,
                                 decoration: InputDecoration(
                                   labelText: 'Giá vốn (VND)',
-                                  labelStyle: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                                  labelStyle: TextStyle(
+                                    color: Theme.of(context).brightness == Brightness.dark
+                                        ? Colors.grey[300]
+                                        : Colors.black,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                   prefixIcon: const Icon(Icons.shopping_bag),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
@@ -926,7 +943,12 @@ class _InventoryPageState extends State<InventoryPage> {
                                 keyboardType: TextInputType.number,
                                 decoration: InputDecoration(
                                   labelText: 'Số lượng hàng',
-                                  labelStyle: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                                  labelStyle: TextStyle(
+                                    color: Theme.of(context).brightness == Brightness.dark
+                                        ? Colors.grey[300]
+                                        : Colors.black,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                   prefixIcon: const Icon(Icons.inventory_2),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
@@ -958,7 +980,12 @@ class _InventoryPageState extends State<InventoryPage> {
                                 decoration: InputDecoration(
                                   labelText:
                                       'Đơn vị (cái, kg, ly, hộp, phần, ...)',
-                                  labelStyle: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                                  labelStyle: TextStyle(
+                                    color: Theme.of(context).brightness == Brightness.dark
+                                        ? Colors.grey[300]
+                                        : Colors.black,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                   prefixIcon: const Icon(Icons.straighten),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
@@ -1013,7 +1040,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                 style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
-                                  color: Colors.black87,
+                                  color: Colors.red,
                                 ),
                               ),
                             ),
@@ -1181,7 +1208,7 @@ class _InventoryPageState extends State<InventoryPage> {
                 ),
               ),
               child: Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.symmetric(horizontal: 30.0, vertical: 0.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -1283,7 +1310,7 @@ class _InventoryPageState extends State<InventoryPage> {
             ),
             // Search and Action Buttons
             Padding(
-              padding: const EdgeInsets.all(8.0),
+              padding: const EdgeInsets.all(1.5),
               child: Row(
                 children: [
                   // Search TextField
@@ -1300,14 +1327,14 @@ class _InventoryPageState extends State<InventoryPage> {
                           borderRadius: BorderRadius.circular(8),
                           borderSide: const BorderSide(
                             color: Colors.grey,
-                            width: 1,
+                            width: 2,
                           ),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
                           borderSide: const BorderSide(
                             color: Colors.blue,
-                            width: 4,
+                            width: 5,
                           ),
                         ),
                         contentPadding: const EdgeInsets.symmetric(
@@ -1338,7 +1365,8 @@ class _InventoryPageState extends State<InventoryPage> {
                       showDialog(
                         context: context,
                         builder: (context) {
-                          String sortBy = 'name'; // 'name', 'quantity', 'price'
+                          String sortBy =
+                              'name'; // 'name', 'quantity', 'price'
                           return StatefulBuilder(
                             builder: (context, setDialogState) {
                               // Sort products based on selected option
@@ -1366,11 +1394,9 @@ class _InventoryPageState extends State<InventoryPage> {
                                 child: Container(
                                   decoration: BoxDecoration(
                                     borderRadius: BorderRadius.circular(16),
-                                    gradient: LinearGradient(
-                                      colors: [Colors.white, Colors.grey[50]!],
-                                      begin: Alignment.topCenter,
-                                      end: Alignment.bottomCenter,
-                                    ),
+                                    color: Theme.of(context).brightness == Brightness.dark
+                                        ? const Color(0xFF1E1E1E)
+                                        : Colors.white,
                                   ),
                                   child: Column(
                                     children: [
@@ -1605,17 +1631,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                                                 BorderRadius.circular(
                                                                   16,
                                                                 ),
-                                                            gradient: LinearGradient(
-                                                              colors: [
-                                                                Colors.white,
-                                                                Colors
-                                                                    .grey[50]!,
-                                                              ],
-                                                              begin: Alignment
-                                                                  .topCenter,
-                                                              end: Alignment
-                                                                  .bottomCenter,
-                                                            ),
+                                                            color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : Colors.white,
                                                           ),
                                                           padding:
                                                               const EdgeInsets.all(
@@ -1667,15 +1683,13 @@ class _InventoryPageState extends State<InventoryPage> {
                                                               // Product info card
                                                               Container(
                                                                 decoration: BoxDecoration(
-                                                                  color: Colors
-                                                                      .blue[50],
+                                                                  color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF2A2A2A) : Colors.blue[50],
                                                                   borderRadius:
                                                                       BorderRadius.circular(
                                                                         12,
                                                                       ),
                                                                   border: Border.all(
-                                                                    color: Colors
-                                                                        .blue[200]!,
+                                                                    color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF3A3A3A) : Colors.blue[200]!,
                                                                     width: 1,
                                                                   ),
                                                                 ),
@@ -1734,7 +1748,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                                                                 'Tên sản phẩm',
                                                                                 style: TextStyle(
                                                                                   fontSize: 12,
-                                                                                  color: Colors.grey[600],
+                                                                                  color: Theme.of(context).brightness == Brightness.dark ? Colors.grey[400] : Colors.grey[600],
                                                                                   fontWeight: FontWeight.w500,
                                                                                 ),
                                                                               ),
@@ -1743,9 +1757,10 @@ class _InventoryPageState extends State<InventoryPage> {
                                                                               ),
                                                                               Text(
                                                                                 product.name,
-                                                                                style: const TextStyle(
+                                                                                style: TextStyle(
                                                                                   fontSize: 16,
                                                                                   fontWeight: FontWeight.bold,
+                                                                                  color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
                                                                                 ),
                                                                                 maxLines: 2,
                                                                                 overflow: TextOverflow.ellipsis,
@@ -1794,7 +1809,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                                                                 'Giá bán',
                                                                                 style: TextStyle(
                                                                                   fontSize: 12,
-                                                                                  color: Colors.grey[600],
+                                                                                  color: Theme.of(context).brightness == Brightness.dark ? Colors.grey[400] : Colors.grey[600],
                                                                                   fontWeight: FontWeight.w500,
                                                                                 ),
                                                                               ),
@@ -1827,7 +1842,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                                                                 'Giá vốn',
                                                                                 style: TextStyle(
                                                                                   fontSize: 12,
-                                                                                  color: Colors.grey[600],
+                                                                                  color: Theme.of(context).brightness == Brightness.dark ? Colors.grey[400] : Colors.grey[600],
                                                                                   fontWeight: FontWeight.w500,
                                                                                 ),
                                                                               ),
@@ -1868,8 +1883,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                                                   style: TextStyle(
                                                                     fontSize:
                                                                         14,
-                                                                    color: Colors
-                                                                        .grey[700],
+                                                                    color: Theme.of(context).brightness == Brightness.dark ? Colors.grey[300] : Colors.grey[700],
                                                                   ),
                                                                   children: [
                                                                     const TextSpan(
@@ -1915,23 +1929,22 @@ class _InventoryPageState extends State<InventoryPage> {
                                                                               BorderRadius.circular(
                                                                                 8,
                                                                               ),
-                                                                          side: const BorderSide(
+                                                                          side: BorderSide(
                                                                             color:
-                                                                                Colors.grey,
+                                                                                Theme.of(context).brightness == Brightness.dark ? Colors.grey[600]! : Colors.grey,
                                                                             width:
                                                                                 1,
                                                                           ),
                                                                         ),
                                                                       ),
-                                                                      child: const Text(
+                                                                      child: Text(
                                                                         'Hủy',
                                                                         style: TextStyle(
                                                                           fontSize:
                                                                               14,
                                                                           fontWeight:
                                                                               FontWeight.w600,
-                                                                          color:
-                                                                              Colors.grey,
+                                                                          color: Theme.of(context).brightness == Brightness.dark ? Colors.grey[300] : Colors.grey,
                                                                         ),
                                                                       ),
                                                                     ),
@@ -2135,8 +2148,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                                                     style: TextStyle(
                                                                       fontSize:
                                                                           12,
-                                                                      color: Colors
-                                                                          .grey[600],
+                                                                      color: Colors.green,
                                                                     ),
                                                                     maxLines: 1,
                                                                     overflow:
@@ -2153,8 +2165,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                                               'Giá vốn: ${NumberFormat.currency(locale: 'vi', symbol: 'đ', decimalDigits: 0).format(product.costPrice)}',
                                                               style: TextStyle(
                                                                 fontSize: 12,
-                                                                color: Colors
-                                                                    .grey[600],
+                                                                color: Colors.purple,
                                                               ),
                                                               maxLines: 1,
                                                               overflow:
@@ -2683,12 +2694,12 @@ class _InventoryPageState extends State<InventoryPage> {
                           ),
                           decoration: BoxDecoration(
                             color: _sortBy == 'name'
-                                ? Colors.blue.withValues(alpha: 0.15)
+                                ? Colors.orange.withValues(alpha: 0.15)
                                 : Colors.grey[200],
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
                               color: _sortBy == 'name'
-                                  ? Colors.blue
+                                  ? Colors.orange
                                   : Colors.transparent,
                               width: 1.5,
                             ),
@@ -2704,7 +2715,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                       ? FontWeight.w600
                                       : FontWeight.w500,
                                   color: _sortBy == 'name'
-                                      ? Colors.blue
+                                      ? Colors.orange
                                       : Colors.black87,
                                 ),
                               ),
@@ -2716,7 +2727,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                         ? Icons.arrow_upward
                                         : Icons.arrow_downward,
                                     size: 14,
-                                    color: Colors.blue,
+                                    color: Colors.orange,
                                   ),
                                 ),
                             ],
@@ -2884,7 +2895,9 @@ class _InventoryPageState extends State<InventoryPage> {
                                                 'Giá bán: ${NumberFormat.currency(locale: 'vi', symbol: 'đ', decimalDigits: 0).format(product.price)}',
                                                 style: TextStyle(
                                                   fontSize: 13,
-                                                  color: Colors.black,
+                                                  color: Theme.of(context).brightness == Brightness.dark
+                                                      ? Colors.white
+                                                      : Colors.black,
                                                 ),
                                               ),
                                             ),
@@ -2893,7 +2906,9 @@ class _InventoryPageState extends State<InventoryPage> {
                                                 ' Giá vốn: ${NumberFormat.currency(locale: 'vi', symbol: 'đ', decimalDigits: 0).format(product.costPrice)}',
                                                 style: TextStyle(
                                                   fontSize: 13,
-                                                  color: Colors.black,
+                                                  color: Theme.of(context).brightness == Brightness.dark
+                                                      ? Colors.white
+                                                      : Colors.black,
                                                 ),
                                               ),
                                             ),
@@ -2974,29 +2989,41 @@ class _InventoryPageState extends State<InventoryPage> {
     required IconData icon,
     bool isActive = false,
   }) {
-    return Column(
-      children: [
-        Icon(icon, color: color, size: 32),
-        const SizedBox(height: 8),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: isActive ? color : color,
-          ),
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        vertical: 1,
+      ),
+      decoration: BoxDecoration(
+        color: isActive ? color.withValues(alpha: 0.1) : Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isActive ? color : Colors.transparent,
+          width: isActive ? 2.5 : 0,
         ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: isActive ? color : Colors.grey[700],
-            fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 32),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
           ),
-          textAlign: TextAlign.center,
-        ),
-      ],
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: isActive ? color : Colors.grey[700],
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
     );
   }
 }
