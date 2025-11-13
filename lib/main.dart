@@ -8,6 +8,7 @@ import 'kho_hang.dart';
 import 'cong_thuc_co_ban.dart';
 import 'privacy_policy_page.dart';
 import 'settings_page.dart';
+import 'quan_ly_san_pham.dart';
 import 'theme/app_theme.dart';
 import 'theme/theme_manager.dart';
 
@@ -241,6 +242,31 @@ class _KetoHomepageState extends State<KetoHomepage> {
             ),
           ),
           const Divider(),
+          // Main Pages
+          NavigationDrawerDestination(
+            icon: const Icon(Icons.monetization_on, color: Colors.green),
+            label: const Text('Bán Hàng'),
+          ),
+          NavigationDrawerDestination(
+            icon: const Icon(Icons.monetization_on, color: Colors.red),
+            label: const Text('Chi Tiêu'),
+          ),
+          NavigationDrawerDestination(
+            icon: const Icon(Icons.shelves, color: Colors.orange),
+            label: const Text('Kho Hàng'),
+          ),
+          NavigationDrawerDestination(
+            icon: const Icon(Icons.poll, color: Colors.blue),
+            label: const Text('Thống Kê'),
+          ),
+          const Divider(),
+          // Product Management
+          NavigationDrawerDestination(
+            icon: const Icon(Icons.shopping_bag, color: Colors.purple),
+            label: const Text('Quản lý Sản phẩm'),
+          ),
+          const Divider(),
+          // Settings & Utilities
           NavigationDrawerDestination(
             icon: const Icon(Icons.settings),
             label: const Text('Cài đặt'),
@@ -265,7 +291,38 @@ class _KetoHomepageState extends State<KetoHomepage> {
         onDestinationSelected: (index) async {
           Navigator.pop(context); // Close drawer
 
+          // Main pages (0-3)
           if (index == 0) {
+            // Sales
+            setState(() {
+              _selectedIndex = 0;
+            });
+          } else if (index == 1) {
+            // Expenses
+            setState(() {
+              _selectedIndex = 1;
+            });
+          } else if (index == 2) {
+            // Inventory
+            setState(() {
+              _selectedIndex = 2;
+            });
+          } else if (index == 3) {
+            // Statistics
+            setState(() {
+              _selectedIndex = 3;
+            });
+          }
+          // Product Management & Settings & Utilities (4-8)
+          else if (index == 4) {
+            // Product Management
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const ProductManagementPage(),
+              ),
+            );
+          } else if (index == 5) {
             // Settings
             Navigator.push(
               context,
@@ -287,8 +344,8 @@ class _KetoHomepageState extends State<KetoHomepage> {
                 ),
               ),
             );
-          } else if (index == 1) {
-            // Debug screen (Data Management)
+          } else if (index == 6) {
+            // Data Management
             final result = await Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const DebugScreen()),
@@ -298,7 +355,7 @@ class _KetoHomepageState extends State<KetoHomepage> {
             if (result == true && mounted) {
               _refreshCurrentPage();
             }
-          } else if (index == 2) {
+          } else if (index == 7) {
             // Basic Formulas
             Navigator.push(
               context,
@@ -306,7 +363,7 @@ class _KetoHomepageState extends State<KetoHomepage> {
                 builder: (context) => const BasicFormulasPage(),
               ),
             );
-          } else if (index == 3) {
+          } else if (index == 8) {
             // Privacy Policy
             Navigator.push(
               context,
@@ -315,40 +372,9 @@ class _KetoHomepageState extends State<KetoHomepage> {
               ),
             );
           }
-          // Add other menu actions here
         },
       ),
       body: _buildPages()[_selectedIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: Colors.white70,
-        currentIndex: _selectedIndex,
-        onTap: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-        },
-        type: BottomNavigationBarType.fixed,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.monetization_on, color: Colors.green),
-            label: 'Bán Hàng',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.monetization_on, color: Colors.red),
-            label: 'Chi Tiêu',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.shelves, color: Colors.orange),
-            label: 'Kho Hàng',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.poll, color: Colors.blue),
-            label: 'Thống Kê',
-          ),
-        ],
-        selectedItemColor: Colors.blue,
-        unselectedItemColor: Colors.black,
-      ),
     );
   }
 }

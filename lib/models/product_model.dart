@@ -3,8 +3,8 @@ class Product {
   final String name;
   final int price;
   final int costPrice; // Cost to purchase, for profit calculation
-  final String? imagePath; // NOT YET IMPLEMENTED: Product image storage
-  final int stock; // NOT YET IMPLEMENTED: Inventory tracking
+  final String? imagePath; // Local image path
+  final int stock; // Current stock quantity
   final String category; // NOT YET IMPLEMENTED: Product category/type
   final String? description; // NOT YET IMPLEMENTED: Product details
   final DateTime createdAt; // NOT YET IMPLEMENTED: Track creation date

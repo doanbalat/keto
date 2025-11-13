@@ -28,6 +28,7 @@ class _InventoryPageState extends State<InventoryPage> {
   _activeFilter; // Track active filter: 'all', 'inStock', 'outOfStock', 'lowStock'
   String _sortBy = 'none'; // 'none', 'name', 'quantity'
   bool _sortAscending = true; // true for ascending, false for descending
+  String? _selectedCategory; // Category filter
 
   @override
   void initState() {
@@ -49,6 +50,9 @@ class _InventoryPageState extends State<InventoryPage> {
         allProducts = products;
         filteredProducts = products;
         _activeFilter = null; // Reset filter on refresh
+        _sortBy = 'none'; // Reset sort
+        _sortAscending = true; // Reset sort order
+        _selectedCategory = null; // Reset category filter
         _isLoading = false;
       });
     } catch (e) {
@@ -67,6 +71,11 @@ class _InventoryPageState extends State<InventoryPage> {
         // First check search query
         final matchesSearch = product.name.toLowerCase().contains(query);
         if (!matchesSearch) return false;
+
+        // Apply category filter if selected
+        if (_selectedCategory != null && _selectedCategory != 'Tất cả') {
+          if (product.category != _selectedCategory) return false;
+        }
 
         // Then apply active filter
         if (_activeFilter == null || _activeFilter == 'all') {
@@ -125,6 +134,14 @@ class _InventoryPageState extends State<InventoryPage> {
 
   int _getLowStockProducts() {
     return allProducts.where((p) => p.stock > 0 && p.stock <= widget.lowStockThreshold).length;
+  }
+
+  List<String> _getUniqueCategories() {
+    final categories = <String>{'Tất cả'};
+    for (var product in allProducts) {
+      categories.add(product.category);
+    }
+    return categories.toList()..sort();
   }
 
   void _showAdjustStockDialog(Product product) {
@@ -626,567 +643,6 @@ class _InventoryPageState extends State<InventoryPage> {
     );
   }
 
-  void _showAddProductDialog() {
-    final nameController = TextEditingController();
-    final priceController = TextEditingController();
-    final costPriceController = TextEditingController(text: '0');
-    final quantityController = TextEditingController(text: '0');
-    final unitController = TextEditingController(text: 'cái');
-    File? selectedImage;
-    final ImagePicker _picker = ImagePicker();
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return Dialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              insetPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 24,
-              ),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? const Color(0xFF1E1E1E)
-                      : Colors.white,
-                ),
-                constraints: BoxConstraints(
-                  maxHeight: MediaQuery.of(context).size.height * 0.9,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Header with gradient
-                    Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Colors.blue[600]!, Colors.blue[400]!],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(16),
-                          topRight: Radius.circular(16),
-                        ),
-                      ),
-                      padding: const EdgeInsets.all(20),
-                      child: Row(
-                        children: [
-                          Container(
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.3),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            padding: const EdgeInsets.all(12),
-                            child: const Icon(
-                              Icons.add_circle_outline,
-                              color: Colors.white,
-                              size: 28,
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Thêm mặt hàng mới',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Quản lý kho hàng',
-                                style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.8),
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    // Content - scrollable
-                    Expanded(
-                      child: SingleChildScrollView(
-                        child: Padding(
-                          padding: const EdgeInsets.all(20),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              // Image picker section
-                              GestureDetector(
-                                onTap: () async {
-                                  // Check if permission is already granted
-                                  bool hasPermission =
-                                      await PermissionService.isPhotoLibraryPermissionGranted();
-
-                                  // If not granted, request permission
-                                  if (!hasPermission) {
-                                    hasPermission =
-                                        await PermissionService.requestPhotoLibraryPermission();
-
-                                    // If still not granted after request, user denied it
-                                    if (!hasPermission) {
-                                      if (!mounted) return;
-                                      showDialog(
-                                        context: context,
-                                        builder: (BuildContext ctx) {
-                                          return AlertDialog(
-                                            title: const Text(
-                                              'Yêu cầu quyền truy cập',
-                                            ),
-                                            content: const Text(
-                                              'Ứng dụng cần quyền truy cập thư viện ảnh để chọn ảnh sản phẩm. '
-                                              'Vui lòng cấp quyền trong cài đặt.',
-                                            ),
-                                            actions: [
-                                              TextButton(
-                                                onPressed: () =>
-                                                    Navigator.pop(ctx),
-                                                child: const Text('Hủy'),
-                                              ),
-                                              ElevatedButton(
-                                                onPressed: () async {
-                                                  Navigator.pop(ctx);
-                                                  await PermissionService.openSettings();
-                                                },
-                                                child: const Text(
-                                                  'Mở cài đặt',
-                                                ),
-                                              ),
-                                            ],
-                                          );
-                                        },
-                                      );
-                                      return;
-                                    }
-                                  }
-
-                                  // Permission granted - open image picker
-                                  final XFile? image = await _picker.pickImage(
-                                    source: ImageSource.gallery,
-                                  );
-                                  if (image != null) {
-                                    setDialogState(() {
-                                      selectedImage = File(image.path);
-                                    });
-                                  }
-                                },
-                                child: Container(
-                                  width: double.infinity,
-                                  height: 120,
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey[200],
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: Colors.blue[200]!,
-                                      width: 2,
-                                    ),
-                                  ),
-                                  child: selectedImage != null
-                                      ? ClipRRect(
-                                          borderRadius: BorderRadius.circular(
-                                            10,
-                                          ),
-                                          child: Image.file(
-                                            selectedImage!,
-                                            fit: BoxFit.cover,
-                                          ),
-                                        )
-                                      : Column(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            Icon(
-                                              Icons.image_outlined,
-                                              size: 40,
-                                              color: Colors.blue[300],
-                                            ),
-                                            const SizedBox(height: 6),
-                                            Text(
-                                              'Chọn ảnh mặt hàng',
-                                              style: TextStyle(
-                                                color: Colors.blue[400],
-                                                fontSize: 13,
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              // Name field
-                              TextField(
-                                controller: nameController,
-                                decoration: InputDecoration(
-                                  labelText: 'Tên sản phẩm',
-                                  labelStyle: TextStyle(
-                                    color: Theme.of(context).brightness == Brightness.dark
-                                        ? Colors.grey[300]
-                                        : Colors.black,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                  floatingLabelBehavior: FloatingLabelBehavior.always,
-                                  prefixIcon: const Icon(Icons.label_outline),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(
-                                      color: Colors.grey[300]!,
-                                      width: 1.5,
-                                    ),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(
-                                      color: Colors.blue,
-                                      width: 2,
-                                    ),
-                                  ),
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 12,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              // Price field
-                              TextField(
-                                controller: priceController,
-                                keyboardType: TextInputType.number,
-                                decoration: InputDecoration(
-                                  labelText: 'Giá bán (VND)',
-                                  labelStyle: TextStyle(
-                                    color: Theme.of(context).brightness == Brightness.dark
-                                        ? Colors.grey[300]
-                                        : Colors.black,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                  floatingLabelBehavior: FloatingLabelBehavior.always,
-                                  prefixIcon: const Icon(Icons.attach_money),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(
-                                      color: Colors.grey[300]!,
-                                      width: 1.5,
-                                    ),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(
-                                      color: Colors.blue,
-                                      width: 2,
-                                    ),
-                                  ),
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 12,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              // Cost price field
-                              TextField(
-                                controller: costPriceController,
-                                keyboardType: TextInputType.number,
-                                decoration: InputDecoration(
-                                  labelText: 'Giá vốn (VND)',
-                                  labelStyle: TextStyle(
-                                    color: Theme.of(context).brightness == Brightness.dark
-                                        ? Colors.grey[300]
-                                        : Colors.black,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                  prefixIcon: const Icon(Icons.shopping_bag),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(
-                                      color: Colors.grey[300]!,
-                                      width: 1.5,
-                                    ),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(
-                                      color: Colors.blue,
-                                      width: 2,
-                                    ),
-                                  ),
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 12,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              // Quantity field
-                              TextField(
-                                controller: quantityController,
-                                keyboardType: TextInputType.number,
-                                decoration: InputDecoration(
-                                  labelText: 'Số lượng hàng',
-                                  labelStyle: TextStyle(
-                                    color: Theme.of(context).brightness == Brightness.dark
-                                        ? Colors.grey[300]
-                                        : Colors.black,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                  prefixIcon: const Icon(Icons.inventory_2),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(
-                                      color: Colors.grey[300]!,
-                                      width: 1.5,
-                                    ),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(
-                                      color: Colors.blue,
-                                      width: 2,
-                                    ),
-                                  ),
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 12,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              // Unit field
-                              TextField(
-                                controller: unitController,
-                                decoration: InputDecoration(
-                                  labelText:
-                                      'Đơn vị (cái, kg, ly, hộp, phần, ...)',
-                                  labelStyle: TextStyle(
-                                    color: Theme.of(context).brightness == Brightness.dark
-                                        ? Colors.grey[300]
-                                        : Colors.black,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                  prefixIcon: const Icon(Icons.straighten),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(
-                                      color: Colors.grey[300]!,
-                                      width: 1.5,
-                                    ),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(
-                                      color: Colors.blue,
-                                      width: 2,
-                                    ),
-                                  ),
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 12,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    // Action buttons
-                    Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: TextButton(
-                              onPressed: () => Navigator.pop(context),
-                              style: TextButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 12,
-                                ),
-                                side: BorderSide(
-                                  color: Colors.grey[300]!,
-                                  width: 1.5,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              child: const Text(
-                                'Hủy',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.red,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: ElevatedButton(
-                              onPressed: () async {
-                                try {
-                                  if (nameController.text.isEmpty ||
-                                      priceController.text.isEmpty ||
-                                      costPriceController.text.isEmpty) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                          'Vui lòng điền đầy đủ thông tin',
-                                        ),
-                                        backgroundColor: Colors.red,
-                                      ),
-                                    );
-                                    return;
-                                  }
-
-                                  final name = nameController.text;
-                                  final price = int.parse(priceController.text);
-                                  final costPrice = int.parse(
-                                    costPriceController.text,
-                                  );
-                                  final quantity = int.parse(
-                                    quantityController.text,
-                                  );
-                                  final unit = unitController.text.isEmpty
-                                      ? 'cái'
-                                      : unitController.text;
-
-                                  if (price < 0 ||
-                                      costPrice < 0 ||
-                                      quantity < 0) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                          'Giá phải dương, số lượng không được âm',
-                                        ),
-                                        backgroundColor: Colors.red,
-                                      ),
-                                    );
-                                    return;
-                                  }
-
-                                  // Save image if selected
-                                  String? savedImagePath;
-                                  if (selectedImage != null) {
-                                    savedImagePath =
-                                        await ImageService.saveProductImage(
-                                      selectedImage!,
-                                    );
-                                    if (savedImagePath == null) {
-                                      if (!mounted) return;
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                            'Lỗi khi lưu ảnh sản phẩm',
-                                          ),
-                                          backgroundColor: Colors.red,
-                                        ),
-                                      );
-                                      return;
-                                    }
-                                  }
-
-                                  // Add product with initial quantity directly
-                                  final productId = await _productService
-                                      .addProduct(
-                                        name,
-                                        price,
-                                        costPrice,
-                                        unit: unit,
-                                        stock: quantity,
-                                        imagePath: savedImagePath,
-                                      );
-
-                                  if (productId == null) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Lỗi khi thêm sản phẩm'),
-                                        backgroundColor: Colors.red,
-                                      ),
-                                    );
-                                    return;
-                                  }
-
-                                  if (!mounted) return;
-                                  Navigator.pop(context);
-
-                                  await _loadProducts();
-
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        'Thêm sản phẩm "$name" thành công',
-                                      ),
-                                      backgroundColor: Colors.green,
-                                    ),
-                                  );
-                                } catch (e) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text('Lỗi: $e'),
-                                      backgroundColor: Colors.red,
-                                    ),
-                                  );
-                                }
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.blue,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 12,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              child: const Text(
-                                'Thêm',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -1343,20 +799,6 @@ class _InventoryPageState extends State<InventoryPage> {
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  // Add Product Button
-                  ElevatedButton(
-                    onPressed: _showAddProductDialog,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.all(1),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(50),
-                      ),
-                    ),
-                    child: const Icon(Icons.add, size: 32),
                   ),
                   const SizedBox(width: 8),
                   // Delete Product Button
@@ -2798,6 +2240,73 @@ class _InventoryPageState extends State<InventoryPage> {
                                   ),
                                 ),
                             ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // Category Dropdown
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: _selectedCategory != null && _selectedCategory != 'Tất cả'
+                            ? Colors.purple.withValues(alpha: 0.15)
+                            : Theme.of(context).brightness == Brightness.dark
+                                ? const Color(0xFF2A2A2A)
+                                : Colors.grey[200],
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: _selectedCategory != null && _selectedCategory != 'Tất cả'
+                              ? Colors.purple
+                              : Colors.transparent,
+                          width: 1.5,
+                        ),
+                      ),
+                      height: 44,
+                      child: Center(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: DropdownButton<String>(
+                            value: _selectedCategory ?? 'Tất cả',
+                            isExpanded: true,
+                            underline: const SizedBox.shrink(),
+                            isDense: true,
+                            icon: Icon(
+                              Icons.arrow_drop_down,
+                              color: _selectedCategory != null && _selectedCategory != 'Tất cả'
+                                  ? Colors.purple
+                                  : Theme.of(context).brightness == Brightness.dark
+                                      ? Colors.grey[300]
+                                      : Colors.black87,
+                              size: 20,
+                            ),
+                            items: _getUniqueCategories().map((String category) {
+                              return DropdownMenuItem<String>(
+                                value: category,
+                                alignment: AlignmentDirectional.center,
+                                child: Text(
+                                  category,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: _selectedCategory == category
+                                        ? FontWeight.w600
+                                        : FontWeight.w500,
+                                    color: _selectedCategory == category
+                                        ? Colors.purple
+                                        : Theme.of(context).brightness == Brightness.dark
+                                            ? Colors.white
+                                            : Colors.black87,
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                            onChanged: (String? newValue) {
+                              setState(() {
+                                _selectedCategory = newValue == 'Tất cả' ? null : newValue;
+                                _filterProducts();
+                              });
+                            },
                           ),
                         ),
                       ),
