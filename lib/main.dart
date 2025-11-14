@@ -11,12 +11,16 @@ import 'settings_page.dart';
 import 'quan_ly_san_pham.dart';
 import 'theme/app_theme.dart';
 import 'theme/theme_manager.dart';
+import 'services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize ThemeManager
   await ThemeManager().init();
+
+  // Initialize NotificationService
+  await NotificationService().init();
 
   // Note: Permissions are requested on-demand when user needs them
   // Camera/Photo permissions: requested when user chooses "Add Image"
@@ -130,6 +134,7 @@ class _KetoHomepageState extends State<KetoHomepage> {
   int _selectedIndex = 0;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   int _lowStockThreshold = 5;
+  bool _notificationsEnabled = true;
   // Keys for each page to force rebuild on refresh
   UniqueKey _salesPageKey = UniqueKey();
   UniqueKey _expensesPageKey = UniqueKey();
@@ -140,12 +145,20 @@ class _KetoHomepageState extends State<KetoHomepage> {
   void initState() {
     super.initState();
     _loadLowStockThreshold();
+    _loadNotificationsEnabled();
   }
 
   Future<void> _loadLowStockThreshold() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _lowStockThreshold = prefs.getInt('lowStockThreshold') ?? 5;
+    });
+  }
+
+  Future<void> _loadNotificationsEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _notificationsEnabled = prefs.getBool('notificationsEnabled') ?? false;
     });
   }
 
@@ -156,7 +169,7 @@ class _KetoHomepageState extends State<KetoHomepage> {
 
   List<Widget> _buildPages() {
     return [
-      SalesPage(key: _salesPageKey, soundEnabled: widget.soundEnabled),
+      SalesPage(key: _salesPageKey, soundEnabled: widget.soundEnabled, lowStockThreshold: _lowStockThreshold, notificationsEnabled: _notificationsEnabled),
       ExpensesPage(key: _expensesPageKey),
       InventoryPage(key: _inventoryPageKey, lowStockThreshold: _lowStockThreshold),
       StatisticsPage(key: _statisticsPageKey),
@@ -401,12 +414,17 @@ class _KetoHomepageState extends State<KetoHomepage> {
           // Product Management & Settings & Utilities (4-8)
           else if (index == 4) {
             // Product Management
-            Navigator.push(
+            await Navigator.push(
               context,
               MaterialPageRoute(
                 builder: (context) => const ProductManagementPage(),
               ),
             );
+            
+            // Refresh the app when user closes the product management page
+            if (mounted) {
+              _refreshCurrentPage();
+            }
           } else if (index == 5) {
             // Settings
             Navigator.push(
@@ -419,6 +437,7 @@ class _KetoHomepageState extends State<KetoHomepage> {
                       _lowStockThreshold = value;
                     });
                     _saveLowStockThreshold(value);
+                    _refreshCurrentPage();
                   },
                   shopName: widget.shopName,
                   onShopNameChanged: widget.onShopNameChanged,
@@ -426,7 +445,12 @@ class _KetoHomepageState extends State<KetoHomepage> {
                   onSoundEnabledChanged: widget.onSoundEnabledChanged,
                 ),
               ),
-            );
+            ).then((_) {
+              // Reload notification settings when returning from settings page
+              _loadNotificationsEnabled().then((_) {
+                _refreshCurrentPage();
+              });
+            });
           } else if (index == 6) {
             // Data Management
             final result = await Navigator.push(

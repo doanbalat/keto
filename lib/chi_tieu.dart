@@ -1447,320 +1447,321 @@ class _ExpensesPageState extends State<ExpensesPage> {
     return Scaffold(
       body: Stack(
         children: [
-          // Main Content
-          Column(
-            children: [
-              // Header with Summary Card
-              Container(
-                padding: const EdgeInsets.all(15),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Colors.blue, Colors.redAccent.shade700],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
+          // Main Content - Scrollable
+          SingleChildScrollView(
+            controller: _expenseListScrollController,
+            child: Column(
+              children: [
+                // Header with Summary Card
+                Container(
+                  padding: const EdgeInsets.all(15),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Colors.blue, Colors.redAccent.shade700],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
                   ),
-                ),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            'Tổng Chi Tiêu - ${_getFilterDisplayText()}',
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'Tổng Chi Tiêu - ${_getFilterDisplayText()}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          DropdownButton<String>(
+                            value: _selectedFilter,
+                            dropdownColor: Colors.grey[800],
                             style: const TextStyle(
                               color: Colors.white,
-                              fontSize: 18,
                               fontWeight: FontWeight.bold,
                             ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        DropdownButton<String>(
-                          value: _selectedFilter,
-                          dropdownColor: Colors.grey[800],
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          underline: Container(height: 2, color: Colors.white),
-                          items: ['Hôm nay', 'Tuần này', 'Tháng này', 'Chọn ngày']
-                              .map(
-                                (filter) => DropdownMenuItem(
-                                  value: filter,
-                                  child: Text(filter),
-                                ),
-                              )
-                              .toList(),
-                          onChanged: (value) async {
-                            if (value != null) {
-                              if (value == 'Chọn ngày') {
-                                // Show date picker
-                                final pickedDate = await showDatePicker(
-                                  context: context,
-                                  initialDate: _selectedDate ?? DateTime.now(),
-                                  firstDate: DateTime(2020),
-                                  lastDate: DateTime.now(),
-                                );
-                                if (pickedDate != null) {
+                            underline: Container(height: 2, color: Colors.white),
+                            items: ['Hôm nay', 'Tuần này', 'Tháng này', 'Chọn ngày']
+                                .map(
+                                  (filter) => DropdownMenuItem(
+                                    value: filter,
+                                    child: Text(filter),
+                                  ),
+                                )
+                                .toList(),
+                            onChanged: (value) async {
+                              if (value != null) {
+                                if (value == 'Chọn ngày') {
+                                  // Show date picker
+                                  final pickedDate = await showDatePicker(
+                                    context: context,
+                                    initialDate: _selectedDate ?? DateTime.now(),
+                                    firstDate: DateTime(2020),
+                                    lastDate: DateTime.now(),
+                                  );
+                                  if (pickedDate != null) {
+                                    setState(() {
+                                      _selectedFilter = value;
+                                      _selectedDate = pickedDate;
+                                    });
+                                    _loadExpenses();
+                                  }
+                                } else {
                                   setState(() {
                                     _selectedFilter = value;
-                                    _selectedDate = pickedDate;
+                                    _selectedDate = null;
                                   });
                                   _loadExpenses();
                                 }
-                              } else {
-                                setState(() {
-                                  _selectedFilter = value;
-                                  _selectedDate = null;
-                                });
-                                _loadExpenses();
                               }
-                            }
-                          },
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Card(
-                      color: Colors.grey[50],
-                      elevation: 4,
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Tổng Chi',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.blueGrey,
-                                  ),
-                                ),
-                                Text(
-                                  '${totalExpensesToday.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')} VND',
-                                  style: const TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.red,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Quick Add Buttons
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: _showAddExpenseDialog,
-                        icon: const Icon(Icons.add, size: 28),
-                        label: const Text(
-                          'Thêm Chi Tiêu',
-                          style: TextStyle(fontSize: 18),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red.shade400,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            },
                           ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: _showAddRecurringExpenseDialog,
-                        icon: const Icon(Icons.repeat, size: 28),
-                        label: const Text(
-                          'Chi Phí Cố Định',
-                          style: TextStyle(fontSize: 18),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.orange.shade400,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Recurring Expenses Section (all expenses)
-              if (recurringExpenses.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Chi Phí Cố Định',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        ],
                       ),
                       const SizedBox(height: 12),
-                      SizedBox(
-                        height: 160,
-                        child: ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: recurringExpenses.length,
-                          itemBuilder: (context, index) {
-                            final recurring = recurringExpenses[index];
-                            final nextOccurrence = _recurringExpenseService.getNextOccurrenceDate(recurring);
-                            return Padding(
-                              padding: const EdgeInsets.only(right: 12),
-                              child: GestureDetector(
-                                onTap: () {
-                                  _showAddRecurringExpenseDialog(existingRecurring: recurring);
-                                },
-                                child: Card(
-                                  elevation: 4,
-                                  child: Container(
-                                    width: 280,
-                                    padding: const EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(8),
-                                      gradient: LinearGradient(
-                                        colors: recurring.isActive ?
-                                          [Colors.blueAccent, Colors.orangeAccent] :
-                                          [Colors.blueAccent, Colors.black54],
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                      ),
-                                    ),
-                                    child: Stack(
-                                      children: [
-                                        Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            // Amount
-                                            Text(
-                                              '${recurring.amount.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.') } đ',
-                                              style: const TextStyle(
-                                                color: Colors.red,
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 20,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 1),
-                                            // Title
-                                            Text(
-                                              recurring.description,
-                                              style: TextStyle(
-                                                color: Colors.amberAccent.shade100,
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 17,
-                                              ),
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                            const SizedBox(height: 2),
-                                            // Category and frequency
-                                            Text(
-                                              '${recurring.category} - ${recurring.frequency == 'DAILY' ? 'Hàng ngày' : recurring.frequency == 'WEEKLY' ? 'Hàng tuần' : recurring.frequency == 'MONTHLY' ? 'Hàng tháng' : 'Hàng năm'}',
-                                              style: const TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 14,
-                                              ),
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                            const SizedBox(height: 2),
-                                            // Next occurrence
-                                            Text(
-                                              'Ngày thanh toán tiếp theo: ${nextOccurrence.day}/${nextOccurrence.month}/${nextOccurrence.year}',
-                                              style: const TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 14,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 3),
-                                            // Status
-                                            Row(
-                                              children: [
-                                                Icon(
-                                                  recurring.isActive ? Icons.check_circle : Icons.cancel,
-                                                  color: recurring.isActive ? Colors.greenAccent : Colors.redAccent,
-                                                  size: 14,
-                                                ),
-                                                const SizedBox(width: 3),
-                                                Text(
-                                                  recurring.isActive ? 'Đang hoạt động' : 'Đã tắt',
-                                                  style: TextStyle(
-                                                    color: Colors.amberAccent.shade100,
-                                                    fontSize: 13,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ],
-                                        ),
-                                        // Toggle button on top right
-                                        Positioned(
-                                          top: 0,
-                                          right: 0,
-                                          child: GestureDetector(
-                                            onTap: () async {
-                                              final updated = recurring.copyWith(
-                                                isActive: !recurring.isActive,
-                                              );
-                                              await _recurringExpenseService.updateRecurringExpense(updated);
-                                              _loadExpenses();
-                                            },
-                                            child: Container(
-                                              padding: const EdgeInsets.all(4),
-                                              decoration: BoxDecoration(
-                                                shape: BoxShape.circle,
-                                                color: Colors.white.withValues(alpha: 0.2),
-                                              ),
-                                              child: Icon(
-                                                recurring.isActive ? Icons.power_settings_new : Icons.power_settings_new,
-                                                color: recurring.isActive ? Colors.greenAccent : Colors.redAccent,
-                                                size: 18,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
+                      Card(
+                        color: Colors.grey[50],
+                        elevation: 4,
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Tổng Chi',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.blueGrey,
                                     ),
                                   ),
-                                ),
+                                  Text(
+                                    '${totalExpensesToday.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')} VND',
+                                    style: const TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.red,
+                                    ),
+                                  ),
+                                ],
                               ),
-                            );
-                          },
+                            ],
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 12),
                     ],
                   ),
                 ),
 
-              // Category Summary List (Sorted by highest to lowest)
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                // Quick Add Buttons
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: _showAddExpenseDialog,
+                          icon: const Icon(Icons.add, size: 28),
+                          label: const Text(
+                            'Thêm Chi Tiêu',
+                            style: TextStyle(fontSize: 18),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red.shade400,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: _showAddRecurringExpenseDialog,
+                          icon: const Icon(Icons.repeat, size: 28),
+                          label: const Text(
+                            'Chi Phí Cố Định',
+                            style: TextStyle(fontSize: 18),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.orange.shade400,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Recurring Expenses Section (all expenses)
+                if (recurringExpenses.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Chi Phí Cố Định',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          height: 160,
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: recurringExpenses.length,
+                            itemBuilder: (context, index) {
+                              final recurring = recurringExpenses[index];
+                              final nextOccurrence = _recurringExpenseService.getNextOccurrenceDate(recurring);
+                              return Padding(
+                                padding: const EdgeInsets.only(right: 12),
+                                child: GestureDetector(
+                                  onTap: () {
+                                    _showAddRecurringExpenseDialog(existingRecurring: recurring);
+                                  },
+                                  child: Card(
+                                    elevation: 4,
+                                    child: Container(
+                                      width: 280,
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(8),
+                                        gradient: LinearGradient(
+                                          colors: recurring.isActive ?
+                                            [Colors.blueAccent, Colors.orangeAccent] :
+                                            [Colors.blueAccent, Colors.black54],
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                        ),
+                                      ),
+                                      child: Stack(
+                                        children: [
+                                          Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              // Amount
+                                              Text(
+                                                '${recurring.amount.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.') } đ',
+                                                style: const TextStyle(
+                                                  color: Color.fromARGB(255, 160, 0, 0),
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 20,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 1),
+                                              // Title
+                                              Text(
+                                                recurring.description,
+                                                style: TextStyle(
+                                                  color: Colors.amberAccent.shade100,
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 17,
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                              const SizedBox(height: 2),
+                                              // Category and frequency
+                                              Text(
+                                                recurring.frequency == 'DAILY' ? 'Hàng ngày' : recurring.frequency == 'WEEKLY' ? 'Hàng tuần' : recurring.frequency == 'MONTHLY' ? 'Hàng tháng' : 'Hàng năm',
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 14,
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                              const SizedBox(height: 2),
+                                              // Next occurrence
+                                              Text(
+                                                'Ngày thanh toán tiếp theo: ${nextOccurrence.day}/${nextOccurrence.month}/${nextOccurrence.year}',
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 14,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 3),
+                                              // Status
+                                              Row(
+                                                children: [
+                                                  Icon(
+                                                    recurring.isActive ? Icons.check_circle : Icons.cancel,
+                                                    color: recurring.isActive ? Colors.greenAccent : Colors.redAccent,
+                                                    size: 14,
+                                                  ),
+                                                  const SizedBox(width: 3),
+                                                  Text(
+                                                    recurring.isActive ? 'Đang hoạt động' : 'Đã tắt',
+                                                    style: TextStyle(
+                                                      color: Colors.amberAccent.shade100,
+                                                      fontSize: 13,
+                                                      fontWeight: FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
+                                          // Toggle button on top right
+                                          Positioned(
+                                            top: 0,
+                                            right: 0,
+                                            child: GestureDetector(
+                                              onTap: () async {
+                                                final updated = recurring.copyWith(
+                                                  isActive: !recurring.isActive,
+                                                );
+                                                await _recurringExpenseService.updateRecurringExpense(updated);
+                                                _loadExpenses();
+                                              },
+                                              child: Container(
+                                                padding: const EdgeInsets.all(1),
+                                                decoration: BoxDecoration(
+                                                  shape: BoxShape.circle,
+                                                  color: Colors.white.withValues(alpha: 0.15),
+                                                ),
+                                                child: Icon(
+                                                  recurring.isActive ? Icons.power_settings_new : Icons.power_settings_new,
+                                                  color: recurring.isActive ? Colors.greenAccent : Colors.redAccent,
+                                                  size: 28,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                    ),
+                  ),
+
+                // Category Summary List (Sorted by highest to lowest)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -1772,275 +1773,276 @@ class _ExpensesPageState extends State<ExpensesPage> {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      Expanded(
-                        child: FutureBuilder<Map<String, int>>(
-                          future: _getExpensesByCategoryForFilter(),
-                          builder: (context, snapshot) {
-                            if (snapshot.hasData && snapshot.data!.isNotEmpty) {
-                              final categories = snapshot.data!;
-                              
-                              // Sort categories by amount (highest to lowest)
-                              final sortedEntries = categories.entries.toList()
-                                ..sort((a, b) => b.value.compareTo(a.value));
-                              
-                              return ListView.builder(
-                                itemCount: sortedEntries.length,
-                                itemBuilder: (context, index) {
-                                  final category = sortedEntries[index].key;
-                                  final amount = sortedEntries[index].value;
-                                  final isExpanded = expandedCategories[category] ?? false;
-                                  
-                                  return Padding(
-                                    padding: const EdgeInsets.only(bottom: 12),
-                                    child: Card(
-                                      elevation: 0,
-                                      color: isExpanded
-                                          ? (Theme.of(context).brightness == Brightness.dark
-                                              ? Colors.grey[700]
-                                              : Colors.grey[200])
-                                          : (Theme.of(context).brightness == Brightness.dark
-                                              ? Colors.grey[850]
-                                              : Colors.grey[50]),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(8),
-                                        side: BorderSide(
-                                          color: Theme.of(context).brightness == Brightness.dark
-                                              ? Colors.grey[700]!
-                                              : Colors.grey[300]!,
-                                          width: 1,
-                                        ),
+                      FutureBuilder<Map<String, int>>(
+                        future: _getExpensesByCategoryForFilter(),
+                        builder: (context, snapshot) {
+                          if (snapshot.hasData && snapshot.data!.isNotEmpty) {
+                            final categories = snapshot.data!;
+                            
+                            // Sort categories by amount (highest to lowest)
+                            final sortedEntries = categories.entries.toList()
+                              ..sort((a, b) => b.value.compareTo(a.value));
+                            
+                            return ListView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: sortedEntries.length,
+                              itemBuilder: (context, index) {
+                                final category = sortedEntries[index].key;
+                                final amount = sortedEntries[index].value;
+                                final isExpanded = expandedCategories[category] ?? false;
+                                
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 12),
+                                  child: Card(
+                                    elevation: 0,
+                                    color: isExpanded
+                                        ? (Theme.of(context).brightness == Brightness.dark
+                                            ? Colors.grey[700]
+                                            : Colors.grey[200])
+                                        : (Theme.of(context).brightness == Brightness.dark
+                                            ? Colors.grey[850]
+                                            : Colors.grey[50]),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      side: BorderSide(
+                                        color: Theme.of(context).brightness == Brightness.dark
+                                            ? Colors.grey[700]!
+                                            : Colors.grey[300]!,
+                                        width: 1,
                                       ),
-                                      child: Column(
-                                        children: [
-                                          // Main Category Row
-                                          Material(
-                                            borderRadius: BorderRadius.circular(8),
-                                            color: Theme.of(context).brightness == Brightness.dark
-                                              ? const Color.fromARGB(255, 61, 61, 61)
-                                              : const Color.fromARGB(255, 255, 238, 193),
-                                            child: InkWell(
-                                              onTap: () {
-                                                setState(() {
-                                                  expandedCategories[category] = !isExpanded;
-                                                });
-                                              },
-                                              child: Padding(
-                                                padding: const EdgeInsets.all(16),
-                                                child: Row(
-                                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                                  children: [
-                                                    Expanded(
-                                                      child: Column(
-                                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                                        children: [
-                                                          Text(
-                                                            category,
-                                                            style: const TextStyle(
-                                                              fontWeight: FontWeight.bold,
-                                                              fontSize: 16,
-                                                            ),
-                                                          ),
-                                                          const SizedBox(height: 4),
-                                                          FutureBuilder<List<Expense>>(
-                                                            future: _getExpensesByCategoryDetailed(category),
-                                                            builder: (context, snapshot) {
-                                                              if (snapshot.hasData) {
-                                                                return Text(
-                                                                  '${snapshot.data!.length} giao dịch',
-                                                                  style: TextStyle(
-                                                                    color: Theme.of(context).brightness == Brightness.dark
-                                                                      ? Colors.white
-                                                                      : Colors.black87,
-                                                                    fontSize: 12,
-                                                                  ),
-                                                                );
-                                                              }
-                                                              return const SizedBox.shrink();
-                                                            },
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                    Column(
-                                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                    ),
+                                    child: Column(
+                                      children: [
+                                        // Main Category Row
+                                        Material(
+                                          borderRadius: BorderRadius.circular(8),
+                                          color: Theme.of(context).brightness == Brightness.dark
+                                            ? const Color.fromARGB(255, 61, 61, 61)
+                                            : const Color.fromARGB(255, 255, 238, 193),
+                                          child: InkWell(
+                                            onTap: () {
+                                              setState(() {
+                                                expandedCategories[category] = !isExpanded;
+                                              });
+                                            },
+                                            child: Padding(
+                                              padding: const EdgeInsets.all(16),
+                                              child: Row(
+                                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                children: [
+                                                  Expanded(
+                                                    child: Column(
+                                                      crossAxisAlignment: CrossAxisAlignment.start,
                                                       children: [
                                                         Text(
-                                                          '${amount.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')} đ',
+                                                          category,
                                                           style: const TextStyle(
-                                                            color: Colors.red,
                                                             fontWeight: FontWeight.bold,
                                                             fontSize: 16,
                                                           ),
                                                         ),
                                                         const SizedBox(height: 4),
-                                                        Icon(
-                                                          isExpanded ? Icons.expand_less : Icons.expand_more,
-                                                          color: Colors.black87,
+                                                        FutureBuilder<List<Expense>>(
+                                                          future: _getExpensesByCategoryDetailed(category),
+                                                          builder: (context, snapshot) {
+                                                            if (snapshot.hasData) {
+                                                              return Text(
+                                                                '${snapshot.data!.length} giao dịch',
+                                                                style: TextStyle(
+                                                                  color: Theme.of(context).brightness == Brightness.dark
+                                                                    ? Colors.white
+                                                                    : Colors.black87,
+                                                                  fontSize: 12,
+                                                                ),
+                                                              );
+                                                            }
+                                                            return const SizedBox.shrink();
+                                                          },
                                                         ),
                                                       ],
                                                     ),
-                                                  ],
-                                                ),
+                                                  ),
+                                                  Column(
+                                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                                    children: [
+                                                      Text(
+                                                        '${amount.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')} đ',
+                                                        style: const TextStyle(
+                                                          color: Colors.red,
+                                                          fontWeight: FontWeight.bold,
+                                                          fontSize: 16,
+                                                        ),
+                                                      ),
+                                                      const SizedBox(height: 4),
+                                                      Icon(
+                                                        isExpanded ? Icons.expand_less : Icons.expand_more,
+                                                        color: Colors.black87,
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ],
                                               ),
                                             ),
                                           ),
-                                          
-                                          // Expanded Details Section
-                                          if (isExpanded)
-                                            FutureBuilder<List<Expense>>(
-                                              future: _getExpensesByCategoryDetailed(category),
-                                              builder: (context, snapshot) {
-                                                if (snapshot.hasData) {
-                                                  final expenses = snapshot.data!;
-                                                  return Column(
-                                                    children: [
-                                                      Divider(
-                                                        height: 1,
-                                                        color: Theme.of(context).brightness == Brightness.dark
-                                                            ? Colors.white54
-                                                            : Colors.black54,
-                                                      ),
-                                                      ListView.builder(
-                                                        shrinkWrap: true,
-                                                        physics: const NeverScrollableScrollPhysics(),
-                                                        itemCount: expenses.length,
-                                                        itemBuilder: (context, expIndex) {
-                                                          final expense = expenses[expIndex];
-                                                          final date = expense.timestamp;
-                                                          final dateStr = '${date.day}/${date.month}/${date.year}';
-                                                          return Material(
-                                                            color: Theme.of(context).brightness == Brightness.dark
-                                                              ? const Color.fromARGB(255, 92, 85, 74)
-                                                              : const Color.fromARGB(255, 243, 255, 200),
-                                                            child: InkWell(
-                                                              onTap: () => _showExpenseDetailsDialog(expense),
-                                                              child: Container(
-                                                                padding: const EdgeInsets.symmetric(
-                                                                  horizontal: 16,
-                                                                  vertical: 12,
-                                                                ),
-                                                                decoration: BoxDecoration(
-                                                                  border: Border(
-                                                                    bottom: BorderSide(
-                                                                      color: Colors.grey[300]!,
-                                                                      width: 0.5,
-                                                                    ),
+                                        ),
+                                        
+                                        // Expanded Details Section
+                                        if (isExpanded)
+                                          FutureBuilder<List<Expense>>(
+                                            future: _getExpensesByCategoryDetailed(category),
+                                            builder: (context, snapshot) {
+                                              if (snapshot.hasData) {
+                                                final expenses = snapshot.data!;
+                                                return Column(
+                                                  children: [
+                                                    Divider(
+                                                      height: 1,
+                                                      color: Theme.of(context).brightness == Brightness.dark
+                                                          ? Colors.white54
+                                                          : Colors.black54,
+                                                    ),
+                                                    ListView.builder(
+                                                      shrinkWrap: true,
+                                                      physics: const NeverScrollableScrollPhysics(),
+                                                      itemCount: expenses.length,
+                                                      itemBuilder: (context, expIndex) {
+                                                        final expense = expenses[expIndex];
+                                                        final date = expense.timestamp;
+                                                        final dateStr = '${date.day}/${date.month}/${date.year}';
+                                                        return Material(
+                                                          color: Theme.of(context).brightness == Brightness.dark
+                                                            ? const Color.fromARGB(255, 92, 85, 74)
+                                                            : const Color.fromARGB(255, 243, 255, 200),
+                                                          child: InkWell(
+                                                            onTap: () => _showExpenseDetailsDialog(expense),
+                                                            child: Container(
+                                                              padding: const EdgeInsets.symmetric(
+                                                                horizontal: 16,
+                                                                vertical: 12,
+                                                              ),
+                                                              decoration: BoxDecoration(
+                                                                border: Border(
+                                                                  bottom: BorderSide(
+                                                                    color: Colors.grey[300]!,
+                                                                    width: 0.5,
                                                                   ),
                                                                 ),
-                                                                child: Row(
-                                                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                                                  children: [
-                                                                    Expanded(
-                                                                      child: Column(
-                                                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                                                        children: [
-                                                                          // Description - Main content
-                                                                          Text(
-                                                                            expense.description,
-                                                                            style: const TextStyle(
-                                                                              fontWeight: FontWeight.w600,
-                                                                              fontSize: 15,
-                                                                            ),
-                                                                            maxLines: 1,
-                                                                            overflow: TextOverflow.ellipsis,
-                                                                          ),
-                                                                          const SizedBox(height: 8),
-                                                                          // Date and payment method row
-                                                                          Row(
-                                                                            children: [
-                                                                              // Date
-                                                                              Text(
-                                                                                dateStr,
-                                                                                style: TextStyle(
-                                                                                  fontSize: 13,
-                                                                                  color: Colors.grey[600],
-                                                                                  fontWeight: FontWeight.w400,
-                                                                                ),
-                                                                              ),
-                                                                              const SizedBox(width: 12),
-                                                                              // Divider
-                                                                              Container(
-                                                                                width: 1,
-                                                                                height: 16,
-                                                                                color: Colors.grey[400],
-                                                                              ),
-                                                                              const SizedBox(width: 12),
-                                                                              // Payment method badge
-                                                                              Container(
-                                                                                padding: const EdgeInsets.symmetric(
-                                                                                  horizontal: 10,
-                                                                                  vertical: 4,
-                                                                                ),
-                                                                                decoration: BoxDecoration(
-                                                                                  color: Colors.blue.withValues(alpha: 0.15),
-                                                                                  borderRadius: BorderRadius.circular(6),
-                                                                                ),
-                                                                                child: Text(
-                                                                                  expense.paymentMethod,
-                                                                                  style: TextStyle(
-                                                                                    fontSize: 12,
-                                                                                    color: Theme.of(context).brightness == Brightness.dark
-                                                                                      ? Colors.blue[200]
-                                                                                      : Colors.blue[700],
-                                                                                    fontWeight: FontWeight.w500,
-                                                                                  ),
-                                                                                ),
-                                                                              ),
-                                                                            ],
-                                                                          ),
-                                                                        ],
-                                                                      ),
-                                                                    ),
-                                                                    const SizedBox(width: 16),
-                                                                    // Amount - Right aligned
-                                                                    Column(
-                                                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                                              ),
+                                                              child: Row(
+                                                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                                crossAxisAlignment: CrossAxisAlignment.center,
+                                                                children: [
+                                                                  Expanded(
+                                                                    child: Column(
+                                                                      crossAxisAlignment: CrossAxisAlignment.start,
                                                                       children: [
+                                                                        // Description - Main content
                                                                         Text(
-                                                                          '${expense.amount.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')} đ',
+                                                                          expense.description,
                                                                           style: const TextStyle(
-                                                                            color: Colors.red,
-                                                                            fontWeight: FontWeight.bold,
-                                                                            fontSize: 16,
+                                                                            fontWeight: FontWeight.w600,
+                                                                            fontSize: 15,
                                                                           ),
+                                                                          maxLines: 1,
+                                                                          overflow: TextOverflow.ellipsis,
+                                                                        ),
+                                                                        const SizedBox(height: 8),
+                                                                        // Date and payment method row
+                                                                        Row(
+                                                                          children: [
+                                                                            // Date
+                                                                            Text(
+                                                                              dateStr,
+                                                                              style: TextStyle(
+                                                                                fontSize: 13,
+                                                                                color: Colors.grey[600],
+                                                                                fontWeight: FontWeight.w400,
+                                                                              ),
+                                                                            ),
+                                                                            const SizedBox(width: 12),
+                                                                            // Divider
+                                                                            Container(
+                                                                              width: 1,
+                                                                              height: 16,
+                                                                              color: Colors.grey[400],
+                                                                            ),
+                                                                            const SizedBox(width: 12),
+                                                                            // Payment method badge
+                                                                            Container(
+                                                                              padding: const EdgeInsets.symmetric(
+                                                                                horizontal: 10,
+                                                                                vertical: 4,
+                                                                              ),
+                                                                              decoration: BoxDecoration(
+                                                                                color: Colors.blue.withValues(alpha: 0.15),
+                                                                                borderRadius: BorderRadius.circular(6),
+                                                                              ),
+                                                                              child: Text(
+                                                                                expense.paymentMethod,
+                                                                                style: TextStyle(
+                                                                                  fontSize: 12,
+                                                                                  color: Theme.of(context).brightness == Brightness.dark
+                                                                                    ? Colors.blue[200]
+                                                                                    : Colors.blue[700],
+                                                                                  fontWeight: FontWeight.w500,
+                                                                                ),
+                                                                              ),
+                                                                            ),
+                                                                          ],
                                                                         ),
                                                                       ],
                                                                     ),
-                                                                  ],
-                                                                ),
+                                                                  ),
+                                                                  const SizedBox(width: 16),
+                                                                  // Amount - Right aligned
+                                                                  Column(
+                                                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                                                    children: [
+                                                                      Text(
+                                                                        '${expense.amount.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')} đ',
+                                                                        style: const TextStyle(
+                                                                          color: Colors.red,
+                                                                          fontWeight: FontWeight.bold,
+                                                                          fontSize: 16,
+                                                                        ),
+                                                                      ),
+                                                                    ],
+                                                                  ),
+                                                                ],
                                                               ),
                                                             ),
-                                                          );
-                                                        },
-                                                      ),
-                                                    ],
-                                                  );
-                                                }
-                                                return const Padding(
-                                                  padding: EdgeInsets.all(12),
-                                                  child: CircularProgressIndicator(),
+                                                          ),
+                                                        );
+                                                      },
+                                                    ),
+                                                  ],
                                                 );
-                                              },
-                                            ),
-                                        ],
-                                      ),
+                                              }
+                                              return const Padding(
+                                                padding: EdgeInsets.all(12),
+                                                child: CircularProgressIndicator(),
+                                              );
+                                            },
+                                          ),
+                                      ],
                                     ),
-                                  );
-                                },
-                              );
-                            }
-                            return const Center(
-                              child: Text('Chưa có chi tiêu nào'),
+                                  ),
+                                );
+                              },
                             );
-                          },
-                        ),
+                          }
+                          return const Center(
+                            child: Text('Chưa có chi tiêu nào'),
+                          );
+                        },
                       ),
                     ],
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 20),
+              ],
+            ),
           ),
         ],
       ),

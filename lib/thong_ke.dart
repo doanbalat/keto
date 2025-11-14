@@ -613,7 +613,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
                     const SizedBox(height: 24),
                     // Bar chart
                     SizedBox(
-                      height: 160,
+                      height: 200,
                       child: Stack(
                         children: [
                           // Bars
@@ -646,33 +646,30 @@ class _StatisticsPageState extends State<StatisticsPage> {
                                       );
                                     }
                                   },
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 3.0,
-                                    ),
-                                    child: Column(
-                                      mainAxisAlignment: MainAxisAlignment.end,
-                                      children: [
-                                        // Number above bar
-                                        if (total > 0)
-                                          Padding(
-                                            padding: const EdgeInsets.only(
-                                              bottom: 4.0,
-                                            ),
-                                            child: Text(
-                                              '$total',
-                                              style:  TextStyle(
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.bold,
-                                                color: Theme.of(context).brightness == Brightness.dark
-                                                  ? Colors.white
-                                                  : Colors.black45,
-                                              ),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    children: [
+                                      // Number above bar
+                                      if (total > 0)
+                                        Padding(
+                                          padding: const EdgeInsets.only(
+                                            bottom: 4.0,
+                                          ),
+                                          child: Text(
+                                            '$total',
+                                            style:  TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                              color: Theme.of(context).brightness == Brightness.dark
+                                                ? Colors.white
+                                                : Colors.black45,
                                             ),
                                           ),
-                                        // Bar
-                                        Container(
-                                          width: double.infinity,
+                                        ),
+                                      // Bar
+                                      Center(
+                                        child: Container(
+                                          width: 35,
                                           height: total > 0
                                               ? (total / maxQuantity) * 120
                                               : 2,
@@ -688,26 +685,26 @@ class _StatisticsPageState extends State<StatisticsPage> {
                                                 ),
                                           ),
                                         ),
-                                        const SizedBox(height: 8),
-                                        // Day label - fixed pattern
-                                        Text(
-                                          _getFixedDayLabel(index),
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: isToday
-                                              ? (Theme.of(context).brightness == Brightness.dark
-                                                ? Colors.white
-                                                : Colors.black)
-                                              : (Theme.of(context).brightness == Brightness.dark
-                                                ? Colors.white54
-                                                : Colors.grey),
-                                            fontWeight: isToday
-                                                ? FontWeight.bold
-                                                : FontWeight.normal,
-                                          ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      // Day label - fixed pattern
+                                      Text(
+                                        _getFixedDayLabel(index),
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          color: isToday
+                                            ? (Theme.of(context).brightness == Brightness.dark
+                                              ? Colors.white
+                                              : Colors.black)
+                                            : (Theme.of(context).brightness == Brightness.dark
+                                              ? Colors.white54
+                                              : Colors.grey),
+                                          fontWeight: isToday
+                                              ? FontWeight.bold
+                                              : FontWeight.normal,
                                         ),
-                                      ],
-                                    ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               );

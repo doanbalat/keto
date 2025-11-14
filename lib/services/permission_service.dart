@@ -59,6 +59,20 @@ class PermissionService {
     return status.isGranted;
   }
 
+  /// Request notification permission (Android 13+)
+  static Future<bool> requestNotificationPermission() async {
+    final status = await Permission.notification.request();
+    print('Notification permission status: $status');
+    return status.isGranted;
+  }
+
+  /// Check if notification permission is granted
+  static Future<bool> isNotificationPermissionGranted() async {
+    final status = await Permission.notification.status;
+    print('Notification permission status: $status');
+    return status.isGranted;
+  }
+
   /// Request all necessary permissions for the app
   /// Note: iOS automatically grants app sandbox storage access
   /// Android requires explicit storage permission request

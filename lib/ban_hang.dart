@@ -1,17 +1,23 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:just_audio/just_audio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'models/product_model.dart';
 import 'models/sold_item_model.dart';
 import 'services/product_service.dart';
+import 'services/notification_service.dart';
 import 'scripts/generate_test_data.dart';
 
 class SalesPage extends StatefulWidget {
   final bool soundEnabled;
+  final int lowStockThreshold;
+  final bool notificationsEnabled;
 
   const SalesPage({
     super.key,
     this.soundEnabled = true,
+    this.lowStockThreshold = 5,
+    this.notificationsEnabled = false,
   });
 
   @override
@@ -209,46 +215,76 @@ class _SalesPageState extends State<SalesPage> {
     });
   }
 
+  Future<void> _checkAndNotifyLowStock(Product product) async {
+    try {
+      // Read notification setting from SharedPreferences to always get latest value
+      final prefs = await SharedPreferences.getInstance();
+      final notificationsEnabled = prefs.getBool('notificationsEnabled') ?? true;
+      
+      // Only show notification if notifications are enabled and stock is at or below threshold
+      if (notificationsEnabled && product.stock > 0 && product.stock <= widget.lowStockThreshold) {
+        final NotificationService notificationService = NotificationService();
+        await notificationService.showWarning(
+          'Sắp hết hàng',
+          '${product.name} chỉ còn ${product.stock} ${product.unit}',
+        );
+        print('Low stock notification sent for: ${product.name}, stock: ${product.stock}');
+      } else if (!notificationsEnabled) {
+        print('Notifications disabled - skipping low stock notification for: ${product.name}');
+      }
+    } catch (e) {
+      print('Error showing low stock notification: $e');
+    }
+  }
+
   void addToSoldItems(Product product, int quantity) async {
     try {
       final totalPrice = product.price * quantity;
+      final newStock = product.stock - quantity;
 
-      // Save to database
-      final success = await _productService.addSoldItem(
+      // Run database operations in parallel for speed
+      final Future<bool> addSoldItemFuture = _productService.addSoldItem(
         productId: product.id,
         quantity: quantity,
         totalPrice: totalPrice,
       );
 
+      final Future<void> updateStockFuture = newStock >= 0
+          ? _productService.updateProduct(product.copyWith(stock: newStock))
+          : Future.value();
+
+      // Wait for both operations to complete
+      final success = await addSoldItemFuture;
+      await updateStockFuture;
+
       if (success) {
-        // Play success sound with error handling (only if sound is enabled)
-        if (_audioPlayerInitialized && widget.soundEnabled) {
-          try {
-            // Play sound from assets
-            await _audioPlayer.setAsset('assets/sounds/Kaching.mp3');
-            await _audioPlayer.play();
-          } catch (audioError) {
-            print('Audio playback error: $audioError');
-            // Continue with the sale even if sound fails
-          }
-        }
-
-        // Decrease product stock
-        final newStock = product.stock - quantity;
-        if (newStock >= 0) {
+        // Update the product in allProducts list to keep data in sync
+        final productIndex = allProducts.indexWhere((p) => p.id == product.id);
+        if (productIndex != -1) {
           final updatedProduct = product.copyWith(stock: newStock);
-          await _productService.updateProduct(updatedProduct);
+          setState(() {
+            allProducts[productIndex] = updatedProduct;
+            // Re-filter to update filteredProducts if needed
+            _filterProducts();
+          });
         }
 
-        // Reset quantity after sale
-        quantities[product.id] = 1;
+        // Play sound without waiting (fire and forget)
+        if (_audioPlayerInitialized && widget.soundEnabled) {
+          _audioPlayer.setAsset('assets/sounds/Kaching.mp3').then((_) {
+            _audioPlayer.play().catchError((e) => print('Audio error: $e'));
+          }).catchError((e) {
+            print('Audio setup error: $e');
+          });
+        }
 
-        // Load sold items from database
-        await _loadTodaySoldItems();
+        // Reset quantity immediately
+        quantities[product.id] = 1;
 
         // Check if widget is still mounted before showing snackbar
         if (!mounted) return;
 
+        // Show snackbar immediately without waiting
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('${product.name} x$quantity đã bán'),
@@ -256,6 +292,16 @@ class _SalesPageState extends State<SalesPage> {
             backgroundColor: Colors.green,
           ),
         );
+
+        // Load sold items in background without blocking UI
+        _loadTodaySoldItems();
+
+        // Check and send low stock notification in background
+        if (newStock >= 0) {
+          _checkAndNotifyLowStock(product.copyWith(stock: newStock)).catchError((e) {
+            print('Error in low stock notification: $e');
+          });
+        }
       }
     } catch (e) {
       if (!mounted) return;
@@ -430,8 +476,21 @@ class _SalesPageState extends State<SalesPage> {
                                     mainAxisSize: MainAxisSize.min,
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Text('Trong kho: ${product.stock} ${product.unit}',
-                                          style: const TextStyle(fontSize: 13, color: Colors.black)),
+                                      FutureBuilder<Product?>(
+                                        future: _productService.getProductById(product.id),
+                                        builder: (context, snapshot) {
+                                          final currentProduct = snapshot.data ?? product;
+                                          return Text(
+                                            'Trong kho: ${currentProduct.stock} ${currentProduct.unit}',
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              color: Theme.of(context).brightness == Brightness.dark
+                                                ? Colors.white
+                                                : Colors.black,
+                                            ),
+                                          );
+                                        },
+                                      ),
                                       const SizedBox(height: 12),
                                       TextField(
                                         controller: controller,

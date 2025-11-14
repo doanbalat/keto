@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'services/permission_service.dart';
 
 class SettingsPage extends StatefulWidget {
   final int lowStockThreshold;
@@ -33,7 +35,7 @@ class _SettingsPageState extends State<SettingsPage> {
   void initState() {
     super.initState();
     _lowStockThreshold = widget.lowStockThreshold;
-    _notificationsEnabled = true;
+    _loadNotificationsEnabled();
     _soundEnabled = widget.soundEnabled;
     // Set initial value to 5 if not provided
     if (_lowStockThreshold <= 0) {
@@ -52,6 +54,18 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   static const String _defaultShopName = 'Keto - Sổ tay kinh doanh';
+
+  Future<void> _loadNotificationsEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _notificationsEnabled = prefs.getBool('notificationsEnabled') ?? false;
+    });
+  }
+
+  Future<void> _saveNotificationsEnabled(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('notificationsEnabled', value);
+  }
 
   void _resetShopName() {
     setState(() {
@@ -186,13 +200,56 @@ class _SettingsPageState extends State<SettingsPage> {
                   ListTile(
                     leading: const Icon(Icons.notifications, color: Colors.blue),
                     title: const Text('Nhận thông báo về kho hàng'),
+                    subtitle: Text(
+                      _notificationsEnabled ? 'Bật' : 'Tắt',
+                      style: TextStyle(
+                        color: _notificationsEnabled ? Colors.green : Colors.grey,
+                      ),
+                    ),
                     trailing: Switch(
                       value: _notificationsEnabled,
-                      onChanged: (value) {
+                      onChanged: (value) async {
+                        // If user is enabling notifications, request permission first
+                        if (value) {
+                          final hasPermission = await PermissionService.requestNotificationPermission();
+                          
+                          if (!hasPermission) {
+                            // Permission denied - show dialog
+                            if (!mounted) return;
+                            showDialog(
+                              context: context,
+                              builder: (BuildContext ctx) {
+                                return AlertDialog(
+                                  title: const Text('Yêu cầu quyền thông báo'),
+                                  content: const Text(
+                                    'Ứng dụng cần quyền gửi thông báo để nhắc nhở bạn khi hàng sắp hết. '
+                                    'Vui lòng cấp quyền trong cài đặt.',
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(ctx),
+                                      child: const Text('Để sau'),
+                                    ),
+                                    ElevatedButton(
+                                      onPressed: () async {
+                                        Navigator.pop(ctx);
+                                        await PermissionService.openSettings();
+                                      },
+                                      child: const Text('Mở cài đặt'),
+                                    ),
+                                  ],
+                                );
+                              },
+                            );
+                            return;
+                          }
+                        }
+                        
+                        // Update state and save
                         setState(() {
                           _notificationsEnabled = value;
                         });
-                        // TODO: Implement notification logic
+                        _saveNotificationsEnabled(value);
                       },
                       activeThumbColor: Colors.blue,
                     ),

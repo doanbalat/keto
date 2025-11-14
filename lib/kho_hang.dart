@@ -4,6 +4,7 @@ import 'models/product_model.dart';
 import 'services/product_service.dart';
 import 'services/image_service.dart';
 import 'services/permission_service.dart';
+import 'services/notification_service.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -142,6 +143,22 @@ class _InventoryPageState extends State<InventoryPage> {
       categories.add(product.category);
     }
     return categories.toList()..sort();
+  }
+
+  Future<void> _checkAndNotifyLowStock(Product product) async {
+    // Only show notification if stock is above 0 and at or below threshold
+    if (product.stock > 0 && product.stock <= widget.lowStockThreshold) {
+      try {
+        final NotificationService notificationService = NotificationService();
+        await notificationService.showWarning(
+          'Sắp hết hàng',
+          '${product.name} chỉ còn ${product.stock} ${product.unit}',
+        );
+        print('Low stock notification sent for: ${product.name}, stock: ${product.stock}');
+      } catch (e) {
+        print('Error showing low stock notification: $e');
+      }
+    }
   }
 
   void _showAdjustStockDialog(Product product) {
@@ -610,6 +627,9 @@ class _InventoryPageState extends State<InventoryPage> {
                               Navigator.pop(context);
 
                               await _loadProducts();
+
+                              // Check and send low stock notification
+                              await _checkAndNotifyLowStock(updatedProduct);
 
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
@@ -1569,6 +1589,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                                             Text(
                                                               product.name,
                                                               style: const TextStyle(
+                                                                color: Colors.black54,
                                                                 fontSize: 15,
                                                                 fontWeight:
                                                                     FontWeight
