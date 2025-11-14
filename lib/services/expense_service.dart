@@ -26,6 +26,7 @@ class ExpenseService {
     String? receiptImagePath,
     String? note,
     String paymentMethod = 'Tiền mặt',
+    DateTime? expenseDate,
   }) async {
     try {
       final expense = Expense(
@@ -33,7 +34,7 @@ class ExpenseService {
         category: category,
         description: description,
         amount: amount,
-        timestamp: DateTime.now(),
+        timestamp: expenseDate ?? DateTime.now(),
         receiptImagePath: receiptImagePath,
         note: note,
         paymentMethod: paymentMethod,

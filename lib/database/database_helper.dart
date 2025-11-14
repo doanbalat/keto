@@ -3,14 +3,16 @@ import 'package:path/path.dart';
 import '../models/product_model.dart';
 import '../models/sold_item_model.dart';
 import '../models/expense_model.dart';
+import '../models/recurring_expense_model.dart';
 
 class DatabaseHelper {
   static const String _databaseName = 'keto.db';
-  static const int _databaseVersion = 3;
+  static const int _databaseVersion = 4;
 
   static const String productTable = 'products';
   static const String soldItemTable = 'sold_items';
   static const String expenseTable = 'expenses';
+  static const String recurringExpenseTable = 'recurring_expenses';
 
   // Singleton pattern
   static final DatabaseHelper _instance = DatabaseHelper._internal();
@@ -88,6 +90,24 @@ class DatabaseHelper {
         paymentMethod TEXT DEFAULT 'Tiền mặt'
       )
     ''');
+
+    // Create recurring_expenses table
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS $recurringExpenseTable (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        category TEXT NOT NULL,
+        description TEXT NOT NULL,
+        amount INTEGER NOT NULL,
+        frequency TEXT NOT NULL,
+        startDate TEXT NOT NULL,
+        endDate TEXT,
+        paymentMethod TEXT DEFAULT 'Tiền mặt',
+        note TEXT,
+        isActive INTEGER DEFAULT 1,
+        createdAt TEXT NOT NULL,
+        lastGeneratedDate TEXT
+      )
+    ''');
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
@@ -111,6 +131,26 @@ class DatabaseHelper {
       // Add unit column for version 3
       await db.execute('''
         ALTER TABLE $productTable ADD COLUMN unit TEXT DEFAULT 'cái'
+      ''');
+    }
+
+    if (oldVersion < 4) {
+      // Add recurring_expenses table for version 4
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS $recurringExpenseTable (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          category TEXT NOT NULL,
+          description TEXT NOT NULL,
+          amount INTEGER NOT NULL,
+          frequency TEXT NOT NULL,
+          startDate TEXT NOT NULL,
+          endDate TEXT,
+          paymentMethod TEXT DEFAULT 'Tiền mặt',
+          note TEXT,
+          isActive INTEGER DEFAULT 1,
+          createdAt TEXT NOT NULL,
+          lastGeneratedDate TEXT
+        )
       ''');
     }
   }
@@ -461,6 +501,78 @@ class DatabaseHelper {
     return 0;
   }
 
+  // ============ RECURRING EXPENSE OPERATIONS ============
+
+  /// Insert a new recurring expense
+  Future<int> insertRecurringExpense(RecurringExpense recurringExpense) async {
+    final db = await database;
+    return await db.insert(recurringExpenseTable, recurringExpense.toMapForInsert());
+  }
+
+  /// Get all active recurring expenses
+  Future<List<RecurringExpense>> getActiveRecurringExpenses() async {
+    final db = await database;
+    final maps = await db.query(
+      recurringExpenseTable,
+      where: 'isActive = ?',
+      whereArgs: [1],
+    );
+    return List.generate(maps.length, (i) => RecurringExpense.fromMap(maps[i]));
+  }
+
+  /// Get all recurring expenses (including inactive)
+  Future<List<RecurringExpense>> getAllRecurringExpenses() async {
+    final db = await database;
+    final maps = await db.query(recurringExpenseTable);
+    return List.generate(maps.length, (i) => RecurringExpense.fromMap(maps[i]));
+  }
+
+  /// Get a single recurring expense by ID
+  Future<RecurringExpense?> getRecurringExpenseById(int id) async {
+    final db = await database;
+    final maps = await db.query(
+      recurringExpenseTable,
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+    if (maps.isNotEmpty) {
+      return RecurringExpense.fromMap(maps.first);
+    }
+    return null;
+  }
+
+  /// Update a recurring expense
+  Future<int> updateRecurringExpense(RecurringExpense recurringExpense) async {
+    final db = await database;
+    return await db.update(
+      recurringExpenseTable,
+      recurringExpense.toMap(),
+      where: 'id = ?',
+      whereArgs: [recurringExpense.id],
+    );
+  }
+
+  /// Update the active status of a recurring expense
+  Future<int> updateRecurringExpenseActiveStatus(int id, bool isActive) async {
+    final db = await database;
+    return await db.update(
+      recurringExpenseTable,
+      {'isActive': isActive ? 1 : 0},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  /// Delete a recurring expense
+  Future<int> deleteRecurringExpense(int id) async {
+    final db = await database;
+    return await db.delete(
+      recurringExpenseTable,
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
   // ============ UTILITY OPERATIONS ============
 
   /// Clear all data (for testing/reset)
@@ -469,6 +581,7 @@ class DatabaseHelper {
     await db.delete(expenseTable);
     await db.delete(soldItemTable);
     await db.delete(productTable);
+    await db.delete(recurringExpenseTable);
   }
 
   /// Close database

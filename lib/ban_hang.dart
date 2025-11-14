@@ -4,6 +4,7 @@ import 'package:just_audio/just_audio.dart';
 import 'models/product_model.dart';
 import 'models/sold_item_model.dart';
 import 'services/product_service.dart';
+import 'scripts/generate_test_data.dart';
 
 class SalesPage extends StatefulWidget {
   final bool soundEnabled;
@@ -33,6 +34,7 @@ class _SalesPageState extends State<SalesPage> {
   final Map<int, int> quantities = {};
   String _sortBy = 'name'; // 'bestselling', 'name', 'price'
   bool _sortAscending = true; // true = ascending, false = descending
+  int _layoutMode = 0; // 0 = list view, 1 = 2-column grid, 2 = simple grid (name + image only)
   
   // Cache for extracted image colors
   final Map<int, List<Color>> _productColorCache = {};
@@ -295,6 +297,366 @@ class _SalesPageState extends State<SalesPage> {
     }
   }
 
+  /// Build list layout (current layout with quantity controls)
+  Widget _buildListLayout() {
+    return ListView.builder(
+      padding: const EdgeInsets.only(bottom: 100),
+      itemCount: filteredProducts.length,
+      itemBuilder: (context, index) {
+        final product = filteredProducts[index];
+        final quantity = quantities[product.id] ?? 1;
+        
+        if (!_productColorCache.containsKey(product.id)) {
+          _extractColorsFromImage(product);
+        }
+        
+        return Card(
+          margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          elevation: 10,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Row(
+            children: [
+              Expanded(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? const Color.fromARGB(116, 20, 5, 5)
+                        : const Color.fromARGB(255, 255, 253, 191),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () => addToSoldItems(product, quantity),
+                      borderRadius: BorderRadius.circular(20),
+                      splashColor: Colors.white.withValues(alpha: 0.3),
+                      highlightColor: Colors.white.withValues(alpha: 0.1),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 15),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    product.name,
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Theme.of(context).brightness == Brightness.dark
+                                          ? Colors.white
+                                          : Colors.black,
+                                    ),
+                                  ),
+                                  Text(
+                                    '${product.price.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')} VND',
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.green,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  if (_hasDuplicatesWithSamePricing(product, filteredProducts))
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 4),
+                                      child: Text(
+                                        'Giá vốn: ${product.costPrice.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')} VND',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.purple[600],
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                            Container(
+                              width: 60,
+                              height: 60,
+                              margin: const EdgeInsets.only(left: 8),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[300],
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: product.imagePath != null && product.imagePath!.isNotEmpty
+                                    ? Image.file(
+                                        File(product.imagePath!),
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (context, error, stackTrace) =>
+                                            const Icon(Icons.image, size: 30, color: Colors.grey),
+                                      )
+                                    : const Icon(Icons.image, size: 30, color: Colors.grey),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.all(1),
+                child: Column(
+                  children: [
+                    const Text('Số lượng bán', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          onPressed: () => decrementQuantity(product.id),
+                          icon: const Icon(Icons.remove),
+                          iconSize: 16,
+                          constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                          padding: EdgeInsets.zero,
+                          style: IconButton.styleFrom(
+                            side: const BorderSide(color: Colors.grey),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () {
+                            final controller = TextEditingController(text: quantity.toString());
+                            showDialog(
+                              context: context,
+                              builder: (BuildContext context) {
+                                return AlertDialog(
+                                  title: const Text('Nhập số lượng'),
+                                  content: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text('Trong kho: ${product.stock} ${product.unit}',
+                                          style: const TextStyle(fontSize: 13, color: Colors.black)),
+                                      const SizedBox(height: 12),
+                                      TextField(
+                                        controller: controller,
+                                        keyboardType: TextInputType.number,
+                                        autofocus: true,
+                                        decoration: const InputDecoration(
+                                          labelText: 'Số lượng muôn bán',
+                                          border: OutlineInputBorder(),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(context),
+                                      child: const Text('Hủy'),
+                                    ),
+                                    ElevatedButton(
+                                      onPressed: () {
+                                        final newQuantity = int.tryParse(controller.text);
+                                        if (newQuantity != null && newQuantity > 0) {
+                                          setState(() => quantities[product.id] = newQuantity);
+                                          Navigator.pop(context);
+                                        } else {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(content: Text('Vui lòng nhập số lượng hợp lệ')),
+                                          );
+                                        }
+                                      },
+                                      child: const Text('OK'),
+                                    ),
+                                  ],
+                                );
+                              },
+                            );
+                          },
+                          child: Container(
+                            width: 40,
+                            height: 28,
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Center(child: Text(quantity.toString(), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold))),
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => incrementQuantity(product.id),
+                          icon: const Icon(Icons.add),
+                          iconSize: 16,
+                          constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                          padding: EdgeInsets.zero,
+                          style: IconButton.styleFrom(
+                            side: const BorderSide(color: Colors.grey),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  /// Build 2-column grid layout with name, price, cost price, and image
+  Widget _buildGridLayout2Columns() {
+    return GridView.builder(
+      padding: const EdgeInsets.only(left: 8, right: 8, top: 8, bottom: 100),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 0.75,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
+      ),
+      itemCount: filteredProducts.length,
+      itemBuilder: (context, index) {
+        final product = filteredProducts[index];
+        
+        if (!_productColorCache.containsKey(product.id)) {
+          _extractColorsFromImage(product);
+        }
+        
+        return Card(
+          elevation: 5,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: InkWell(
+            onTap: () => addToSoldItems(product, 1),
+            borderRadius: BorderRadius.circular(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: product.imagePath != null && product.imagePath!.isNotEmpty
+                          ? Image.file(
+                              File(product.imagePath!),
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  const Icon(Icons.image, size: 60, color: Colors.grey),
+                            )
+                          : const Icon(Icons.image, size: 60, color: Colors.grey),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        product.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${product.price.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')} VND',
+                        style: const TextStyle(fontSize: 12, color: Colors.green, fontWeight: FontWeight.w600),
+                      ),
+                      if (_hasDuplicatesWithSamePricing(product, filteredProducts))
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2),
+                          child: Text(
+                            'Vốn: ${product.costPrice.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')} VND',
+                            style: TextStyle(fontSize: 10, color: Colors.purple[600]),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// Build simple grid layout with only name and image
+  Widget _buildSimpleGridLayout() {
+    return GridView.builder(
+      padding: const EdgeInsets.only(left: 8, right: 8, top: 8, bottom: 100),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        childAspectRatio: 0.8,
+        crossAxisSpacing: 6,
+        mainAxisSpacing: 6,
+      ),
+      itemCount: filteredProducts.length,
+      itemBuilder: (context, index) {
+        final product = filteredProducts[index];
+        
+        if (!_productColorCache.containsKey(product.id)) {
+          _extractColorsFromImage(product);
+        }
+        
+        return Card(
+          elevation: 4,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          child: InkWell(
+            onTap: () => addToSoldItems(product, 1),
+            borderRadius: BorderRadius.circular(10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: product.imagePath != null && product.imagePath!.isNotEmpty
+                          ? Image.file(
+                              File(product.imagePath!),
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  const Icon(Icons.image, size: 50, color: Colors.grey),
+                            )
+                          : const Icon(Icons.image, size: 50, color: Colors.grey),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(6),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        product.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${product.price.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')} VND',
+                        style: const TextStyle(fontSize: 14, color: Colors.green, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   void dispose() {
     searchController.dispose();
@@ -313,7 +675,7 @@ class _SalesPageState extends State<SalesPage> {
             children: [
               // Search Bar with Add Button and Delete Button
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 5.0, horizontal: 45.0),
+                padding: const EdgeInsets.symmetric(vertical: 5.0, horizontal: 25.0),
                 child: Row(
                   children: [
                     Expanded(
@@ -351,6 +713,26 @@ class _SalesPageState extends State<SalesPage> {
                             horizontal: 12,
                             vertical: 12,
                           ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // Layout Change Button
+                    IconButton(
+                      icon: const Icon(Icons.view_list_rounded, size: 30, color: Colors.blue),
+                      tooltip: 'Thay đổi bố cục',
+                      onPressed: () {
+                        setState(() {
+                          _layoutMode = (_layoutMode + 1) % 3;
+                        });
+                      },
+                      style: IconButton.styleFrom(
+                        side: const BorderSide(
+                          color: Colors.grey,
+                          width: 2,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
                         ),
                       ),
                     ),
@@ -478,318 +860,88 @@ class _SalesPageState extends State<SalesPage> {
                             ),
                             const SizedBox(height: 16),
                             Text(
-                              'No products found',
+                              'Không tìm thấy sản phẩm',
                               style: Theme.of(context).textTheme.bodyLarge,
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              'Vui lòng vào "Quản lý sản phẩm" để thêm sản phẩm',
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: Colors.grey[600],
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 24),
+                            // Generate test data button
+                            ElevatedButton.icon(
+                              onPressed: () async {
+                                showDialog(
+                                  context: context,
+                                  barrierDismissible: false,
+                                  builder: (BuildContext context) {
+                                    return AlertDialog(
+                                      title: const Text('Tạo dữ liệu thử nghiệm'),
+                                      content: const Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          CircularProgressIndicator(),
+                                          SizedBox(height: 16),
+                                          Text('Vui lòng chờ trong giây lát...'),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                );
+
+                                try {
+                                  await TestDataGenerator.generateTestData();
+                                  
+                                  // Dismiss loading dialog
+                                  if (!mounted) return;
+                                  Navigator.of(context).pop();
+
+                                  // Reload data
+                                  await _initializeData();
+
+                                  if (!mounted) return;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('✅ Tạo dữ liệu thành công!'),
+                                      backgroundColor: Colors.green,
+                                    ),
+                                  );
+                                } catch (e) {
+                                  // Dismiss loading dialog
+                                  if (!mounted) return;
+                                  Navigator.of(context).pop();
+
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('❌ Lỗi: $e'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
+                              },
+                              icon: const Icon(Icons.add_box),
+                              label: const Text('Tạo dữ liệu thử nghiệm'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.blue,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 24,
+                                  vertical: 12,
+                                ),
+                              ),
                             ),
                           ],
                         ),
                       )
-                    : ListView.builder(
-                        padding: const EdgeInsets.only(bottom: 100),
-                        itemCount: filteredProducts.length,
-                        itemBuilder: (context, index) {
-                          final product = filteredProducts[index];
-                          final quantity = quantities[product.id] ?? 1;
-                          
-                          // Extract colors asynchronously on first build
-                          if (!_productColorCache.containsKey(product.id)) {
-                            _extractColorsFromImage(product);
-                          }
-                          
-                          return Card(
-                            margin: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 4,
-                            ),
-                            elevation: 10,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Row(
-                              children: [
-                                // Product Info and Image (Clickable)
-                                Expanded(
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      color: Theme.of(context).brightness == Brightness.dark
-                                          ? const Color.fromARGB(116, 20, 5, 5)
-                                          : const Color.fromARGB(255, 255, 253, 191),
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    child: Material(
-                                      color: Colors.transparent,
-                                      child: InkWell(
-                                        onTap: () {
-                                          // Add product to sold items
-                                          // SnackBar feedback is handled inside addToSoldItems()
-                                          addToSoldItems(product, quantity);
-                                        },
-                                        borderRadius: BorderRadius.circular(20),
-                                        splashColor: Colors.white.withValues(alpha: 0.3),
-                                        highlightColor: Colors.white.withValues(alpha: 0.1),
-                                        child: Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                          vertical: 5,
-                                          horizontal: 15,
-                                          ),
-                                      child: Row(
-                                        children: [
-                                          // Product Info
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  product.name,
-                                                  style: TextStyle(
-                                                    fontSize: 16,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: Theme.of(context).brightness == Brightness.dark
-                                                        ? Colors.white
-                                                        : Colors.black,
-                                                  ),
-                                                ),
-                                                Text(
-                                                  '${product.price.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')} VND',
-                                                  style: const TextStyle(
-                                                    fontSize: 14,
-                                                    color: Colors.green,
-                                                    fontWeight: FontWeight.w500,
-                                                  ),
-                                                ),
-                                                // Show cost price if product has duplicates with same name and price
-                                                if (_hasDuplicatesWithSamePricing(product, filteredProducts))
-                                                  Padding(
-                                                    padding: const EdgeInsets.only(top: 4),
-                                                    child: Text(
-                                                      'Giá vốn: ${product.costPrice.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')} VND',
-                                                      style: TextStyle(
-                                                        fontSize: 12,
-                                                        color: Colors.purple[600],
-                                                        fontWeight: FontWeight.w500,
-                                                      ),
-                                                    ),
-                                                  ),
-                                              ],
-                                            ),
-                                          ),
-                                          // Product Image or Placeholder
-                                          Container(
-                                            width: 60,
-                                            height: 60,
-                                            margin: const EdgeInsets.only(
-                                              left: 8,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: Colors.grey[300],
-                                              borderRadius:
-                                                  BorderRadius.circular(8),
-                                            ),
-                                            child: ClipRRect(
-                                              borderRadius: BorderRadius.circular(8),
-                                              child: product.imagePath != null && 
-                                                     product.imagePath!.isNotEmpty
-                                                ? Image.file(
-                                                    File(product.imagePath!),
-                                                    fit: BoxFit.cover,
-                                                    errorBuilder: (context, error, stackTrace) {
-                                                      return const Icon(
-                                                        Icons.image,
-                                                        size: 30,
-                                                        color: Colors.grey,
-                                                      );
-                                                    },
-                                                  )
-                                                : const Icon(
-                                                    Icons.image,
-                                                    size: 30,
-                                                    color: Colors.grey,
-                                                  ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                // Quantity Controls (Not clickable for selling)
-                                Container(
-                                  padding: const EdgeInsets.all(1),
-                                  child: Column(
-                                    children: [
-                                      const Text(
-                                        'Số lượng',
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                      Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          // Decrement Button
-                                          IconButton(
-                                            onPressed: () =>
-                                                decrementQuantity(product.id),
-                                            icon: const Icon(Icons.remove),
-                                            iconSize: 16,
-                                            constraints: const BoxConstraints(
-                                              minWidth: 28,
-                                              minHeight: 28,
-                                            ),
-                                            padding: EdgeInsets.zero,
-                                            style: IconButton.styleFrom(
-                                              side: const BorderSide(
-                                                color: Colors.grey,
-                                              ),
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(4),
-                                              ),
-                                            ),
-                                          ),
-                                          // Quantity Display (Editable)
-                                          GestureDetector(
-                                            onTap: () {
-                                              final controller =
-                                                  TextEditingController(
-                                                    text: quantity.toString(),
-                                                  );
-                                              showDialog(
-                                                context: context,
-                                                builder: (BuildContext context) {
-                                                  return AlertDialog(
-                                                    title: const Text(
-                                                      'Nhập số lượng',
-                                                    ),
-                                                    content: Column(
-                                                      mainAxisSize: MainAxisSize.min,
-                                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                                      children: [
-                                                        Text(
-                                                          'Trong kho: ${product.stock} ${product.unit}',
-                                                          style: TextStyle(
-                                                            fontSize: 13,
-                                                            color: Colors.black,
-                                                          ),
-                                                        ),
-                                                        const SizedBox(height: 12),
-                                                        TextField(
-                                                          controller: controller,
-                                                          keyboardType:
-                                                              TextInputType.number,
-                                                          autofocus: true,
-                                                          decoration:
-                                                              const InputDecoration(
-                                                                labelText:
-                                                                    'Số lượng muôn bán',
-                                                                border:
-                                                                    OutlineInputBorder(),
-                                                              ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                    actions: [
-                                                      TextButton(
-                                                        onPressed: () =>
-                                                            Navigator.pop(
-                                                              context,
-                                                            ),
-                                                        child: const Text(
-                                                          'Hủy',
-                                                        ),
-                                                      ),
-                                                      ElevatedButton(
-                                                        onPressed: () {
-                                                          final newQuantity =
-                                                              int.tryParse(
-                                                                controller.text,
-                                                              );
-                                                          if (newQuantity !=
-                                                                  null &&
-                                                              newQuantity > 0) {
-                                                            setState(() {
-                                                              quantities[product
-                                                                      .id] =
-                                                                  newQuantity;
-                                                            });
-                                                            Navigator.pop(
-                                                              context,
-                                                            );
-                                                          } else {
-                                                            ScaffoldMessenger.of(
-                                                              context,
-                                                            ).showSnackBar(
-                                                              const SnackBar(
-                                                                content: Text(
-                                                                  'Vui lòng nhập số lượng hợp lệ (> 0)',
-                                                                ),
-                                                              ),
-                                                            );
-                                                          }
-                                                        },
-                                                        child: const Text('OK'),
-                                                      ),
-                                                    ],
-                                                  );
-                                                },
-                                              );
-                                            },
-                                            child: Container(
-                                              width: 40,
-                                              height: 28,
-                                              decoration: BoxDecoration(
-                                                border: Border.all(
-                                                  color: Colors.grey,
-                                                ),
-                                                borderRadius:
-                                                    BorderRadius.circular(4),
-                                              ),
-                                              child: Center(
-                                                child: Text(
-                                                  quantity.toString(),
-                                                  style: const TextStyle(
-                                                    fontSize: 16,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                          // Increment Button
-                                          IconButton(
-                                            onPressed: () =>
-                                                incrementQuantity(product.id),
-                                            icon: const Icon(Icons.add),
-                                            iconSize: 16,
-                                            constraints: const BoxConstraints(
-                                              minWidth: 28,
-                                              minHeight: 28,
-                                            ),
-                                            padding: EdgeInsets.zero,
-                                            style: IconButton.styleFrom(
-                                              side: const BorderSide(
-                                                color: Colors.grey,
-                                              ),
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(4),
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
+                    : _layoutMode == 0
+                        ? _buildListLayout()
+                        : _layoutMode == 1
+                            ? _buildGridLayout2Columns()
+                            : _buildSimpleGridLayout(),
               ),
             ],
           ),
@@ -818,9 +970,7 @@ class _SalesPageState extends State<SalesPage> {
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.bold,
-                              color: Theme.of(context).brightness == Brightness.dark
-                                  ? Colors.white
-                                  : Colors.black,
+                              color: Colors.white,
                             ),
                           ),
                           ElevatedButton.icon(
@@ -830,7 +980,7 @@ class _SalesPageState extends State<SalesPage> {
                               });
                             },
                             icon: const Icon(Icons.visibility_off, size: 16),
-                            label: const Text('Ẩn'),
+                            label: const Text('Ẩn', style: TextStyle(fontWeight: FontWeight.bold)),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.red,
                               foregroundColor: Colors.white,
@@ -998,6 +1148,7 @@ class _SalesPageState extends State<SalesPage> {
                                         ),
                                       ),
                                       const SizedBox(width: 8),
+                                      // Product name, quantity, time
                                       Expanded(
                                         child: Row(
                                           children: [
@@ -1025,6 +1176,7 @@ class _SalesPageState extends State<SalesPage> {
                                               timeString,
                                               style: TextStyle(
                                                 fontSize: 15,
+                                                fontWeight: FontWeight.w600,
                                                 color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87,
                                               ),
                                             ),
@@ -1067,7 +1219,7 @@ class _SalesPageState extends State<SalesPage> {
               child: Container(
                 color: Theme.of(context).brightness == Brightness.dark
                     ? const Color(0xFF2A2A2A)
-                    : Colors.blue[50],
+                    : Colors.blue[100],
                 padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1097,7 +1249,7 @@ class _SalesPageState extends State<SalesPage> {
                         });
                       },
                       icon: const Icon(Icons.visibility, size: 16),
-                      label: const Text('Hiển thị'),
+                      label: const Text('Hiển thị', style: TextStyle(fontWeight: FontWeight.bold)),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green,
                         foregroundColor: Colors.white,

@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 
 class SettingsPage extends StatefulWidget {
-  final bool isDarkMode;
-  final Function(bool) onThemeChanged;
   final int lowStockThreshold;
   final Function(int) onLowStockThresholdChanged;
   final String shopName;
@@ -12,8 +10,6 @@ class SettingsPage extends StatefulWidget {
 
   const SettingsPage({
     super.key,
-    required this.isDarkMode,
-    required this.onThemeChanged,
     required this.lowStockThreshold,
     required this.onLowStockThresholdChanged,
     required this.shopName,
@@ -27,7 +23,6 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  late bool _isDarkMode;
   late int _lowStockThreshold;
   late bool _notificationsEnabled;
   late bool _soundEnabled;
@@ -37,7 +32,6 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   void initState() {
     super.initState();
-    _isDarkMode = widget.isDarkMode;
     _lowStockThreshold = widget.lowStockThreshold;
     _notificationsEnabled = true;
     _soundEnabled = widget.soundEnabled;
@@ -130,31 +124,6 @@ class _SettingsPageState extends State<SettingsPage> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  const Divider(height: 10),
-                  ListTile(
-                    leading: Icon(
-                      _isDarkMode ? Icons.dark_mode : Icons.light_mode,
-                      color: Colors.blue,
-                    ),
-                    title: const Text('Chế độ tối'),
-                    subtitle: Text(
-                      _isDarkMode ? 'Bật' : 'Tắt',
-                      style: TextStyle(
-                        color: _isDarkMode ? Colors.green : Colors.grey,
-                      ),
-                    ),
-                    trailing: Switch(
-                      value: _isDarkMode,
-                      onChanged: (value) {
-                        setState(() {
-                          _isDarkMode = value;
-                        });
-                        print('Theme changed to: $_isDarkMode');
-                        widget.onThemeChanged(value);
-                      },
-                      activeThumbColor: Colors.blue,
-                    ),
-                  ),
                 ],
               ),
             ),

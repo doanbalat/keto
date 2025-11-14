@@ -205,13 +205,18 @@ class _KetoHomepageState extends State<KetoHomepage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Keto (Free version)',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
-                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Keto (Free version)',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black,
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 12),
                   ElevatedButton.icon(
@@ -230,11 +235,91 @@ class _KetoHomepageState extends State<KetoHomepage> {
                       ),
                       );
                     },
-                    icon: const Icon(Icons.star),
+                    icon: const Icon(Icons.star, color: Colors.red),
                     label: const Text('Upgrade to Pro'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.amber,
-                      foregroundColor: Colors.black,
+                      backgroundColor: Colors.yellow,
+                      foregroundColor: Colors.green,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  // Theme Toggle
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(28),
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () {
+                          widget.onThemeChanged(!widget.isDarkMode);
+                        },
+                        borderRadius: BorderRadius.circular(28),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.light_mode,
+                                color: Colors.yellow,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 6),
+                              Container(
+                                width: 32,
+                                height: 20,
+                                decoration: BoxDecoration(
+                                  color: widget.isDarkMode
+                                      ? Colors.black54
+                                      : Colors.grey[400],
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Stack(
+                                  children: [
+                                    AnimatedAlign(
+                                      alignment: widget.isDarkMode
+                                          ? Alignment.centerRight
+                                          : Alignment.centerLeft,
+                                      duration:
+                                          const Duration(milliseconds: 200),
+                                      child: Container(
+                                        width: 16,
+                                        height: 16,
+                                        margin: const EdgeInsets.all(2),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius:
+                                              BorderRadius.circular(7),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black
+                                                  .withValues(alpha: 0.2),
+                                              blurRadius: 4,
+                                              offset:
+                                                  const Offset(0, 2),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Icon(
+                                Icons.dark_mode,
+                                color: Colors.yellow[200],
+                                size: 18,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -328,8 +413,6 @@ class _KetoHomepageState extends State<KetoHomepage> {
               context,
               MaterialPageRoute(
                 builder: (context) => SettingsPage(
-                  isDarkMode: widget.isDarkMode,
-                  onThemeChanged: widget.onThemeChanged,
                   lowStockThreshold: _lowStockThreshold,
                   onLowStockThresholdChanged: (value) {
                     setState(() {

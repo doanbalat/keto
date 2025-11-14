@@ -39,7 +39,7 @@ class _DebugScreenState extends State<DebugScreen> {
       await _db.clearAllData();
 
       setState(() {
-        _statusMessage = '✅ Đã xóa toàn bộ dữ liệu thành công!';
+        _statusMessage = '✅ Đã xóa toàn bộ dữ liệu thành công!\n\nDang làm mới ứng dụng...';
         _isLoading = false;
       });
 
@@ -50,6 +50,12 @@ class _DebugScreenState extends State<DebugScreen> {
             backgroundColor: Colors.green,
           ),
         );
+        
+        // Auto-refresh the app by popping with true
+        await Future.delayed(const Duration(seconds: 1));
+        if (mounted) {
+          Navigator.of(context).pop(true);
+        }
       }
     } catch (e) {
       setState(() {

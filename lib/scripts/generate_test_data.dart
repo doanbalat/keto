@@ -3,6 +3,7 @@ import '../database/database_helper.dart';
 import '../models/product_model.dart';
 import '../models/sold_item_model.dart';
 import '../models/expense_model.dart';
+import '../models/recurring_expense_model.dart';
 
 /// Test data generator for Keto app
 /// This script generates 1 month of realistic test data
@@ -109,10 +110,15 @@ class TestDataGenerator {
 
   // Expense categories with expanded types
   static final List<String> _expenseCategories = [
-    'Nguyên liệu',
+    'Tiền thuê',
+    'Điện nước',
+    'Nhập hàng',
+    'Lương nhân viên',
     'Vận chuyển',
-    'Nhân công',
+    'Marketing',
     'Bảo trì',
+    'Văn phòng phẩm',
+    'Ăn uống',
     'Khác',
   ];
 
@@ -166,15 +172,20 @@ class TestDataGenerator {
       print('📊 Generating 1 month of sold items...');
       await _generateSalesData(db, productIds);
 
-      // Generate 1 month of expenses
-      print('💰 Generating 1 month of expenses...');
+      // Generate recurring expenses
+      print('⏱️  Generating recurring expenses...');
+      await _generateRecurringExpenses(db);
+
+      // Generate 1 month of one-time expenses
+      print('💰 Generating 1 month of one-time expenses...');
       await _generateExpenseData(db);
 
       print('✅ Test data generation completed successfully!');
       print('📈 Summary:');
       print('   - ${productIds.length} products created');
       print('   - 30 days of sales data generated');
-      print('   - 30 days of expense data generated');
+      print('   - Recurring expenses created');
+      print('   - 30 days of one-time expense data generated');
     } catch (e) {
       print('❌ Error generating test data: $e');
       rethrow;
@@ -297,6 +308,111 @@ class TestDataGenerator {
     print('   ✓ Total sales revenue: ${_formatCurrency(_totalSalesRevenue)}');
   }
 
+  /// Generate recurring expenses (monthly, weekly, and annual)
+  static Future<void> _generateRecurringExpenses(DatabaseHelper db) async {
+    final now = DateTime.now();
+    final recurringExpenses = <RecurringExpense>[];
+    int totalRecurringAmount = 0;
+
+    // Monthly recurring expenses
+    final monthlyExpenses = [
+      {
+        'category': 'Tiền thuê',
+        'description': 'Tiền thuê mặt bằng cửa hàng',
+        'amount': 3000000,
+        'frequency': 'MONTHLY',
+      },
+      {
+        'category': 'Lương nhân viên',
+        'description': 'Lương nhân viên hàng tháng',
+        'amount': 2000000,
+        'frequency': 'MONTHLY',
+      },
+      {
+        'category': 'Điện nước',
+        'description': 'Hóa đơn điện nước hàng tháng',
+        'amount': 800000,
+        'frequency': 'MONTHLY',
+      },
+    ];
+
+    // Weekly recurring expenses
+    final weeklyExpenses = <Map<String, dynamic>>[];
+
+    // Yearly recurring expenses
+    final yearlyExpenses = <Map<String, dynamic>>[];
+
+    // Create monthly recurring expenses starting from 2 weeks ago
+    for (var expense in monthlyExpenses) {
+      final startDate = now.subtract(const Duration(days: 14));
+      final recurring = RecurringExpense(
+        id: 0,
+        category: expense['category'] as String,
+        description: expense['description'] as String,
+        amount: expense['amount'] as int,
+        frequency: expense['frequency'] as String,
+        startDate: startDate,
+        endDate: null,
+        paymentMethod: _paymentMethods[_random.nextInt(_paymentMethods.length)],
+        note: 'Chi phí cố định tự động tạo',
+        isActive: true,
+        createdAt: startDate,
+        lastGeneratedDate: null,
+      );
+      recurringExpenses.add(recurring);
+      totalRecurringAmount += recurring.amount;
+    }
+
+    // Create weekly recurring expenses starting from 4 weeks ago
+    for (var expense in weeklyExpenses) {
+      final startDate = now.subtract(const Duration(days: 28));
+      final recurring = RecurringExpense(
+        id: 0,
+        category: expense['category'] as String,
+        description: expense['description'] as String,
+        amount: expense['amount'] as int,
+        frequency: expense['frequency'] as String,
+        startDate: startDate,
+        endDate: null,
+        paymentMethod: _paymentMethods[_random.nextInt(_paymentMethods.length)],
+        note: 'Chi phí cố định tự động tạo',
+        isActive: true,
+        createdAt: startDate,
+        lastGeneratedDate: null,
+      );
+      recurringExpenses.add(recurring);
+      totalRecurringAmount += (recurring.amount * 4); // 4 weeks in the period
+    }
+
+    // Create yearly recurring expenses
+    for (var expense in yearlyExpenses) {
+      final startDate = now.subtract(const Duration(days: 180));
+      final recurring = RecurringExpense(
+        id: 0,
+        category: expense['category'] as String,
+        description: expense['description'] as String,
+        amount: expense['amount'] as int,
+        frequency: expense['frequency'] as String,
+        startDate: startDate,
+        endDate: null,
+        paymentMethod: _paymentMethods[_random.nextInt(_paymentMethods.length)],
+        note: 'Chi phí cố định tự động tạo',
+        isActive: true,
+        createdAt: startDate,
+        lastGeneratedDate: null,
+      );
+      recurringExpenses.add(recurring);
+    }
+
+    // Insert all recurring expenses
+    for (var recurring in recurringExpenses) {
+      await db.insertRecurringExpense(recurring);
+    }
+
+    print('\n   ✓ Created ${recurringExpenses.length} recurring expense templates');
+    print('   ✓ Total monthly recurring amount: ${_formatCurrency(totalRecurringAmount)}');
+  }
+
   /// Get random customer notes
   static String _getRandomNote() {
     final notes = [
@@ -313,17 +429,13 @@ class TestDataGenerator {
     return notes[_random.nextInt(notes.length)];
   }
 
-  /// Generate 1 month of expense data with more variety
+  /// Generate 1 month of one-time expense data with more variety
   static Future<void> _generateExpenseData(DatabaseHelper db) async {
     final now = DateTime.now();
     final oneMonthAgo = now.subtract(const Duration(days: 30));
 
     int totalExpenses = 0;
     int totalExpenseAmount = 0;
-
-    // Calculate target expense amount
-    final targetExpenseAmount = (_totalSalesRevenue * 0.4).toInt();
-    final expensePerDay = (targetExpenseAmount / 30).toInt() + 500000;
 
     // Pre-cache descriptions and notes for all categories
     final descriptionsByCategory = <String, List<String>>{};
@@ -337,20 +449,16 @@ class TestDataGenerator {
     // Generate expenses for each day
     for (int dayOffset = 30; dayOffset >= 0; dayOffset--) {
       final date = oneMonthAgo.add(Duration(days: 30 - dayOffset));
-      final isWeekend = date.weekday == 6 || date.weekday == 7; // Saturday or Sunday
 
       // Report progress to callback
       _reportProgress('Expenses', 30 - dayOffset, 31);
 
-      // Pick 2-3 unique categories for the day
-      final categoriesForDay = List<String>.from(_expenseCategories)..shuffle();
-      final numTypes = isWeekend ? (_random.nextInt(2) + 2) : (_random.nextInt(2) + 1); // 2-3 for weekend, 1-2 for weekday
-      final selectedCategories = categoriesForDay.take(numTypes).toList();
-
       final dailyExpenses = <Expense>[];
 
-      for (final category in selectedCategories) {
-        final hour = _random.nextInt(12) + 7; // 7 AM - 7 PM
+      // High frequency: Raw materials - 70% chance per day
+      if (_random.nextDouble() < 0.7) {
+        final selectedCategory = 'Nhập hàng';
+        final hour = _random.nextInt(12) + 7;
         final minute = _random.nextInt(60);
 
         final expenseTime = DateTime(
@@ -361,20 +469,51 @@ class TestDataGenerator {
           minute,
         );
 
-        // Get base amount for category (reduced by 50%)
-        int amount = (_getExpenseAmountForCategory(category) * 0.5).toInt();
+        int amount = _getExpenseAmountForCategory(selectedCategory);
+        amount = ((amount / 10000).round() * 10000).clamp(20000, 5000000);
 
-        // Adjust amount based on daily target to keep 15% ratio
-        final dayAdjustmentFactor = (expensePerDay / 2000000); // Normalize around 2M average
-        amount = (amount * dayAdjustmentFactor).toInt().clamp(20000, 5000000);
-
-        // Get cached descriptions and notes
-        final descriptions = descriptionsByCategory[category] ?? ['Chi phí'];
-        final notes = notesByCategory[category] ?? ['Ghi chú'];
+        final descriptions = descriptionsByCategory[selectedCategory] ?? ['Chi phí'];
+        final notes = notesByCategory[selectedCategory] ?? ['Ghi chú'];
 
         final expense = Expense(
-          id: 0, // Auto-generate ID
-          category: category,
+          id: 0,
+          category: selectedCategory,
+          description: descriptions[_random.nextInt(descriptions.length)],
+          amount: amount,
+          timestamp: expenseTime,
+          paymentMethod:
+              _paymentMethods[_random.nextInt(_paymentMethods.length)],
+          note: _random.nextDouble() > 0.6
+              ? notes[_random.nextInt(notes.length)]
+              : null,
+        );
+
+        dailyExpenses.add(expense);
+      }
+
+      // Low frequency: Other expenses (Khác category only) - 15% chance per day
+      if (_random.nextDouble() < 0.15) {
+        final selectedCategory = 'Khác';
+        final hour = _random.nextInt(12) + 7;
+        final minute = _random.nextInt(60);
+
+        final expenseTime = DateTime(
+          date.year,
+          date.month,
+          date.day,
+          hour,
+          minute,
+        );
+
+        int amount = _getExpenseAmountForCategory(selectedCategory);
+        amount = ((amount / 10000).round() * 10000).clamp(20000, 5000000);
+
+        final descriptions = descriptionsByCategory[selectedCategory] ?? ['Chi phí'];
+        final notes = notesByCategory[selectedCategory] ?? ['Ghi chú'];
+
+        final expense = Expense(
+          id: 0,
+          category: selectedCategory,
           description: descriptions[_random.nextInt(descriptions.length)],
           amount: amount,
           timestamp: expenseTime,
@@ -404,152 +543,131 @@ class TestDataGenerator {
   /// Get relevant notes for expense category (returns list for caching)
   static List<String> _getExpenseNotesForCategory(String category) {
     final notes = {
-      'Nguyên liệu': ['Hàng tươi', 'Đã kiểm tra chất lượng', 'Nhập số lượng lớn'],
-      'Điện nước': ['Hóa đơn tháng này', 'Đã thanh toán', 'Chốt sổ'],
+      'Tiền thuê': ['Thuê tháng này', 'Đã thanh toán', 'Chốt sổ'],
+      'Điện nước': ['Hóa đơn tháng', 'Đã thanh toán', 'Chốt sổ'],
+      'Nhập hàng': ['Hàng tươi', 'Đã kiểm tra chất lượng', 'Nhập thêm'],
+      'Lương nhân viên': ['Lương tháng', 'Thưởng', 'Tạm ứng'],
       'Vận chuyển': ['Giao hàng đúng hạn', 'COD', 'Vận chuyển nhanh'],
-      'Nhân công': ['Lương tháng', 'Thưởng', 'Tạm ứng'],
-      'Quảng cáo': ['Chạy 7 ngày', 'Hiệu quả tốt', 'Cần tăng ngân sách'],
+      'Marketing': ['Chạy 7 ngày', 'Hiệu quả tốt', 'Cần tăng ngân sách'],
       'Bảo trì': ['Định kỳ', 'Khẩn cấp', 'Bảo dưỡng'],
-      'Thuê mặt bằng': ['Thuê tháng', 'Đã thanh toán', 'Trả trước 3 tháng'],
-      'Bao bì': ['Túi giấy', 'Hộp đựng', 'Logo mới'],
-      'Đào tạo': ['Đào tạo nhân viên mới', 'Kỹ năng bán hàng', 'Học nấu ăn'],
-      'Internet & Điện thoại': ['Hóa đơn tháng', 'Gói cước', 'Gia hạn'],
-      'Kế toán & Thuế': ['Thuế VAT', 'Dịch vụ kế toán', 'Quyết toán thuế'],
-      'Bảo hiểm': ['BHXH', 'Bảo hiểm cháy nổ', 'Bảo hiểm hàng hóa'],
       'Văn phòng phẩm': ['Mua sổ sách', 'In ấn', 'Dụng cụ văn phòng'],
-      'Sự kiện & Marketing': ['Khai trương', 'Khuyến mãi', 'Event cuối tuần'],
-      'Khác': ['Chi phí đột xuất', 'Không xác định', 'Tạm thời'],
+      'Ăn uống': ['Ăn trưa', 'Ăn nhẹ', 'Nước uống'],
+      'Khác': ['Chi phí đột xuất', 'Không xác định', 'Tạm thời', 'Cần theo dõi'],
     };
     
     return notes[category] ?? ['Ghi chú'];
   }
 
-  /// Get realistic expense amount based on category
+  /// Get realistic expense amount based on category (whole numbers like 10K, 50K, 100K, etc.)
   static int _getExpenseAmountForCategory(String category) {
+    final List<int> multipliers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 30, 50, 100];
+    
+    int multiplier;
     switch (category) {
-      case 'Nguyên liệu':
-        return _random.nextInt(3000000); // 0-1M
+      case 'Tiền thuê':
+        multiplier = multipliers[_random.nextInt(5) + 10]; // 11-15 = 110K-150K
+        break;
+      case 'Điện nước':
+        multiplier = multipliers[_random.nextInt(5) + 2]; // 3-7 = 30K-70K
+        break;
+      case 'Nhập hàng':
+        multiplier = multipliers[_random.nextInt(5) + 5]; // 6-10 = 60K-100K
+        break;
+      case 'Lương nhân viên':
+        multiplier = multipliers[_random.nextInt(5) + 8]; // 9-13 = 90K-130K
+        break;
       case 'Vận chuyển':
-        return _random.nextInt(700000); // 0-500k
+        multiplier = multipliers[_random.nextInt(5)]; // 1-5 = 10K-50K
+        break;
+      case 'Marketing':
+        multiplier = multipliers[_random.nextInt(5) + 5]; // 6-10 = 60K-100K
+        break;
       case 'Bảo trì':
-        return _random.nextInt(500000); // 0-200k
-      case 'Nhân công':
-        return _random.nextInt(2000000); // 0-200k
+        multiplier = multipliers[_random.nextInt(4) + 2]; // 3-5 = 30K-50K
+        break;
+      case 'Văn phòng phẩm':
+        multiplier = multipliers[_random.nextInt(3) + 1]; // 2-4 = 20K-40K
+        break;
+      case 'Ăn uống':
+        multiplier = multipliers[_random.nextInt(4) + 1]; // 2-5 = 20K-50K
+        break;
       default: // Khác
-        return _random.nextInt(5000000); // 0-1M
+        multiplier = multipliers[_random.nextInt(6) + 2]; // 3-8 = 30K-80K
+        break;
     }
+    
+    return multiplier * 10000; // Always returns multiple of 10K
   }
 
   /// Get descriptions for expense category (returns list for caching)
   static List<String> _getExpenseDescriptionsForCategory(String category) {
     final descriptions = {
-      'Nguyên liệu': [
-        'Mua trà các loại',
-        'Mua cà phê hạt',
-        'Mua bột mì hạnh nhân',
-        'Mua sữa tươi',
-        'Mua trái cây tươi',
-        'Mua đường không calo',
-        'Mua kem phô mai',
-        'Mua bơ đậu phộng',
-        'Mua chocolate đen',
-        'Mua rau xanh organic',
+      'Tiền thuê': [
+        'Tiền thuê mặt bằng',
+        'Tiền thuê kho',
+        'Tiền thuê phòng',
       ],
       'Điện nước': [
-        'Hóa đơn điện tháng này',
+        'Hóa đơn điện',
         'Hóa đơn nước',
-        'Phí quản lý chung cư',
-        'Phí vệ sinh môi trường',
+        'Phí quản lý',
       ],
-      'Vận chuyển': [
-        'Giao hàng nguyên liệu',
-        'Ship đơn hàng cho khách',
-        'Xăng xe giao hàng',
-        'Phí giao hàng nhanh',
-        'Cước phí vận chuyển',
+      'Nhập hàng': [
+        'Mua nguyên liệu bổ sung',
+        'Mua cà phê hạt premium',
+        'Mua trà cao cấp',
+        'Mua kem phô mai nhập khẩu',
+        'Mua chocolate đen',
+        'Mua sữa tươi thêm',
       ],
-      'Nhân công': [
-        'Lương nhân viên bán hàng',
-        'Lương nhân viên pha chế',
+      'Lương nhân viên': [
+        'Lương tháng',
         'Thưởng hiệu suất',
-        'Phúc lợi nhân viên',
         'Tạm ứng lương',
         'Phụ cấp',
       ],
-      'Quảng cáo': [
+      'Vận chuyển': [
+        'Giao hàng nguyên liệu',
+        'Ship đơn hàng',
+        'Xăng xe giao hàng',
+        'Phí giao hàng nhanh',
+      ],
+      'Marketing': [
         'Quảng cáo Facebook Ads',
         'Quảng cáo Instagram',
         'Poster in ấn',
         'Banner quảng cáo',
         'Google Ads',
-        'TikTok Ads',
         'Voucher khuyến mãi',
       ],
       'Bảo trì': [
         'Sửa máy pha cà phê',
-        'Vệ sinh tổng thể',
-        'Bảo dưỡng máy xay sinh tố',
-        'Thay dao máy xay',
-        'Sơn sửa quán',
-      ],
-      'Thuê mặt bằng': [
-        'Tiền thuê mặt bằng tháng này',
-        'Đặt cọc thuê nhà',
-        'Gia hạn hợp đồng thuê',
-      ],
-      'Bao bì': [
-        'Mua túi giấy kraft',
-        'Hộp đựng đồ ăn',
-        'Ly nhựa có nắp',
-        'Ống hút giấy',
-        'Logo dán ly',
-        'Túi nilon đóng gói',
-      ],
-      'Đào tạo': [
-        'Khóa học pha chế',
-        'Đào tạo nhân viên mới',
-        'Khóa học kỹ năng bán hàng',
-        'Workshop marketing',
-      ],
-      'Internet & Điện thoại': [
-        'Cước internet tháng',
-        'Cước điện thoại',
-        'Sim điện thoại',
-        'Gia hạn gói cước',
-      ],
-      'Kế toán & Thuế': [
-        'Dịch vụ kế toán thuế',
-        'Thuế VAT',
-        'Thuế môn bài',
-        'Phí quyết toán thuế',
-        'Lệ phí đăng ký kinh doanh',
-      ],
-      'Bảo hiểm': [
-        'BHXH nhân viên',
-        'Bảo hiểm cháy nổ',
-        'Bảo hiểm trách nhiệm dân sự',
-        'Bảo hiểm hàng hóa',
+        'Bảo dưỡng tủ lạnh',
+        'Sửa máy xay sinh tố',
+        'Thay lò xo cửa',
+        'Vệ sinh bếp chuyên sâu',
+        'Sơn sửa tường',
+        'Thay bóng đèn LED',
       ],
       'Văn phòng phẩm': [
         'Mua sổ sách ghi chép',
         'Bút viết',
         'In hóa đơn',
         'Giấy in A4',
-        'Kệ trưng bày',
       ],
-      'Sự kiện & Marketing': [
-        'Chi phí khai trương',
-        'Sự kiện khuyến mãi',
-        'Event cuối tuần',
-        'Livestream bán hàng',
-        'Chụp ảnh sản phẩm',
+      'Ăn uống': [
+        'Ăn trưa nhân viên',
+        'Mua nước uống',
+        'Ăn nhẹ buổi sáng',
+        'Cà phê khách',
       ],
       'Khác': [
-        'Chi phí đột xuất',
-        'Tiền phạt vi phạm',
-        'Chi phí đặc biệt',
-        'Sửa chữa khác',
-        'Mua thiết bị nhỏ',
+        'Mua khẩu trang bảo vệ',
+        'Mua bình rửa tay sạch khuẩn',
+        'Mua túi đựng rác',
+        'Tiền phạt giao thông',
+        'Mua sơn sửa nhanh',
+        'Mua dụng cụ nhỏ',
       ],
     };
 
