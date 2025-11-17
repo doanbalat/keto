@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'dart:io';
 import 'database/database_helper.dart';
 import 'models/sold_item_model.dart';
 import 'models/expense_model.dart';
@@ -13,8 +14,15 @@ class StatisticsPage extends StatefulWidget {
   State<StatisticsPage> createState() => _StatisticsPageState();
 }
 
-class _StatisticsPageState extends State<StatisticsPage> {
+class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAliveClientMixin {
   final DatabaseHelper _db = DatabaseHelper();
+  final ScrollController _scrollController = ScrollController();
+  
+  // Memoized formatters to avoid recreation on every call
+  late final NumberFormat _currencyFormatter = NumberFormat.currency(locale: 'vi_VN', symbol: '₫');
+  late final DateFormat _dateFormatter = DateFormat('dd/MM/yyyy');
+  late final DateFormat _dateKeyFormatter = DateFormat('yyyy-MM-dd');
+  late final DateFormat _compactDateFormatter = DateFormat('dd/MM');
 
   // Color palette for pie charts
   static const List<Color> _pieChartColors = [
@@ -36,6 +44,9 @@ class _StatisticsPageState extends State<StatisticsPage> {
   // Week selector for sales chart (0 = current week, -1 = last week, etc.)
   int _weekOffset = 0;
 
+  // Sort option for top products (true = revenue, false = quantity)
+  bool _sortByRevenue = true;
+
   // Statistics data
   int _totalRevenue = 0;
   int _totalExpenses = 0;
@@ -48,10 +59,19 @@ class _StatisticsPageState extends State<StatisticsPage> {
   bool _isLoading = true;
 
   @override
+  bool get wantKeepAlive => true;
+
+  @override
   void initState() {
     super.initState();
     _initializeLocale();
     _loadStatistics();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   Future<void> _initializeLocale() async {
@@ -80,15 +100,17 @@ class _StatisticsPageState extends State<StatisticsPage> {
         (sum, expense) => sum + expense.amount,
       );
 
-      setState(() {
-        _soldItems = soldItems;
-        _expenses = expenses;
-        _totalRevenue = totalRevenue;
-        _totalExpenses = totalExpenses;
-        _netProfit = totalRevenue - totalExpenses;
-        _itemsSold = totalItemsSold;
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _soldItems = soldItems;
+          _expenses = expenses;
+          _totalRevenue = totalRevenue;
+          _totalExpenses = totalExpenses;
+          _netProfit = totalRevenue - totalExpenses;
+          _itemsSold = totalItemsSold;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -101,37 +123,74 @@ class _StatisticsPageState extends State<StatisticsPage> {
 
   void _changePeriod(String period) {
     final now = DateTime.now();
-    setState(() {
-      _selectedPeriod = period;
+    _selectedPeriod = period;
 
-      switch (period) {
-        case 'Hôm nay':
-          _startDate = DateTime(now.year, now.month, now.day);
-          _endDate = now;
-          break;
-        case 'Tuần này':
-          final weekday = now.weekday;
-          _startDate = now.subtract(Duration(days: weekday - 1));
-          _startDate = DateTime(
-            _startDate.year,
-            _startDate.month,
-            _startDate.day,
-          );
-          _endDate = now;
-          break;
-        case 'Tháng này':
-          _startDate = DateTime(now.year, now.month, 1);
-          _endDate = now;
-          break;
-        case 'Tháng trước':
-          final lastMonth = DateTime(now.year, now.month - 1, 1);
-          _startDate = lastMonth;
-          _endDate = DateTime(now.year, now.month, 0, 23, 59, 59);
-          break;
+    switch (period) {
+      case 'Hôm nay':
+        _startDate = DateTime(now.year, now.month, now.day);
+        _endDate = now;
+        break;
+      case 'Tuần này':
+        final weekday = now.weekday;
+        _startDate = now.subtract(Duration(days: weekday - 1));
+        _startDate = DateTime(
+          _startDate.year,
+          _startDate.month,
+          _startDate.day,
+        );
+        _endDate = now;
+        break;
+      case 'Tháng này':
+        _startDate = DateTime(now.year, now.month, 1);
+        _endDate = now;
+        break;
+      case 'Tháng trước':
+        final lastMonth = DateTime(now.year, now.month - 1, 1);
+        _startDate = lastMonth;
+        _endDate = DateTime(now.year, now.month, 0, 23, 59, 59);
+        break;
+    }
+
+    _loadStatisticsWithoutReload();
+  }
+
+  Future<void> _loadStatisticsWithoutReload() async {
+    try {
+      // Load data based on date range
+      final soldItems = await _db.getSoldItemsByDateRange(_startDate, _endDate);
+      final expenses = await _db.getExpensesByDateRange(_startDate, _endDate);
+
+      // Calculate totals
+      int totalRevenue = 0;
+      int totalItemsSold = 0;
+
+      for (var item in soldItems) {
+        totalRevenue += item.priceAfterDiscount;
+        totalItemsSold += item.quantity;
       }
-    });
 
-    _loadStatistics();
+      int totalExpenses = expenses.fold(
+        0,
+        (sum, expense) => sum + expense.amount,
+      );
+
+      if (mounted) {
+        setState(() {
+          _soldItems = soldItems;
+          _expenses = expenses;
+          _totalRevenue = totalRevenue;
+          _totalExpenses = totalExpenses;
+          _netProfit = totalRevenue - totalExpenses;
+          _itemsSold = totalItemsSold;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Lỗi tải dữ liệu: $e')));
+      }
+    }
   }
 
   Future<void> _selectCustomDateRange() async {
@@ -144,12 +203,10 @@ class _StatisticsPageState extends State<StatisticsPage> {
       );
 
       if (picked != null) {
-        setState(() {
-          _selectedPeriod = 'Tùy chỉnh';
-          _startDate = picked.start;
-          _endDate = picked.end;
-        });
-        _loadStatistics();
+        _selectedPeriod = 'Tùy chỉnh';
+        _startDate = picked.start;
+        _endDate = picked.end;
+        _loadStatisticsWithoutReload();
       }
     } catch (e) {
       if (mounted) {
@@ -161,45 +218,68 @@ class _StatisticsPageState extends State<StatisticsPage> {
   }
 
   String _formatCurrency(int amount) {
-    final formatter = NumberFormat.currency(locale: 'vi_VN', symbol: '₫');
-    return formatter.format(amount);
+    return _currencyFormatter.format(amount);
   }
 
   String _formatDate(DateTime date) {
-    return DateFormat('dd/MM/yyyy').format(date);
+    return _dateFormatter.format(date);
   }
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Scaffold(
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _loadStatistics,
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          : Stack(
+              children: [
+                ListView(
+                  controller: _scrollController,
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: EdgeInsets.zero,
                   children: [
-                    _buildPeriodSelector(),
-                    const SizedBox(height: 16),
-                    _buildDateRangeDisplay(),
-                    const SizedBox(height: 20),
-                    _buildSummaryCards(),
-                    const SizedBox(height: 24),
-                    _buildTrendLineChart(),
-                    const SizedBox(height: 24),
-                    _buildDailySalesChart(),
-                    const SizedBox(height: 24),
-                    _buildTopProductsList(),
-                    const SizedBox(height: 24),
-                    _buildExpensesPieChart(),
-                    const SizedBox(height: 24),
-                    _buildExpensesCategoryBreakdown(),
+                    const SizedBox(height: 140), // Space for sticky header
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildSummaryCards(),
+                          const SizedBox(height: 24),
+                          _buildTrendLineChart(),
+                          const SizedBox(height: 24),
+                          _buildDailySalesChart(),
+                          const SizedBox(height: 24),
+                          _buildTopProductsList(),
+                          const SizedBox(height: 24),
+                          _buildExpensesPieChart(),
+                          const SizedBox(height: 24),
+                          _buildExpensesCategoryBreakdown(),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
-              ),
+                // Sticky header with period selector
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: Container(
+                    color: Theme.of(context).scaffoldBackgroundColor,
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildPeriodSelector(),
+                        const SizedBox(height: 12),
+                        _buildDateRangeDisplay(),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
     );
   }
@@ -221,6 +301,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
 
   Widget _buildPeriodChip(String label) {
     final isSelected = _selectedPeriod == label;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.only(right: 8.0),
       child: ChoiceChip(
@@ -231,7 +312,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
         },
         selectedColor: Colors.blue,
         labelStyle: TextStyle(
-          color: isSelected ? Colors.white : (Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black),
+          color: isSelected ? Colors.white : (isDarkMode ? Colors.white : Colors.black),
         ),
       ),
     );
@@ -239,6 +320,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
 
   Widget _buildCustomDateChip() {
     final isSelected = _selectedPeriod == 'Tùy chỉnh';
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return ChoiceChip(
       label: const Text('Tùy chỉnh'),
       selected: isSelected,
@@ -247,7 +329,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
       },
       selectedColor: Colors.blue,
       labelStyle: TextStyle(
-        color: isSelected ? Colors.white : (Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black),
+        color: isSelected ? Colors.white : (isDarkMode ? Colors.white : Colors.black),
       ),
     );
   }
@@ -367,6 +449,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
   Widget _buildDailySalesChart() {
     // Always use last 7 days for this section, regardless of period selector
     final now = DateTime.now();
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     // Get the start of the week (Monday) with offset
     // weekday: Monday=1, Sunday=7
@@ -402,7 +485,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
         Map<String, Map<String, dynamic>> dailySalesData = {};
 
         for (var date in last7Days) {
-          final dateKey = DateFormat('yyyy-MM-dd').format(date);
+          final dateKey = _dateKeyFormatter.format(date);
           dailySalesData[dateKey] = {
             'date': date,
             'products': <String, int>{},
@@ -412,7 +495,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
 
         // Process last 7 days sold items
         for (var item in last7DaysSoldItems) {
-          final dateKey = DateFormat('yyyy-MM-dd').format(item.timestamp);
+          final dateKey = _dateKeyFormatter.format(item.timestamp);
           if (dailySalesData.containsKey(dateKey)) {
             final productName = item.product?.name ?? 'Khác';
             dailySalesData[dateKey]!['products'][productName] =
@@ -490,9 +573,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: Theme.of(context).brightness == Brightness.dark
-                                    ? Colors.white
-                                    : Colors.black,
+                            color: isDarkMode ? Colors.white : Colors.black,
                             letterSpacing: 0.5,
                           ),
                         ),
@@ -537,12 +618,10 @@ class _StatisticsPageState extends State<StatisticsPage> {
                                     const Duration(days: 6),
                                   );
                                   return Text(
-                                    '${DateFormat('dd/MM').format(weekStart)} - ${DateFormat('dd/MM').format(weekEnd)}',
+                                    '${_compactDateFormatter.format(weekStart)} - ${_compactDateFormatter.format(weekEnd)}',
                                     style: TextStyle(
                                       fontSize: 11,
-                                      color: Theme.of(context).brightness == Brightness.dark
-                                    ? Colors.white
-                                    : Colors.black54,
+                                      color: isDarkMode ? Colors.white : Colors.black54,
                                     ),
                                   );
                                 },
@@ -575,9 +654,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w400,
-                                  color: Theme.of(context).brightness == Brightness.dark
-                                    ? Colors.white
-                                    : Colors.black54,
+                                  color: isDarkMode ? Colors.white : Colors.black54,
                                 ),
                               ),
                             ),
@@ -623,9 +700,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
                             children: last7Days.asMap().entries.map((entry) {
                               final index = entry.key;
                               final date = entry.value;
-                              final dateKey = DateFormat(
-                                'yyyy-MM-dd',
-                              ).format(date);
+                              final dateKey = _dateKeyFormatter.format(date);
                               final dayData = dailySalesData[dateKey]!;
                               final products =
                                   dayData['products'] as Map<String, int>;
@@ -633,7 +708,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
                               final isToday =
                                   _weekOffset == 0 &&
                                   dateKey ==
-                                      DateFormat('yyyy-MM-dd').format(now);
+                                      _dateKeyFormatter.format(now);
 
                               return Expanded(
                                 child: GestureDetector(
@@ -660,9 +735,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
                                             style:  TextStyle(
                                               fontSize: 10,
                                               fontWeight: FontWeight.bold,
-                                              color: Theme.of(context).brightness == Brightness.dark
-                                                ? Colors.white
-                                                : Colors.black45,
+                                              color: isDarkMode ? Colors.white : Colors.black45,
                                             ),
                                           ),
                                         ),
@@ -693,12 +766,8 @@ class _StatisticsPageState extends State<StatisticsPage> {
                                         style: TextStyle(
                                           fontSize: 10,
                                           color: isToday
-                                            ? (Theme.of(context).brightness == Brightness.dark
-                                              ? Colors.white
-                                              : Colors.black)
-                                            : (Theme.of(context).brightness == Brightness.dark
-                                              ? Colors.white54
-                                              : Colors.grey),
+                                            ? (isDarkMode ? Colors.white : Colors.black)
+                                            : (isDarkMode ? Colors.white54 : Colors.grey),
                                           fontWeight: isToday
                                               ? FontWeight.bold
                                               : FontWeight.normal,
@@ -884,7 +953,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
     // Sort by date (oldest to newest)
     final sortedDates = dailyData.keys.toList()..sort();
     final sortedDateStrings = sortedDates
-        .map((date) => DateFormat('dd/MM').format(date))
+        .map((date) => _compactDateFormatter.format(date))
         .toList();
 
     if (sortedDates.isEmpty) {
@@ -1081,7 +1150,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
                         // Get date from first spot (show only once)
                         final index = touchedSpots.first.x.toInt();
                         final date = sortedDates[index];
-                        final dateStr = DateFormat('dd/MM/yyyy').format(date);
+                        final dateStr = _dateFormatter.format(date);
 
                         return touchedSpots.asMap().entries.map((entry) {
                           final spotIndex = entry.key;
@@ -1156,8 +1225,15 @@ class _StatisticsPageState extends State<StatisticsPage> {
 
     final topProducts = productStats.entries.toList()
       ..sort(
-        (a, b) =>
-            (b.value['revenue'] as int).compareTo(a.value['revenue'] as int),
+        (a, b) {
+          if (_sortByRevenue) {
+            // Sort by revenue (largest first)
+            return (b.value['revenue'] as int).compareTo(a.value['revenue'] as int);
+          } else {
+            // Sort by quantity (largest first)
+            return (b.value['quantity'] as int).compareTo(a.value['quantity'] as int);
+          }
+        },
       );
 
     final top5 = topProducts.take(5).toList();
@@ -1191,56 +1267,125 @@ class _StatisticsPageState extends State<StatisticsPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Sản phẩm bán chạy',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Sản phẩm bán chạy',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                Row(
+                  children: [
+                    _buildSortButton(
+                      'Số lượng',
+                      !_sortByRevenue,
+                      () {
+                        setState(() => _sortByRevenue = false);
+                      },
+                    ),
+                    const SizedBox(width: 8),
+                    _buildSortButton(
+                      'Doanh thu',
+                      _sortByRevenue,
+                      () {
+                        setState(() => _sortByRevenue = true);
+                      },
+                    ),
+                  ],
+                ),
+              ],
             ),
             const SizedBox(height: 12),
             ...top5.map((entry) {
               final product = entry.value['product'];
               final quantity = entry.value['quantity'];
               final revenue = entry.value['revenue'];
+              final stock = product?.stock ?? 0;
 
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8.0),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: Colors.blue.shade100,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(Icons.inventory_2, color: Colors.blue),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.grey[800]
+                        : Colors.grey[50],
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.grey[700]!
+                          : Colors.grey[200]!,
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            product?.name ?? 'Sản phẩm',
-                            style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 64,
+                          height: 64,
+                          decoration: BoxDecoration(
+                            color: Colors.blue.shade100,
+                            borderRadius: BorderRadius.circular(10),
                           ),
-                          Text(
-                            'Đã bán: $quantity',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[600],
+                          child: _buildProductImage(product),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                product?.name ?? 'Sản phẩm',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Đã bán: $quantity',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.white70
+                                    : Colors.black87,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              _formatCurrency(revenue),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.green,
+                                fontSize: 14,
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
+                            const SizedBox(height: 4),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: stock <= 5 ? Colors.red[50] : Colors.orange[50],
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                'Kho: $stock',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: stock <= 5 ? Colors.red[700] : Colors.orange[700],
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                    Text(
-                      _formatCurrency(revenue),
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.green,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               );
             }),
@@ -1248,6 +1393,45 @@ class _StatisticsPageState extends State<StatisticsPage> {
         ),
       ),
     );
+  }
+
+  Widget _buildSortButton(String label, bool isActive, VoidCallback onPressed) {
+    return OutlinedButton(
+      onPressed: onPressed,
+      style: OutlinedButton.styleFrom(
+        side: BorderSide(
+          color: isActive ? Colors.blue : Colors.grey[300]!,
+          width: isActive ? 2 : 1,
+        ),
+        backgroundColor: isActive ? Colors.blue.shade50 : null,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 12,
+          color: isActive ? Colors.blue : Colors.grey[600],
+          fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProductImage(dynamic product) {
+    if (product?.imagePath != null && product!.imagePath!.isNotEmpty) {
+      try {
+        return Image.file(
+          File(product.imagePath!),
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            return const Icon(Icons.inventory_2, color: Colors.blue);
+          },
+        );
+      } catch (e) {
+        return const Icon(Icons.inventory_2, color: Colors.blue);
+      }
+    }
+    return const Icon(Icons.inventory_2, color: Colors.blue);
   }
 
   Widget _buildExpensesPieChart() {

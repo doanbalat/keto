@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'dart:io';
 import 'database/database_helper.dart';
+import 'models/product_model.dart';
+import 'models/sold_item_model.dart';
+import 'models/expense_model.dart';
 import 'scripts/generate_test_data.dart';
 import 'services/export_service.dart';
+import 'services/string_codec_service.dart';
 import 'services/permission_service.dart';
 
 class DebugScreen extends StatefulWidget {
@@ -246,6 +251,528 @@ Hôm nay:
     }
   }
 
+  Future<void> _showStringExportImportDialog() async {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              color: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
+            ),
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header
+                Row(
+                  children: [
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade100,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      padding: const EdgeInsets.all(12),
+                      child: Icon(
+                        Icons.link,
+                        color: Colors.blue.shade700,
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Import/Export dữ liệu',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: isDarkMode ? Colors.white : Colors.black,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Chia sẻ dữ liệu như Factorio blueprint',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                
+                // Options
+                _buildExportOption(
+                  context,
+                  icon: '📤',
+                  title: 'Xuất (Export)',
+                  description: 'Copy chuỗi rồi nhập vào thiết bị khác',
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _showExportStringDialog();
+                  },
+                ),
+                const SizedBox(height: 12),
+                _buildExportOption(
+                  context,
+                  icon: '📥',
+                  title: 'Nhập (Import)',
+                  description: 'Nhập chuỗi để copy dữ liệu',
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _showImportStringDialog();
+                  },
+                ),
+                const SizedBox(height: 24),
+                
+                // Cancel button
+                SizedBox(
+                  width: double.infinity,
+                  child: TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      side: BorderSide(
+                        color: isDarkMode ? Colors.grey[700]! : Colors.grey[300]!,
+                        width: 1.5,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: Text(
+                      'Hủy',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: isDarkMode ? Colors.grey[400] : Colors.grey[700],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _showExportStringDialog() async {
+    setState(() {
+      _isLoading = true;
+      _statusMessage = 'Đang tạo chuỗi export...';
+    });
+
+    try {
+      final products = await _db.getAllProducts();
+      final soldItems = await _db.getAllSoldItems();
+      final expenses = await _db.getAllExpenses();
+
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+
+      if (!mounted) return;
+
+      final exportString = StringCodecService.encodeToString(
+        products: products,
+        soldItems: soldItems,
+        expenses: expenses,
+      );
+
+      final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+      final stats = StringCodecService.getEncodedStats(exportString);
+
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                color: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
+              ),
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header
+                  Text(
+                    'Chuỗi Dữ Liệu (Data String)',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: isDarkMode ? Colors.white : Colors.black,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  
+                  // Stats
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: isDarkMode ? Colors.grey[800] : Colors.grey[100],
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '📊 Thông tin:',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: isDarkMode ? Colors.white : Colors.black,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          '📦 Sản phẩm: ${stats['products'] ?? 0}\n'
+                          '💰 Giao dịch: ${stats['soldItems'] ?? 0}\n'
+                          '💸 Chi phí: ${stats['expenses'] ?? 0}\n'
+                          '🔗 Độ dài chuỗi: ${stats['stringLength'] ?? 0} ký tự',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // String display (scrollable)
+                  Container(
+                    constraints: const BoxConstraints(maxHeight: 150),
+                    decoration: BoxDecoration(
+                      color: isDarkMode ? Colors.grey[900] : Colors.grey[50],
+                      border: Border.all(
+                        color: isDarkMode ? Colors.cyan : Colors.blue,
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    padding: const EdgeInsets.all(12),
+                    child: Scrollbar(
+                      thumbVisibility: true,
+                      child: SingleChildScrollView(
+                        child: Text(
+                          exportString,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: isDarkMode ? Colors.grey[300] : Colors.grey[800],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // hint text
+                    Container(
+                    decoration: BoxDecoration(
+                      color: isDarkMode ? Colors.orange.withValues(alpha: 0.08) : Colors.orange.shade50,
+                      border: Border.all(color: Colors.orange, width: 1.2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                    margin: const EdgeInsets.only(bottom: 12),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                      Icon(Icons.lightbulb_outline, color: Colors.orange, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                        '💡 Sao chép dãy ký tự ở trên rồi chép vào app Keto trên thiết bị khác.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.orange.shade800,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        ),
+                      ),
+                      ],
+                    ),
+                    ),
+
+                    Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            // Copy to clipboard
+                            Clipboard.setData(ClipboardData(text: exportString));
+                            ScaffoldMessenger.of(context).clearSnackBars();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: const Text('✅ Chuỗi đã được sao chép!'),
+                                backgroundColor: Colors.green,
+                                duration: const Duration(seconds: 2),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.copy),
+                          label: const Text('Sao chép'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue,
+                            foregroundColor: Colors.white,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          style: TextButton.styleFrom(
+                            side: BorderSide(
+                              color: isDarkMode ? Colors.grey[700]! : Colors.grey[300]!,
+                            ),
+                          ),
+                          child: Text(
+                            'Đóng',
+                            style: TextStyle(
+                              color: isDarkMode ? Colors.grey[400] : Colors.grey[700],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _statusMessage = '❌ Lỗi tạo chuỗi: $e';
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _showImportStringDialog() async {
+    final controller = TextEditingController();
+    
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              color: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
+            ),
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header
+                Text(
+                  'Nhập Dữ Liệu',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: isDarkMode ? Colors.white : Colors.black,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Dán chuỗi dữ liệu được xuất từ một thiết bị khác',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Text input
+                TextField(
+                  controller: controller,
+                  maxLines: 6,
+                  decoration: InputDecoration(
+                    hintText: 'KETO1...',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    contentPadding: const EdgeInsets.all(12),
+                  ),
+                  style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
+                ),
+                const SizedBox(height: 16),
+
+                // Buttons
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          if (controller.text.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('❌ Vui lòng dán chuỗi dữ liệu'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                            return;
+                          }
+                          Navigator.of(context).pop();
+                          _processImportString(controller.text);
+                        },
+                        icon: const Icon(Icons.upload),
+                        label: const Text('Nhập'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        style: TextButton.styleFrom(
+                          side: BorderSide(
+                            color: isDarkMode ? Colors.grey[700]! : Colors.grey[300]!,
+                          ),
+                        ),
+                        child: Text(
+                          'Hủy',
+                          style: TextStyle(
+                            color: isDarkMode ? Colors.grey[400] : Colors.grey[700],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _processImportString(String encodedString) async {
+    final confirmed = await _showConfirmationDialog(
+      'Xác nhận nhập dữ liệu',
+      'Dữ liệu được nhập sẽ được thêm vào dữ liệu hiện tại.\n\nBạn có chắc chắn muốn tiếp tục?',
+    );
+
+    if (confirmed != true) return;
+
+    setState(() {
+      _isLoading = true;
+      _statusMessage = 'Đang xử lý chuỗi nhập...';
+    });
+
+    try {
+      // Decode the string
+      final decoded = StringCodecService.decodeFromString(encodedString);
+      
+      final products = decoded['products'] as List<Product>;
+      final soldItems = decoded['soldItems'] as List<SoldItem>;
+      final expenses = decoded['expenses'] as List<Expense>;
+
+      if (mounted) {
+        setState(() {
+          _statusMessage = 'Đang nhập dữ liệu vào database...';
+        });
+      }
+
+      // Import data
+      final productCount = await _db.importProducts(products);
+      final salesCount = await _db.importSoldItems(soldItems);
+      final expenseCount = await _db.importExpenses(expenses);
+
+      if (mounted) {
+        setState(() {
+          _statusMessage = '''✅ Nhập dữ liệu thành công!
+
+📊 Kết quả nhập:
+━━━━━━━━━━━━━━━━━━━━━━
+📦 Sản phẩm: $productCount
+💰 Giao dịch: $salesCount
+💸 Chi phí: $expenseCount
+━━━━━━━━━━━━━━━━━━━━━━
+
+💡 Ghi chú:
+• Dữ liệu đã được thêm vào database
+• Nếu có ID trùng, dữ liệu sẽ được cập nhật
+• Hãy kiểm tra dữ liệu sau khi nhập
+''';
+          _isLoading = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✅ Nhập dữ liệu thành công: $productCount sản phẩm, $salesCount giao dịch, $expenseCount chi phí'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+
+        // Refresh UI after 2 seconds
+        await Future.delayed(const Duration(seconds: 2));
+        if (mounted) {
+          Navigator.of(context).pop(true);
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _statusMessage = '''❌ Lỗi nhập dữ liệu:
+          
+$e
+
+Chi tiết:
+• Chuỗi dữ liệu có thể bị lỗi hoặc không hợp lệ
+• Kiểm tra xem bạn đã sao chép đúng chuỗi chưa
+• Thử lại hoặc liên hệ hỗ trợ
+''';
+          _isLoading = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Lỗi nhập dữ liệu: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    }
+  }
+
   Future<void> _showExportDialog() async {
     await showDialog<ExportFormat>(
       context: context,
@@ -309,6 +836,17 @@ Hôm nay:
                 const SizedBox(height: 24),
                 
                 // Export options
+                _buildExportOption(
+                  context,
+                  icon: '🔗',
+                  title: 'Import/Export String',
+                  description: 'Chuỗi nhỏ gọn để chia sẻ dữ liệu giữa các máy',
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _showStringExportImportDialog();
+                  },
+                ),
+                const SizedBox(height: 12),
                 _buildExportOption(
                   context,
                   icon: '{..}',
@@ -713,11 +1251,21 @@ Vui lòng kiểm tra:
                   ),
                   const SizedBox(height: 24),
 
+                  // Import/Export String Section
+                  _buildSectionTitle('🔗 Copy nhanh dữ liệu sang Keto app trên máy khác'),
+                  _buildActionButton(
+                    icon: Icons.link,
+                    label: 'Import/Export String',
+                    color: Colors.cyan,
+                    onPressed: _showStringExportImportDialog,
+                  ),
+                  const SizedBox(height: 24),
+
                   // Export Data Section
-                  _buildSectionTitle('📤 Xuất dữ liệu'),
+                  _buildSectionTitle('📤 Xuất file'),
                   _buildActionButton(
                     icon: Icons.download,
-                    label: 'Xuất dữ liệu (JSON, CSV, XLSX)',
+                    label: 'JSON / CSV Export',
                     color: Colors.green,
                     onPressed: _showExportDialog,
                   ),

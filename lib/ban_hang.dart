@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:just_audio/just_audio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:responsive_builder/responsive_builder.dart';
 import 'models/product_model.dart';
 import 'models/sold_item_model.dart';
 import 'services/product_service.dart';
@@ -44,6 +45,14 @@ class _SalesPageState extends State<SalesPage> {
   
   // Cache for extracted image colors
   final Map<int, List<Color>> _productColorCache = {};
+  
+  // Memoize RegExp to avoid recompilation on every call
+  static final RegExp _numberFormatterRegex = RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))');
+
+  /// Format number with thousand separator
+  String _formatNumberWithSeparator(int number) {
+    return number.toString().replaceAllMapped(_numberFormatterRegex, (Match m) => '${m[1]}.');
+  }
 
   /// Check if a product has duplicates with the same name and price
   bool _hasDuplicatesWithSamePricing(Product product, List<Product> productList) {
@@ -174,14 +183,16 @@ class _SalesPageState extends State<SalesPage> {
     
     // Apply sorting
     if (_sortBy == 'bestselling') {
+      // Pre-calculate sales counts to avoid repeated where() calls
+      final Map<int, int> salesCounts = {};
+      for (var item in soldItems) {
+        salesCounts[item.productId] = (salesCounts[item.productId] ?? 0) + item.quantity;
+      }
+      
       // Sort by number of sales today
       filtered.sort((a, b) {
-        final aSalesCount = soldItems
-            .where((item) => item.productId == a.id)
-            .fold<int>(0, (sum, item) => sum + item.quantity);
-        final bSalesCount = soldItems
-            .where((item) => item.productId == b.id)
-            .fold<int>(0, (sum, item) => sum + item.quantity);
+        final aSalesCount = salesCounts[a.id] ?? 0;
+        final bSalesCount = salesCounts[b.id] ?? 0;
         return bSalesCount.compareTo(aSalesCount); // Descending (highest sales first)
       });
     } else if (_sortBy == 'name') {
@@ -343,374 +354,611 @@ class _SalesPageState extends State<SalesPage> {
     }
   }
 
-  /// Build list layout (current layout with quantity controls)
+  /// Build list layout (current layout with quantity controls) - Responsive
   Widget _buildListLayout() {
-    return ListView.builder(
-      padding: const EdgeInsets.only(bottom: 100),
-      itemCount: filteredProducts.length,
-      itemBuilder: (context, index) {
-        final product = filteredProducts[index];
-        final quantity = quantities[product.id] ?? 1;
+    return ResponsiveBuilder(
+      builder: (context, sizingInformation) {
+        final isMobile = sizingInformation.isMobile;
+        final isTablet = sizingInformation.isTablet;
         
-        if (!_productColorCache.containsKey(product.id)) {
-          _extractColorsFromImage(product);
-        }
-        
-        return Card(
-          margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-          elevation: 10,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          child: Row(
-            children: [
-              Expanded(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? const Color.fromARGB(116, 20, 5, 5)
-                        : const Color.fromARGB(255, 255, 253, 191),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: () => addToSoldItems(product, quantity),
-                      borderRadius: BorderRadius.circular(20),
-                      splashColor: Colors.white.withValues(alpha: 0.3),
-                      highlightColor: Colors.white.withValues(alpha: 0.1),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 15),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    product.name,
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: Theme.of(context).brightness == Brightness.dark
-                                          ? Colors.white
-                                          : Colors.black,
-                                    ),
-                                  ),
-                                  Text(
-                                    '${product.price.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')} VND',
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.green,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                  if (_hasDuplicatesWithSamePricing(product, filteredProducts))
-                                    Padding(
-                                      padding: const EdgeInsets.only(top: 4),
-                                      child: Text(
-                                        'Giá vốn: ${product.costPrice.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')} VND',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.purple[600],
-                                          fontWeight: FontWeight.w500,
+        return ListView.builder(
+          padding: const EdgeInsets.only(bottom: 100),
+          itemCount: filteredProducts.length,
+          itemBuilder: (context, index) {
+            final product = filteredProducts[index];
+            final quantity = quantities[product.id] ?? 1;
+            
+            if (!_productColorCache.containsKey(product.id)) {
+              _extractColorsFromImage(product);
+            }
+            
+            return Card(
+              margin: EdgeInsets.symmetric(
+                horizontal: isMobile ? 12 : (isTablet ? 16 : 20),
+                vertical: 4,
+              ),
+              elevation: 10,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              child: isMobile
+                  ? Row(
+                      children: [
+                        Expanded(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).brightness == Brightness.dark
+                                  ? const Color.fromARGB(116, 20, 5, 5)
+                                  : const Color.fromARGB(255, 255, 253, 191),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                onTap: () => addToSoldItems(product, quantity),
+                                borderRadius: BorderRadius.circular(20),
+                                splashColor: Colors.white.withValues(alpha: 0.3),
+                                highlightColor: Colors.white.withValues(alpha: 0.1),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 15),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              product.name,
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                                color: Theme.of(context).brightness == Brightness.dark
+                                                    ? Colors.white
+                                                    : Colors.black,
+                                              ),
+                                            ),
+                                            Text(
+                                              '${_formatNumberWithSeparator(product.price)} VND',
+                                              style: const TextStyle(
+                                                fontSize: 14,
+                                                color: Colors.green,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                            if (_hasDuplicatesWithSamePricing(product, filteredProducts))
+                                              Padding(
+                                                padding: const EdgeInsets.only(top: 4),
+                                                child: Text(
+                                                  'Giá vốn: ${_formatNumberWithSeparator(product.costPrice)} VND',
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                    color: Colors.purple[600],
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                                ),
+                                              ),
+                                          ],
                                         ),
                                       ),
-                                    ),
-                                ],
-                              ),
-                            ),
-                            Container(
-                              width: 60,
-                              height: 60,
-                              margin: const EdgeInsets.only(left: 8),
-                              decoration: BoxDecoration(
-                                color: Colors.grey[300],
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: product.imagePath != null && product.imagePath!.isNotEmpty
-                                    ? Image.file(
-                                        File(product.imagePath!),
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (context, error, stackTrace) =>
-                                            const Icon(Icons.image, size: 30, color: Colors.grey),
-                                      )
-                                    : const Icon(Icons.image, size: 30, color: Colors.grey),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.all(1),
-                child: Column(
-                  children: [
-                    const Text('Số lượng bán', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          onPressed: () => decrementQuantity(product.id),
-                          icon: const Icon(Icons.remove),
-                          iconSize: 16,
-                          constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-                          padding: EdgeInsets.zero,
-                          style: IconButton.styleFrom(
-                            side: const BorderSide(color: Colors.grey),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                          ),
-                        ),
-                        GestureDetector(
-                          onTap: () {
-                            final controller = TextEditingController(text: quantity.toString());
-                            showDialog(
-                              context: context,
-                              builder: (BuildContext context) {
-                                return AlertDialog(
-                                  title: const Text('Nhập số lượng'),
-                                  content: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      FutureBuilder<Product?>(
-                                        future: _productService.getProductById(product.id),
-                                        builder: (context, snapshot) {
-                                          final currentProduct = snapshot.data ?? product;
-                                          return Text(
-                                            'Trong kho: ${currentProduct.stock} ${currentProduct.unit}',
-                                            style: TextStyle(
-                                              fontSize: 13,
-                                              color: Theme.of(context).brightness == Brightness.dark
-                                                ? Colors.white
-                                                : Colors.black,
-                                            ),
-                                          );
-                                        },
-                                      ),
-                                      const SizedBox(height: 12),
-                                      TextField(
-                                        controller: controller,
-                                        keyboardType: TextInputType.number,
-                                        autofocus: true,
-                                        decoration: const InputDecoration(
-                                          labelText: 'Số lượng muôn bán',
-                                          border: OutlineInputBorder(),
+                                      Container(
+                                        width: 60,
+                                        height: 60,
+                                        margin: const EdgeInsets.only(left: 8),
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey[300],
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: ClipRRect(
+                                          borderRadius: BorderRadius.circular(8),
+                                          child: product.imagePath != null && product.imagePath!.isNotEmpty
+                                              ? Image.file(
+                                                  File(product.imagePath!),
+                                                  fit: BoxFit.cover,
+                                                  errorBuilder: (context, error, stackTrace) =>
+                                                      const Icon(Icons.image, size: 30, color: Colors.grey),
+                                                )
+                                              : const Icon(Icons.image, size: 30, color: Colors.grey),
                                         ),
                                       ),
                                     ],
                                   ),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () => Navigator.pop(context),
-                                      child: const Text('Hủy'),
-                                    ),
-                                    ElevatedButton(
-                                      onPressed: () {
-                                        final newQuantity = int.tryParse(controller.text);
-                                        if (newQuantity != null && newQuantity > 0) {
-                                          setState(() => quantities[product.id] = newQuantity);
-                                          Navigator.pop(context);
-                                        } else {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            const SnackBar(content: Text('Vui lòng nhập số lượng hợp lệ')),
-                                          );
-                                        }
-                                      },
-                                      child: const Text('OK'),
-                                    ),
-                                  ],
-                                );
-                              },
-                            );
-                          },
-                          child: Container(
-                            width: 40,
-                            height: 28,
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey),
-                              borderRadius: BorderRadius.circular(4),
+                                ),
+                              ),
                             ),
-                            child: Center(child: Text(quantity.toString(), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold))),
                           ),
                         ),
-                        IconButton(
-                          onPressed: () => incrementQuantity(product.id),
-                          icon: const Icon(Icons.add),
-                          iconSize: 16,
-                          constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-                          padding: EdgeInsets.zero,
-                          style: IconButton.styleFrom(
-                            side: const BorderSide(color: Colors.grey),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                        Container(
+                          padding: const EdgeInsets.all(1),
+                          child: Column(
+                            children: [
+                              const Text('Số lượng bán', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    onPressed: () => decrementQuantity(product.id),
+                                    icon: const Icon(Icons.remove),
+                                    iconSize: 16,
+                                    constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                                    padding: EdgeInsets.zero,
+                                    style: IconButton.styleFrom(
+                                      side: const BorderSide(color: Colors.grey),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                                    ),
+                                  ),
+                                  GestureDetector(
+                                    onTap: () {
+                                      final controller = TextEditingController(text: quantity.toString());
+                                      showDialog(
+                                        context: context,
+                                        builder: (BuildContext context) {
+                                          return AlertDialog(
+                                            title: const Text('Nhập số lượng'),
+                                            content: Column(
+                                              mainAxisSize: MainAxisSize.min,
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                FutureBuilder<Product?>(
+                                                  future: _productService.getProductById(product.id),
+                                                  builder: (context, snapshot) {
+                                                    final currentProduct = snapshot.data ?? product;
+                                                    return Text(
+                                                      'Trong kho: ${currentProduct.stock} ${currentProduct.unit}',
+                                                      style: TextStyle(
+                                                        fontSize: 13,
+                                                        color: Theme.of(context).brightness == Brightness.dark
+                                                          ? Colors.white
+                                                          : Colors.black,
+                                                      ),
+                                                    );
+                                                  },
+                                                ),
+                                                const SizedBox(height: 12),
+                                                TextField(
+                                                  controller: controller,
+                                                  keyboardType: TextInputType.number,
+                                                  autofocus: true,
+                                                  decoration: const InputDecoration(
+                                                    labelText: 'Số lượng muôn bán',
+                                                    border: OutlineInputBorder(),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            actions: [
+                                              TextButton(
+                                                onPressed: () => Navigator.pop(context),
+                                                child: const Text('Hủy'),
+                                              ),
+                                              ElevatedButton(
+                                                onPressed: () {
+                                                  final newQuantity = int.tryParse(controller.text);
+                                                  if (newQuantity != null && newQuantity > 0) {
+                                                    setState(() => quantities[product.id] = newQuantity);
+                                                    Navigator.pop(context);
+                                                  } else {
+                                                    ScaffoldMessenger.of(context).showSnackBar(
+                                                      const SnackBar(content: Text('Vui lòng nhập số lượng hợp lệ')),
+                                                    );
+                                                  }
+                                                },
+                                                child: const Text('OK'),
+                                              ),
+                                            ],
+                                          );
+                                        },
+                                      );
+                                    },
+                                    child: Container(
+                                      width: 40,
+                                      height: 28,
+                                      decoration: BoxDecoration(
+                                        border: Border.all(color: Colors.grey),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Center(child: Text(quantity.toString(), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold))),
+                                    ),
+                                  ),
+                                  IconButton(
+                                    onPressed: () => incrementQuantity(product.id),
+                                    icon: const Icon(Icons.add),
+                                    iconSize: 16,
+                                    constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                                    padding: EdgeInsets.zero,
+                                    style: IconButton.styleFrom(
+                                      side: const BorderSide(color: Colors.grey),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
                         ),
                       ],
+                    )
+                  : InkWell(
+                      onTap: () => addToSoldItems(product, quantity),
+                      borderRadius: BorderRadius.circular(20),
+                      splashColor: Colors.white.withValues(alpha: 0.3),
+                      highlightColor: Colors.white.withValues(alpha: 0.1),
+                      child: Column(
+                        children: [
+                          Container(
+                            height: isTablet ? 200 : 300,
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              color: Colors.grey[300],
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(20),
+                              child: product.imagePath != null && product.imagePath!.isNotEmpty
+                                  ? Image.file(
+                                      File(product.imagePath!),
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) =>
+                                          const Icon(Icons.image, size: 80, color: Colors.grey),
+                                    )
+                                  : const Icon(Icons.image, size: 80, color: Colors.grey),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  product.name,
+                                  style: TextStyle(
+                                    fontSize: isTablet ? 18 : 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: Theme.of(context).brightness == Brightness.dark
+                                        ? Colors.white
+                                        : Colors.black,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  '${_formatNumberWithSeparator(product.price)} VND',
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.green,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                if (_hasDuplicatesWithSamePricing(product, filteredProducts))
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 4),
+                                    child: Text(
+                                      'Giá vốn: ${_formatNumberWithSeparator(product.costPrice)} VND',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: Colors.purple[600],
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                const SizedBox(height: 12),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  children: [
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        const Text('Số lượng bán', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                                        const SizedBox(height: 4),
+                                        Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            IconButton(
+                                              onPressed: () => decrementQuantity(product.id),
+                                              icon: const Icon(Icons.remove),
+                                              iconSize: 18,
+                                              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                                              padding: EdgeInsets.zero,
+                                              style: IconButton.styleFrom(
+                                                side: const BorderSide(color: Colors.grey),
+                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                                              ),
+                                            ),
+                                            GestureDetector(
+                                              onTap: () {
+                                                final controller = TextEditingController(text: quantity.toString());
+                                                showDialog(
+                                                  context: context,
+                                                  builder: (BuildContext context) {
+                                                    return AlertDialog(
+                                                      title: const Text('Nhập số lượng'),
+                                                      content: Column(
+                                                        mainAxisSize: MainAxisSize.min,
+                                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                                        children: [
+                                                          FutureBuilder<Product?>(
+                                                            future: _productService.getProductById(product.id),
+                                                            builder: (context, snapshot) {
+                                                              final currentProduct = snapshot.data ?? product;
+                                                              return Text(
+                                                                'Trong kho: ${currentProduct.stock} ${currentProduct.unit}',
+                                                                style: TextStyle(
+                                                                  fontSize: 13,
+                                                                  color: Theme.of(context).brightness == Brightness.dark
+                                                                    ? Colors.white
+                                                                    : Colors.black,
+                                                                ),
+                                                              );
+                                                            },
+                                                          ),
+                                                          const SizedBox(height: 12),
+                                                          TextField(
+                                                            controller: controller,
+                                                            keyboardType: TextInputType.number,
+                                                            autofocus: true,
+                                                            decoration: const InputDecoration(
+                                                              labelText: 'Số lượng muôn bán',
+                                                              border: OutlineInputBorder(),
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                      actions: [
+                                                        TextButton(
+                                                          onPressed: () => Navigator.pop(context),
+                                                          child: const Text('Hủy'),
+                                                        ),
+                                                        ElevatedButton(
+                                                          onPressed: () {
+                                                            final newQuantity = int.tryParse(controller.text);
+                                                            if (newQuantity != null && newQuantity > 0) {
+                                                              setState(() => quantities[product.id] = newQuantity);
+                                                              Navigator.pop(context);
+                                                            } else {
+                                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                                const SnackBar(content: Text('Vui lòng nhập số lượng hợp lệ')),
+                                                              );
+                                                            }
+                                                          },
+                                                          child: const Text('OK'),
+                                                        ),
+                                                      ],
+                                                    );
+                                                  },
+                                                );
+                                              },
+                                              child: Container(
+                                                width: 50,
+                                                height: 36,
+                                                decoration: BoxDecoration(
+                                                  border: Border.all(color: Colors.grey),
+                                                  borderRadius: BorderRadius.circular(4),
+                                                ),
+                                                child: Center(child: Text(quantity.toString(), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold))),
+                                              ),
+                                            ),
+                                            IconButton(
+                                              onPressed: () => incrementQuantity(product.id),
+                                              icon: const Icon(Icons.add),
+                                              iconSize: 18,
+                                              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                                              padding: EdgeInsets.zero,
+                                              style: IconButton.styleFrom(
+                                                side: const BorderSide(color: Colors.grey),
+                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  /// Build 2-column grid layout with name, price, cost price, and image - Responsive
+  Widget _buildGridLayout2Columns() {
+    return ResponsiveBuilder(
+      builder: (context, sizingInformation) {
+        final isMobile = sizingInformation.isMobile;
+        
+        // Determine number of columns based on screen size
+        int crossAxisCount = 2;
+        double childAspectRatio = 0.75;
+        double spacing = 8;
+        
+        if (sizingInformation.isDesktop) {
+          crossAxisCount = 4;
+          childAspectRatio = 0.7;
+          spacing = 12;
+        } else if (sizingInformation.isTablet) {
+          crossAxisCount = 3;
+          childAspectRatio = 0.72;
+          spacing = 10;
+        }
+        
+        return GridView.builder(
+          padding: EdgeInsets.only(
+            left: isMobile ? 8 : 12,
+            right: isMobile ? 8 : 12,
+            top: 8,
+            bottom: 100,
+          ),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            childAspectRatio: childAspectRatio,
+            crossAxisSpacing: spacing,
+            mainAxisSpacing: spacing,
+          ),
+          itemCount: filteredProducts.length,
+          itemBuilder: (context, index) {
+            final product = filteredProducts[index];
+            
+            if (!_productColorCache.containsKey(product.id)) {
+              _extractColorsFromImage(product);
+            }
+            
+            return Card(
+              elevation: 5,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              child: InkWell(
+                onTap: () => addToSoldItems(product, 1),
+                borderRadius: BorderRadius.circular(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.grey[300],
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: product.imagePath != null && product.imagePath!.isNotEmpty
+                              ? Image.file(
+                                  File(product.imagePath!),
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      const Icon(Icons.image, size: 60, color: Colors.grey),
+                                )
+                              : const Icon(Icons.image, size: 60, color: Colors.grey),
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            product.name,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${_formatNumberWithSeparator(product.price)} VND',
+                            style: const TextStyle(fontSize: 12, color: Colors.green, fontWeight: FontWeight.w600),
+                          ),
+                          if (_hasDuplicatesWithSamePricing(product, filteredProducts))
+                            Padding(
+                              padding: const EdgeInsets.only(top: 2),
+                              child: Text(
+                                'Vốn: ${_formatNumberWithSeparator(product.costPrice)} VND',
+                                style: TextStyle(fontSize: 10, color: Colors.purple[600]),
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
               ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
   }
 
-  /// Build 2-column grid layout with name, price, cost price, and image
-  Widget _buildGridLayout2Columns() {
-    return GridView.builder(
-      padding: const EdgeInsets.only(left: 8, right: 8, top: 8, bottom: 100),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 0.75,
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 8,
-      ),
-      itemCount: filteredProducts.length,
-      itemBuilder: (context, index) {
-        final product = filteredProducts[index];
-        
-        if (!_productColorCache.containsKey(product.id)) {
-          _extractColorsFromImage(product);
-        }
-        
-        return Card(
-          elevation: 5,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          child: InkWell(
-            onTap: () => addToSoldItems(product, 1),
-            borderRadius: BorderRadius.circular(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.grey[300],
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: product.imagePath != null && product.imagePath!.isNotEmpty
-                          ? Image.file(
-                              File(product.imagePath!),
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) =>
-                                  const Icon(Icons.image, size: 60, color: Colors.grey),
-                            )
-                          : const Icon(Icons.image, size: 60, color: Colors.grey),
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(8),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        product.name,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${product.price.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')} VND',
-                        style: const TextStyle(fontSize: 12, color: Colors.green, fontWeight: FontWeight.w600),
-                      ),
-                      if (_hasDuplicatesWithSamePricing(product, filteredProducts))
-                        Padding(
-                          padding: const EdgeInsets.only(top: 2),
-                          child: Text(
-                            'Vốn: ${product.costPrice.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')} VND',
-                            style: TextStyle(fontSize: 10, color: Colors.purple[600]),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  /// Build simple grid layout with only name and image
+  /// Build simple grid layout with only name and image - Responsive
   Widget _buildSimpleGridLayout() {
-    return GridView.builder(
-      padding: const EdgeInsets.only(left: 8, right: 8, top: 8, bottom: 100),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        childAspectRatio: 0.8,
-        crossAxisSpacing: 6,
-        mainAxisSpacing: 6,
-      ),
-      itemCount: filteredProducts.length,
-      itemBuilder: (context, index) {
-        final product = filteredProducts[index];
+    return ResponsiveBuilder(
+      builder: (context, sizingInformation) {
+        // Determine number of columns based on screen size
+        int crossAxisCount = 3;
+        double childAspectRatio = 0.8;
+        double spacing = 6;
         
-        if (!_productColorCache.containsKey(product.id)) {
-          _extractColorsFromImage(product);
+        if (sizingInformation.isDesktop) {
+          crossAxisCount = 6;
+          childAspectRatio = 0.8;
+          spacing = 8;
+        } else if (sizingInformation.isTablet) {
+          crossAxisCount = 4;
+          childAspectRatio = 0.8;
+          spacing = 7;
         }
         
-        return Card(
-          elevation: 4,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          child: InkWell(
-            onTap: () => addToSoldItems(product, 1),
-            borderRadius: BorderRadius.circular(10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.grey[300],
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: product.imagePath != null && product.imagePath!.isNotEmpty
-                          ? Image.file(
-                              File(product.imagePath!),
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) =>
-                                  const Icon(Icons.image, size: 50, color: Colors.grey),
-                            )
-                          : const Icon(Icons.image, size: 50, color: Colors.grey),
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(6),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        product.name,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '${product.price.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')} VND',
-                        style: const TextStyle(fontSize: 14, color: Colors.green, fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+        return GridView.builder(
+          padding: const EdgeInsets.only(left: 8, right: 8, top: 8, bottom: 100),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            childAspectRatio: childAspectRatio,
+            crossAxisSpacing: spacing,
+            mainAxisSpacing: spacing,
           ),
+          itemCount: filteredProducts.length,
+          itemBuilder: (context, index) {
+            final product = filteredProducts[index];
+            
+            if (!_productColorCache.containsKey(product.id)) {
+              _extractColorsFromImage(product);
+            }
+            
+            return Card(
+              elevation: 4,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              child: InkWell(
+                onTap: () => addToSoldItems(product, 1),
+                borderRadius: BorderRadius.circular(10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.grey[300],
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: product.imagePath != null && product.imagePath!.isNotEmpty
+                              ? Image.file(
+                                  File(product.imagePath!),
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      const Icon(Icons.image, size: 50, color: Colors.grey),
+                                )
+                              : const Icon(Icons.image, size: 50, color: Colors.grey),
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(6),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            product.name,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '${_formatNumberWithSeparator(product.price)} VND',
+                            style: const TextStyle(fontSize: 14, color: Colors.green, fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
         );
       },
     );
@@ -905,6 +1153,7 @@ class _SalesPageState extends State<SalesPage> {
                   ],
                 ),
               ),
+              const SizedBox(height: 10),
               // Product List
               Expanded(
                 child: filteredProducts.isEmpty
@@ -1294,7 +1543,7 @@ class _SalesPageState extends State<SalesPage> {
                       ),
                     ),
                     Text(
-                      '+ ${soldItems.fold<int>(0, (sum, item) => sum + item.totalPrice).toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')} VND',
+                      '+ ${_formatNumberWithSeparator(soldItems.fold<int>(0, (sum, item) => sum + item.totalPrice))} VND',
                       style: TextStyle(
                         color: Colors.green[700],
                         fontSize: 13,

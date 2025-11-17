@@ -7,6 +7,12 @@ import 'services/expense_service.dart';
 import 'services/permission_service.dart';
 import 'services/recurring_expense_service.dart';
 
+class DateRange {
+  final DateTime start;
+  final DateTime end;
+  DateRange({required this.start, required this.end});
+}
+
 class ExpensesPage extends StatefulWidget {
   const ExpensesPage({super.key});
 
@@ -18,6 +24,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
   final ExpenseService _expenseService = ExpenseService();
   final RecurringExpenseService _recurringExpenseService = RecurringExpenseService();
   final ScrollController _expenseListScrollController = ScrollController();
+  static final RegExp _numberFormatterRegex = RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))');
 
   List<Expense> todayExpenses = [];
   int totalExpensesToday = 0;
@@ -25,6 +32,51 @@ class _ExpensesPageState extends State<ExpensesPage> {
   DateTime? _selectedDate;
   Map<String, bool> expandedCategories = {};
   List<RecurringExpense> recurringExpenses = [];
+
+  String _formatNumberWithSeparator(int number) {
+    return number.toString().replaceAllMapped(_numberFormatterRegex, (Match m) => '${m[1]}.');
+  }
+
+  String _getFrequencyLabel(String frequency) {
+    return frequency == 'DAILY'
+        ? 'Hàng ngày'
+        : frequency == 'WEEKLY'
+            ? 'Hàng tuần'
+            : frequency == 'MONTHLY'
+                ? 'Hàng tháng'
+                : 'Hàng năm';
+  }
+
+  DateRange _getDateRangeForFilter() {
+    final now = DateTime.now();
+    if (_selectedFilter == 'Hôm nay') {
+      return DateRange(
+        start: DateTime(now.year, now.month, now.day),
+        end: DateTime(now.year, now.month, now.day, 23, 59, 59),
+      );
+    } else if (_selectedFilter == 'Tuần này') {
+      final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+      final startOfWeekDate = DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
+      return DateRange(
+        start: startOfWeekDate,
+        end: startOfWeekDate.add(const Duration(days: 7)),
+      );
+    } else if (_selectedFilter == 'Tháng này') {
+      final startOfMonth = DateTime(now.year, now.month, 1);
+      final endOfMonth = DateTime(now.year, now.month + 1, 1);
+      return DateRange(start: startOfMonth, end: endOfMonth);
+    } else if (_selectedFilter == 'Chọn ngày' && _selectedDate != null) {
+      final startDate = DateTime(_selectedDate!.year, _selectedDate!.month, _selectedDate!.day);
+      return DateRange(
+        start: startDate,
+        end: startDate.add(const Duration(days: 1)),
+      );
+    }
+    return DateRange(
+      start: DateTime(now.year, now.month, now.day),
+      end: DateTime(now.year, now.month, now.day, 23, 59, 59),
+    );
+  }
 
   @override
   void initState() {
@@ -40,37 +92,13 @@ class _ExpensesPageState extends State<ExpensesPage> {
       late List<Expense> expenses;
       late int total;
 
-      final now = DateTime.now();
-      
       if (_selectedFilter == 'Hôm nay') {
         expenses = await _expenseService.getTodayExpenses();
         total = await _expenseService.getTotalExpensesToday();
-      } else if (_selectedFilter == 'Tuần này') {
-        // Calculate the start of the current week (Monday)
-        final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
-        final startOfWeekDate = DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
-        final endOfWeekDate = startOfWeekDate.add(const Duration(days: 7));
-        
-        expenses = await _expenseService.getExpensesByDateRange(startOfWeekDate, endOfWeekDate);
-        total = await _expenseService.getTotalExpensesByDateRange(startOfWeekDate, endOfWeekDate);
-      } else if (_selectedFilter == 'Tháng này') {
-        // Calculate the start and end of the current month
-        final startOfMonth = DateTime(now.year, now.month, 1);
-        final endOfMonth = DateTime(now.year, now.month + 1, 1);
-        
-        expenses = await _expenseService.getExpensesByDateRange(startOfMonth, endOfMonth);
-        total = await _expenseService.getTotalExpensesByDateRange(startOfMonth, endOfMonth);
-      } else if (_selectedFilter == 'Chọn ngày' && _selectedDate != null) {
-        // Get expenses for selected date
-        final startDate = DateTime(_selectedDate!.year, _selectedDate!.month, _selectedDate!.day);
-        final endDate = startDate.add(const Duration(days: 1));
-        
-        expenses = await _expenseService.getExpensesByDateRange(startDate, endDate);
-        total = await _expenseService.getTotalExpensesByDateRange(startDate, endDate);
       } else {
-        // Default to today if no date selected
-        expenses = await _expenseService.getTodayExpenses();
-        total = await _expenseService.getTotalExpensesToday();
+        final dateRange = _getDateRangeForFilter();
+        expenses = await _expenseService.getExpensesByDateRange(dateRange.start, dateRange.end);
+        total = await _expenseService.getTotalExpensesByDateRange(dateRange.start, dateRange.end);
       }
 
       // Load all recurring expenses (active and inactive)
@@ -697,23 +725,12 @@ class _ExpensesPageState extends State<ExpensesPage> {
     Future<Map<String, int>> _getExpensesByCategoryForFilter() async {
     try {
       late List<Expense> expenses;
-      final now = DateTime.now();
       
       if (_selectedFilter == 'Hôm nay') {
         expenses = await _expenseService.getTodayExpenses();
-      } else if (_selectedFilter == 'Tuần này') {
-        final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
-        final startOfWeekDate = DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
-        final endOfWeekDate = startOfWeekDate.add(const Duration(days: 7));
-        expenses = await _expenseService.getExpensesByDateRange(startOfWeekDate, endOfWeekDate);
-      } else if (_selectedFilter == 'Tháng này') {
-        final startOfMonth = DateTime(now.year, now.month, 1);
-        final endOfMonth = DateTime(now.year, now.month + 1, 1);
-        expenses = await _expenseService.getExpensesByDateRange(startOfMonth, endOfMonth);
-      } else if (_selectedFilter == 'Chọn ngày' && _selectedDate != null) {
-        final startDate = DateTime(_selectedDate!.year, _selectedDate!.month, _selectedDate!.day);
-        final endDate = startDate.add(const Duration(days: 1));
-        expenses = await _expenseService.getExpensesByDateRange(startDate, endDate);
+      } else {
+        final dateRange = _getDateRangeForFilter();
+        expenses = await _expenseService.getExpensesByDateRange(dateRange.start, dateRange.end);
       }
       
       final Map<String, int> categoryTotals = {};
@@ -732,23 +749,12 @@ class _ExpensesPageState extends State<ExpensesPage> {
   Future<List<Expense>> _getExpensesByCategoryDetailed(String category) async {
     try {
       late List<Expense> expenses;
-      final now = DateTime.now();
       
       if (_selectedFilter == 'Hôm nay') {
         expenses = await _expenseService.getTodayExpenses();
-      } else if (_selectedFilter == 'Tuần này') {
-        final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
-        final startOfWeekDate = DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
-        final endOfWeekDate = startOfWeekDate.add(const Duration(days: 7));
-        expenses = await _expenseService.getExpensesByDateRange(startOfWeekDate, endOfWeekDate);
-      } else if (_selectedFilter == 'Tháng này') {
-        final startOfMonth = DateTime(now.year, now.month, 1);
-        final endOfMonth = DateTime(now.year, now.month + 1, 1);
-        expenses = await _expenseService.getExpensesByDateRange(startOfMonth, endOfMonth);
-      } else if (_selectedFilter == 'Chọn ngày' && _selectedDate != null) {
-        final startDate = DateTime(_selectedDate!.year, _selectedDate!.month, _selectedDate!.day);
-        final endDate = startDate.add(const Duration(days: 1));
-        expenses = await _expenseService.getExpensesByDateRange(startDate, endDate);
+      } else {
+        final dateRange = _getDateRangeForFilter();
+        expenses = await _expenseService.getExpensesByDateRange(dateRange.start, dateRange.end);
       }
       
       // Filter by category and sort by newest first
@@ -812,7 +818,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '${expense.amount.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')} VND',
+                  '${_formatNumberWithSeparator(expense.amount)} VND',
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -1544,7 +1550,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                                     ),
                                   ),
                                   Text(
-                                    '${totalExpensesToday.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')} VND',
+                                    '${_formatNumberWithSeparator(totalExpensesToday)} VND',
                                     style: const TextStyle(
                                       fontSize: 24,
                                       fontWeight: FontWeight.bold,
@@ -1658,7 +1664,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                                             children: [
                                               // Amount
                                               Text(
-                                                '${recurring.amount.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.') } đ',
+                                                '${_formatNumberWithSeparator(recurring.amount)} đ',
                                                 style: const TextStyle(
                                                   color: Color.fromARGB(255, 160, 0, 0),
                                                   fontWeight: FontWeight.bold,
@@ -1680,7 +1686,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                                               const SizedBox(height: 2),
                                               // Category and frequency
                                               Text(
-                                                recurring.frequency == 'DAILY' ? 'Hàng ngày' : recurring.frequency == 'WEEKLY' ? 'Hàng tuần' : recurring.frequency == 'MONTHLY' ? 'Hàng tháng' : 'Hàng năm',
+                                                _getFrequencyLabel(recurring.frequency),
                                                 style: const TextStyle(
                                                   color: Colors.white,
                                                   fontSize: 14,
@@ -1867,7 +1873,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                                                     crossAxisAlignment: CrossAxisAlignment.end,
                                                     children: [
                                                       Text(
-                                                        '${amount.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')} đ',
+                                                        '${_formatNumberWithSeparator(amount)} đ',
                                                         style: const TextStyle(
                                                           color: Colors.red,
                                                           fontWeight: FontWeight.bold,
@@ -2000,7 +2006,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                                                                     crossAxisAlignment: CrossAxisAlignment.end,
                                                                     children: [
                                                                       Text(
-                                                                        '${expense.amount.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')} đ',
+                                                                        '${_formatNumberWithSeparator(expense.amount)} đ',
                                                                         style: const TextStyle(
                                                                           color: Colors.red,
                                                                           fontWeight: FontWeight.bold,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
+import 'package:responsive_builder/responsive_builder.dart';
 import 'models/product_model.dart';
 import 'services/product_service.dart';
 import 'services/image_service.dart';
@@ -20,9 +21,15 @@ class InventoryPage extends StatefulWidget {
 class _InventoryPageState extends State<InventoryPage> {
   final ProductService _productService = ProductService();
   final TextEditingController _searchController = TextEditingController();
+  late final NumberFormat _currencyFormatter = NumberFormat.currency(
+    locale: 'vi',
+    symbol: 'đ',
+    decimalDigits: 0,
+  );
 
   List<Product> allProducts = [];
   List<Product> filteredProducts = [];
+  List<String>? _cachedCategories;
 
   bool _isLoading = true;
   String?
@@ -54,6 +61,7 @@ class _InventoryPageState extends State<InventoryPage> {
         _sortBy = 'none'; // Reset sort
         _sortAscending = true; // Reset sort order
         _selectedCategory = null; // Reset category filter
+        _cachedCategories = null; // Reset cached categories
         _isLoading = false;
       });
     } catch (e) {
@@ -138,11 +146,15 @@ class _InventoryPageState extends State<InventoryPage> {
   }
 
   List<String> _getUniqueCategories() {
+    if (_cachedCategories != null) {
+      return _cachedCategories!;
+    }
     final categories = <String>{'Tất cả'};
     for (var product in allProducts) {
       categories.add(product.category);
     }
-    return categories.toList()..sort();
+    _cachedCategories = categories.toList()..sort();
+    return _cachedCategories!;
   }
 
   Future<void> _checkAndNotifyLowStock(Product product) async {
@@ -485,11 +497,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                 ),
                               ),
                               Text(
-                                NumberFormat.currency(
-                                  locale: 'vi',
-                                  symbol: 'đ',
-                                  decimalDigits: 0,
-                                ).format(product.price),
+                                _currencyFormatter.format(product.price),
                                 style: const TextStyle(
                                   color: Colors.black87,
                                   fontWeight: FontWeight.w600,
@@ -510,11 +518,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                 ),
                               ),
                               Text(
-                                NumberFormat.currency(
-                                  locale: 'vi',
-                                  symbol: 'đ',
-                                  decimalDigits: 0,
-                                ).format(product.costPrice),
+                                _currencyFormatter.format(product.costPrice),
                                 style: const TextStyle(
                                   color: Colors.black87,
                                   fontWeight: FontWeight.w600,
@@ -526,7 +530,7 @@ class _InventoryPageState extends State<InventoryPage> {
                           const SizedBox(height: 6),
                           Divider(height: 12, color: Colors.orange[200]),
                           Text(
-                            'Giá trị kho hiện tại: ${NumberFormat.currency(locale: 'vi', symbol: 'đ', decimalDigits: 0).format(product.stock * product.price)}',
+                            'Giá trị kho hiện tại: ${_currencyFormatter.format(product.stock * product.price)}',
                             style: TextStyle(
                               fontSize: 11,
                               color: Colors.black87,
@@ -1279,13 +1283,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                                                                 height: 4,
                                                                               ),
                                                                               Text(
-                                                                                NumberFormat.currency(
-                                                                                  locale: 'vi',
-                                                                                  symbol: 'đ',
-                                                                                  decimalDigits: 0,
-                                                                                ).format(
-                                                                                  product.price,
-                                                                                ),
+                                                                                _currencyFormatter.format(product.price),
                                                                                 style: const TextStyle(
                                                                                   fontSize: 14,
                                                                                   fontWeight: FontWeight.bold,
@@ -1312,13 +1310,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                                                                 height: 4,
                                                                               ),
                                                                               Text(
-                                                                                NumberFormat.currency(
-                                                                                  locale: 'vi',
-                                                                                  symbol: 'đ',
-                                                                                  decimalDigits: 0,
-                                                                                ).format(
-                                                                                  product.costPrice,
-                                                                                ),
+                                                                                _currencyFormatter.format(product.costPrice),
                                                                                 style: const TextStyle(
                                                                                   fontSize: 14,
                                                                                   fontWeight: FontWeight.bold,
@@ -1607,7 +1599,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                                               children: [
                                                                 Expanded(
                                                                   child: Text(
-                                                                    'Giá bán: ${NumberFormat.currency(locale: 'vi', symbol: 'đ', decimalDigits: 0).format(product.price)}',
+                                                                    'Giá bán: ${_currencyFormatter.format(product.price)}',
                                                                     style: TextStyle(
                                                                       fontSize:
                                                                           12,
@@ -1625,7 +1617,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                                               height: 2,
                                                             ),
                                                             Text(
-                                                              'Giá vốn: ${NumberFormat.currency(locale: 'vi', symbol: 'đ', decimalDigits: 0).format(product.costPrice)}',
+                                                              'Giá vốn: ${_currencyFormatter.format(product.costPrice)}',
                                                               style: TextStyle(
                                                                 fontSize: 12,
                                                                 color: Colors.purple,
@@ -1867,13 +1859,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                                                                           height: 4,
                                                                                         ),
                                                                                         Text(
-                                                                                          NumberFormat.currency(
-                                                                                            locale: 'vi',
-                                                                                            symbol: 'đ',
-                                                                                            decimalDigits: 0,
-                                                                                          ).format(
-                                                                                            product.price,
-                                                                                          ),
+                                                                                          _currencyFormatter.format(product.price),
                                                                                           style: const TextStyle(
                                                                                             fontSize: 14,
                                                                                             fontWeight: FontWeight.bold,
@@ -1899,13 +1885,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                                                                           height: 4,
                                                                                         ),
                                                                                         Text(
-                                                                                          NumberFormat.currency(
-                                                                                            locale: 'vi',
-                                                                                            symbol: 'đ',
-                                                                                            decimalDigits: 0,
-                                                                                          ).format(
-                                                                                            product.costPrice,
-                                                                                          ),
+                                                                                          _currencyFormatter.format(product.costPrice),
                                                                                           style: const TextStyle(
                                                                                             fontSize: 14,
                                                                                             fontWeight: FontWeight.bold,
@@ -2358,115 +2338,141 @@ class _InventoryPageState extends State<InventoryPage> {
                         ],
                       ),
                     )
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(12),
-                      itemCount: filteredProducts.length,
-                      itemBuilder: (context, index) {
-                        final product = filteredProducts[index];
-                        final stockColor = _getStockIndicatorColor(
-                          product.stock,
-                        );
-                        final stockStatus = _getStockStatus(product.stock);
+                  : ResponsiveBuilder(
+                      builder: (context, sizingInformation) {
+                        final isMobile = sizingInformation.isMobile;
 
-                        return Card(
-                          elevation: 10,
-                          margin: const EdgeInsets.only(bottom: 12),
-                          child: InkWell(
-                            onTap: () => _showAdjustStockDialog(product),
-                            child: Padding(
-                              padding: const EdgeInsets.all(12),
-                              child: Row(
-                                children: [
-                                  // Product image or placeholder
-                                  Container(
-                                    width: 70,
-                                    height: 70,
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey[200],
-                                      borderRadius: BorderRadius.circular(8),
-                                      image: product.imagePath != null
-                                          ? DecorationImage(
-                                              image: FileImage(
-                                                File(product.imagePath!),
-                                              ),
-                                              fit: BoxFit.cover,
-                                            )
-                                          : null,
-                                    ),
-                                    child: product.imagePath == null
-                                        ? const Icon(
-                                            Icons.image,
-                                            color: Colors.grey,
-                                          )
-                                        : null,
-                                  ),
-                                  const SizedBox(width: 12),
+                        // Mobile: ListView with horizontal row layout
+                        if (isMobile) {
+                          return ListView.builder(
+                            padding: const EdgeInsets.all(12),
+                            itemCount: filteredProducts.length,
+                            itemBuilder: (context, index) {
+                              final product = filteredProducts[index];
+                              final stockColor = _getStockIndicatorColor(product.stock);
+                              final stockStatus = _getStockStatus(product.stock);
 
-                                  // Product info
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                              return Card(
+                                elevation: 10,
+                                margin: const EdgeInsets.only(bottom: 12),
+                                child: InkWell(
+                                  onTap: () => _showAdjustStockDialog(product),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(12),
+                                    child: Row(
                                       children: [
-                                        Text(
-                                          product.name,
-                                          style: const TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
+                                        // Product image or placeholder
+                                        Container(
+                                          width: 70,
+                                          height: 70,
+                                          decoration: BoxDecoration(
+                                            color: Colors.grey[200],
+                                            borderRadius: BorderRadius.circular(8),
+                                            image: product.imagePath != null
+                                                ? DecorationImage(
+                                                    image: FileImage(
+                                                      File(product.imagePath!),
+                                                    ),
+                                                    fit: BoxFit.cover,
+                                                  )
+                                                : null,
                                           ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
+                                          child: product.imagePath == null
+                                              ? const Icon(
+                                                  Icons.image,
+                                                  color: Colors.grey,
+                                                )
+                                              : null,
                                         ),
-                                        const SizedBox(height: 4),
-                                        Row(
-                                          children: [
-                                            Expanded(
-                                              child: Text(
-                                                'Giá bán: ${NumberFormat.currency(locale: 'vi', symbol: 'đ', decimalDigits: 0).format(product.price)}',
-                                                style: TextStyle(
-                                                  fontSize: 13,
-                                                  color: Theme.of(context).brightness == Brightness.dark
-                                                      ? Colors.white
-                                                      : Colors.black,
-                                                ),
-                                              ),
-                                            ),
-                                            Expanded(
-                                              child: Text(
-                                                ' Giá vốn: ${NumberFormat.currency(locale: 'vi', symbol: 'đ', decimalDigits: 0).format(product.costPrice)}',
-                                                style: TextStyle(
-                                                  fontSize: 13,
-                                                  color: Theme.of(context).brightness == Brightness.dark
-                                                      ? Colors.white
-                                                      : Colors.black,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 6),
-                                        Row(
-                                          children: [
-                                            Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 8,
-                                                    vertical: 4,
-                                                  ),
-                                              decoration: BoxDecoration(
-                                                color: stockColor.withValues(
-                                                  alpha: 0.2,
-                                                ),
-                                                borderRadius:
-                                                    BorderRadius.circular(4),
-                                              ),
-                                              child: Text(
-                                                stockStatus,
-                                                style: TextStyle(
-                                                  fontSize: 11,
-                                                  color: stockColor,
+                                        const SizedBox(width: 12),
+
+                                        // Product info
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                product.name,
+                                                style: const TextStyle(
+                                                  fontSize: 16,
                                                   fontWeight: FontWeight.bold,
                                                 ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Row(
+                                                children: [
+                                                  Expanded(
+                                                    child: Text(
+                                                      'Giá bán: ${_currencyFormatter.format(product.price)}',
+                                                      style: TextStyle(
+                                                        fontSize: 13,
+                                                        color: Theme.of(context).brightness == Brightness.dark
+                                                            ? Colors.white
+                                                            : Colors.black,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  Expanded(
+                                                    child: Text(
+                                                      ' Giá vốn: ${_currencyFormatter.format(product.costPrice)}',
+                                                      style: TextStyle(
+                                                        fontSize: 13,
+                                                        color: Theme.of(context).brightness == Brightness.dark
+                                                            ? Colors.white
+                                                            : Colors.black,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              const SizedBox(height: 6),
+                                              Row(
+                                                children: [
+                                                  Container(
+                                                    padding: const EdgeInsets.symmetric(
+                                                      horizontal: 8,
+                                                      vertical: 4,
+                                                    ),
+                                                    decoration: BoxDecoration(
+                                                      color: stockColor.withValues(alpha: 0.2),
+                                                      borderRadius: BorderRadius.circular(4),
+                                                    ),
+                                                    child: Text(
+                                                      stockStatus,
+                                                      style: TextStyle(
+                                                        fontSize: 11,
+                                                        color: stockColor,
+                                                        fontWeight: FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+
+                                        // Quantity display
+                                        Column(
+                                          crossAxisAlignment: CrossAxisAlignment.end,
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Text(
+                                              product.stock.toString(),
+                                              style: const TextStyle(
+                                                fontSize: 24,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.blue,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              product.unit,
+                                              style: TextStyle(
+                                                fontSize: 20,
+                                                color: Colors.grey[600],
                                               ),
                                             ),
                                           ],
@@ -2474,34 +2480,164 @@ class _InventoryPageState extends State<InventoryPage> {
                                       ],
                                     ),
                                   ),
+                                ),
+                              );
+                            },
+                          );
+                        }
 
-                                  // Quantity display
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Text(
-                                        product.stock.toString(),
-                                        style: const TextStyle(
-                                          fontSize: 24,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.blue,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        product.unit,
-                                        style: TextStyle(
-                                          fontSize: 20,
-                                          color: Colors.grey[600],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
+                        // Tablet and Desktop: GridView with 2 columns
+                        return GridView.builder(
+                          padding: const EdgeInsets.all(16),
+                          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                            maxCrossAxisExtent: 400,
+                            crossAxisSpacing: 16,
+                            mainAxisSpacing: 16,
                           ),
+                          itemCount: filteredProducts.length,
+                          itemBuilder: (context, index) {
+                            final product = filteredProducts[index];
+                            final stockColor = _getStockIndicatorColor(product.stock);
+                            final stockStatus = _getStockStatus(product.stock);
+
+                            return Card(
+                              elevation: 10,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: InkWell(
+                                onTap: () => _showAdjustStockDialog(product),
+                                borderRadius: BorderRadius.circular(12),
+                                child: SingleChildScrollView(
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(16),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        // Product image
+                                        Container(
+                                          height: 120,
+                                          width: double.infinity,
+                                          decoration: BoxDecoration(
+                                            color: Colors.grey[200],
+                                            borderRadius: BorderRadius.circular(12),
+                                            image: product.imagePath != null
+                                                ? DecorationImage(
+                                                    image: FileImage(
+                                                      File(product.imagePath!),
+                                                    ),
+                                                    fit: BoxFit.cover,
+                                                  )
+                                                : null,
+                                          ),
+                                          child: product.imagePath == null
+                                              ? const Icon(
+                                                  Icons.image,
+                                                  color: Colors.grey,
+                                                  size: 48,
+                                                )
+                                              : null,
+                                        ),
+                                        const SizedBox(height: 12),
+
+                                        // Product name
+                                        Text(
+                                          product.name,
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                          textAlign: TextAlign.center,
+                                        ),
+                                        const SizedBox(height: 8),
+
+                                        // Stock quantity display
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Text(
+                                              product.stock.toString(),
+                                              style: const TextStyle(
+                                                fontSize: 28,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.blue,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Flexible(
+                                              child: Text(
+                                                product.unit,
+                                                style: TextStyle(
+                                                  fontSize: 16,
+                                                  color: Colors.grey[600],
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 8),
+
+                                        // Stock status badge
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                            vertical: 6,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: stockColor.withValues(alpha: 0.2),
+                                            borderRadius: BorderRadius.circular(6),
+                                          ),
+                                          child: Text(
+                                            stockStatus,
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: stockColor,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+
+                                        // Price information
+                                        Column(
+                                          children: [
+                                            Text(
+                                              'Giá bán: ${_currencyFormatter.format(product.price)}',
+                                              style: const TextStyle(
+                                                fontSize: 14,
+                                                color: Colors.green,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                              textAlign: TextAlign.center,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              'Giá vốn: ${_currencyFormatter.format(product.costPrice)}',
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                color: Colors.purple[600],
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                              textAlign: TextAlign.center,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
                         );
                       },
                     ),

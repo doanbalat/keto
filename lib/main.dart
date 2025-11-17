@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'dart:io' show Platform;
 import 'ban_hang.dart';
 import 'chi_tieu.dart';
 import 'thong_ke.dart';
@@ -15,6 +18,12 @@ import 'services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize FFI for desktop platforms only (not web or mobile)
+  if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
+    sqfliteFfiInit();
+    databaseFactory = databaseFactoryFfi;
+  }
 
   // Initialize ThemeManager
   await ThemeManager().init();
@@ -358,20 +367,20 @@ class _KetoHomepageState extends State<KetoHomepage> {
             label: const Text('Thống Kê'),
           ),
           const Divider(),
-          // Product Management
+          // Product Management & Data Management
           NavigationDrawerDestination(
             icon: const Icon(Icons.shopping_bag, color: Colors.purple),
             label: const Text('Quản lý Sản phẩm'),
+          ),
+          NavigationDrawerDestination(
+            icon: const Icon(Icons.auto_stories, color: Colors.teal),
+            label: const Text('Quản lý Dữ liệu'),
           ),
           const Divider(),
           // Settings & Utilities
           NavigationDrawerDestination(
             icon: const Icon(Icons.settings),
             label: const Text('Cài đặt'),
-          ),
-          NavigationDrawerDestination(
-            icon: const Icon(Icons.auto_stories),
-            label: const Text('Quản lý Dữ liệu'),
           ),
           NavigationDrawerDestination(
             icon: const Icon(Icons.calculate),
@@ -426,6 +435,17 @@ class _KetoHomepageState extends State<KetoHomepage> {
               _refreshCurrentPage();
             }
           } else if (index == 5) {
+            // Data Management
+            final result = await Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const DebugScreen()),
+            );
+            
+            // If data was modified, refresh the current page
+            if (result == true && mounted) {
+              _refreshCurrentPage();
+            }
+          } else if (index == 6) {
             // Settings
             Navigator.push(
               context,
@@ -451,17 +471,6 @@ class _KetoHomepageState extends State<KetoHomepage> {
                 _refreshCurrentPage();
               });
             });
-          } else if (index == 6) {
-            // Data Management
-            final result = await Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const DebugScreen()),
-            );
-            
-            // If data was modified, refresh the current page
-            if (result == true && mounted) {
-              _refreshCurrentPage();
-            }
           } else if (index == 7) {
             // Basic Formulas
             Navigator.push(

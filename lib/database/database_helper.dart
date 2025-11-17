@@ -584,6 +584,116 @@ class DatabaseHelper {
     await db.delete(recurringExpenseTable);
   }
 
+  /// Import products from import data
+  /// Returns the number of products imported
+  Future<int> importProducts(List<Product> products) async {
+    final db = await database;
+    int count = 0;
+    
+    for (var product in products) {
+      try {
+        // Use INSERT OR REPLACE to handle duplicates
+        await db.rawInsert(
+          '''
+          INSERT OR REPLACE INTO $productTable (
+            id, name, price, costPrice, imagePath, stock, category, 
+            description, createdAt, isActive, unit
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ''',
+          [
+            product.id,
+            product.name,
+            product.price,
+            product.costPrice,
+            product.imagePath,
+            product.stock,
+            product.category,
+            product.description,
+            product.createdAt.toIso8601String(),
+            product.isActive ? 1 : 0,
+            product.unit,
+          ],
+        );
+        count++;
+      } catch (e) {
+        print('⚠️ Error importing product ${product.name}: $e');
+      }
+    }
+    
+    return count;
+  }
+
+  /// Import sold items from import data
+  /// Returns the number of items imported
+  Future<int> importSoldItems(List<SoldItem> items) async {
+    final db = await database;
+    int count = 0;
+    
+    for (var item in items) {
+      try {
+        await db.rawInsert(
+          '''
+          INSERT OR REPLACE INTO $soldItemTable (
+            id, productId, quantity, timestamp, totalPrice, 
+            paymentMethod, discount, note, customerName
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ''',
+          [
+            item.id,
+            item.productId,
+            item.quantity,
+            item.timestamp.toIso8601String(),
+            item.totalPrice,
+            item.paymentMethod,
+            item.discount,
+            item.note,
+            item.customerName,
+          ],
+        );
+        count++;
+      } catch (e) {
+        print('⚠️ Error importing sold item ${item.id}: $e');
+      }
+    }
+    
+    return count;
+  }
+
+  /// Import expenses from import data
+  /// Returns the number of expenses imported
+  Future<int> importExpenses(List<Expense> expenses) async {
+    final db = await database;
+    int count = 0;
+    
+    for (var expense in expenses) {
+      try {
+        await db.rawInsert(
+          '''
+          INSERT OR REPLACE INTO $expenseTable (
+            id, category, description, amount, timestamp, 
+            receiptImagePath, note, paymentMethod
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          ''',
+          [
+            expense.id,
+            expense.category,
+            expense.description,
+            expense.amount,
+            expense.timestamp.toIso8601String(),
+            expense.receiptImagePath,
+            expense.note,
+            expense.paymentMethod,
+          ],
+        );
+        count++;
+      } catch (e) {
+        print('⚠️ Error importing expense ${expense.id}: $e');
+      }
+    }
+    
+    return count;
+  }
+
   /// Close database
   Future<void> closeDatabase() async {
     if (_database != null) {
