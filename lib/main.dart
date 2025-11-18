@@ -12,9 +12,11 @@ import 'cong_thuc_co_ban.dart';
 import 'privacy_policy_page.dart';
 import 'settings_page.dart';
 import 'quan_ly_san_pham.dart';
+import 'about_page.dart';
 import 'theme/app_theme.dart';
 import 'theme/theme_manager.dart';
 import 'services/notification_service.dart';
+import 'services/currency_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -30,6 +32,9 @@ void main() async {
 
   // Initialize NotificationService
   await NotificationService().init();
+
+  // Initialize CurrencyService
+  await CurrencyService.init();
 
   // Note: Permissions are requested on-demand when user needs them
   // Camera/Photo permissions: requested when user chooses "Add Image"
@@ -392,7 +397,7 @@ class _KetoHomepageState extends State<KetoHomepage> {
           ),
           NavigationDrawerDestination(
             icon: const Icon(Icons.person),
-            label: const Text('Tác giả'),
+            label: const Text('About'),
           ),
         ],
         onDestinationSelected: (index) async {
@@ -463,6 +468,7 @@ class _KetoHomepageState extends State<KetoHomepage> {
                   onShopNameChanged: widget.onShopNameChanged,
                   soundEnabled: widget.soundEnabled,
                   onSoundEnabledChanged: widget.onSoundEnabledChanged,
+                  onThemeChanged: widget.onThemeChanged,
                 ),
               ),
             ).then((_) {
@@ -485,6 +491,14 @@ class _KetoHomepageState extends State<KetoHomepage> {
               context,
               MaterialPageRoute(
                 builder: (context) => const PrivacyPolicyPage(),
+              ),
+            );
+          } else if (index == 9) {
+            // About
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const AboutPage(),
               ),
             );
           }

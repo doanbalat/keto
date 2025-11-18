@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-import 'package:intl/intl.dart';
 import 'models/product_model.dart';
 import 'services/product_service.dart';
 import 'services/image_service.dart';
 import 'services/permission_service.dart';
+import 'services/currency_service.dart';
+import 'services/product_category_service.dart';
 
 class ProductManagementPage extends StatefulWidget {
   const ProductManagementPage({super.key});
@@ -92,37 +93,29 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
     final costPriceController = TextEditingController(text: '0');
     final quantityController = TextEditingController(text: '0');
     final unitController = TextEditingController(text: 'cái');
-    String selectedCategory = 'Khác';
+    String selectedCategory = 'Khác'; // Will be updated from default
     File? selectedImage;
     final ImagePicker _picker = ImagePicker();
 
-    // Predefined categories - store only Vietnamese name for database
-    const List<String> categoryNames = [
-      'Đồ uống',
-      'Thực phẩm',
-      'Bánh/Kẹo',
-      'Chăm sóc cá nhân',
-      'Vệ sinh/Gia dụng',
-      'Điện tử/Phụ kiện',
-      'Khác',
-    ];
-
-    // Display names with English translations
-    const List<String> categoryDisplayNames = [
-      'Đồ uống (Beverages)',
-      'Thực phẩm (Food)',
-      'Bánh/Kẹo (Baked goods/Candy)',
-      'Chăm sóc cá nhân (Personal care)',
-      'Vệ sinh/Gia dụng (Household supplies)',
-      'Điện tử/Phụ kiện (Electronics/Accessories)',
-      'Khác (Other)',
-    ];
+    // Load default category from settings
+    ProductCategoryService.getDefaultCategory().then((defaultCategory) {
+      // This will be used when the dialog is shown
+    });
 
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
+            // Load default category when dialog is first built
+            if (selectedCategory == 'Khác') {
+              ProductCategoryService.getDefaultCategory().then((defaultCategory) {
+                setDialogState(() {
+                  selectedCategory = defaultCategory;
+                });
+              });
+            }
+            
             return Dialog(
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
@@ -520,19 +513,19 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
                                       ),
                                     ),
                                     child: DropdownButton<int>(
-                                      value: categoryNames.indexOf(selectedCategory),
+                                      value: ProductCategoryService.categories.indexOf(selectedCategory),
                                       isExpanded: true,
                                       underline: const SizedBox(),
-                                      items: List.generate(categoryDisplayNames.length, (index) {
+                                      items: List.generate(ProductCategoryService.categoryDisplayNames.length, (index) {
                                         return DropdownMenuItem<int>(
                                           value: index,
-                                          child: Text(categoryDisplayNames[index]),
+                                          child: Text(ProductCategoryService.categoryDisplayNames[index]),
                                         );
                                       }),
                                       onChanged: (int? newIndex) {
                                         setDialogState(() {
                                           if (newIndex != null) {
-                                            selectedCategory = categoryNames[newIndex];
+                                            selectedCategory = ProductCategoryService.categories[newIndex];
                                           }
                                         });
                                       },
@@ -723,28 +716,6 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
     String selectedCategory = product.category;
     File? selectedImage = product.imagePath != null ? File(product.imagePath!) : null;
     final ImagePicker _picker = ImagePicker();
-
-    // Predefined categories - store only Vietnamese name for database
-    const List<String> categoryNames = [
-      'Đồ uống',
-      'Thực phẩm',
-      'Bánh/Kẹo',
-      'Chăm sóc cá nhân',
-      'Vệ sinh/Gia dụng',
-      'Điện tử/Phụ kiện',
-      'Khác',
-    ];
-
-    // Display names with English translations
-    const List<String> categoryDisplayNames = [
-      'Đồ uống (Beverages)',
-      'Thực phẩm (Food)',
-      'Bánh/Kẹo (Baked goods/Candy)',
-      'Chăm sóc cá nhân (Personal care)',
-      'Vệ sinh/Gia dụng (Household supplies)',
-      'Điện tử/Phụ kiện (Electronics/Accessories)',
-      'Khác (Other)',
-    ];
 
     showDialog(
       context: context,
@@ -1108,19 +1079,19 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
                                       ),
                                     ),
                                     child: DropdownButton<int>(
-                                      value: categoryNames.indexOf(selectedCategory),
+                                      value: ProductCategoryService.categories.indexOf(selectedCategory),
                                       isExpanded: true,
                                       underline: const SizedBox(),
-                                      items: List.generate(categoryDisplayNames.length, (index) {
+                                      items: List.generate(ProductCategoryService.categoryDisplayNames.length, (index) {
                                         return DropdownMenuItem<int>(
                                           value: index,
-                                          child: Text(categoryDisplayNames[index]),
+                                          child: Text(ProductCategoryService.categoryDisplayNames[index]),
                                         );
                                       }),
                                       onChanged: (int? newIndex) {
                                         if (newIndex != null) {
                                           setDialogState(() {
-                                            selectedCategory = categoryNames[newIndex];
+                                            selectedCategory = ProductCategoryService.categories[newIndex];
                                           });
                                         }
                                       },
@@ -1462,11 +1433,7 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  NumberFormat.currency(
-                                    locale: 'vi',
-                                    symbol: 'đ',
-                                    decimalDigits: 0,
-                                  ).format(product.price),
+                                  CurrencyService.formatCurrency(product.price),
                                   style: const TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.bold,
@@ -1492,11 +1459,7 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  NumberFormat.currency(
-                                    locale: 'vi',
-                                    symbol: 'đ',
-                                    decimalDigits: 0,
-                                  ).format(product.costPrice),
+                                  CurrencyService.formatCurrency(product.costPrice),
                                   style: const TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.bold,
@@ -1993,11 +1956,7 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    NumberFormat.currency(
-                                      locale: 'vi',
-                                      symbol: 'đ',
-                                      decimalDigits: 0,
-                                    ).format(product.price),
+                                    CurrencyService.formatCurrency(product.price),
                                     style: const TextStyle(
                                       fontSize: 14,
                                       color: Colors.green,
@@ -2006,7 +1965,7 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    'Vốn: ${NumberFormat.currency(locale: 'vi', symbol: 'đ', decimalDigits: 0).format(product.costPrice)}',
+                                    'Vốn: ${CurrencyService.formatCurrency(product.costPrice)}',
                                     style: const TextStyle(
                                       fontSize: 11,
                                       color: Colors.purple,

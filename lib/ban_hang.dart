@@ -7,18 +7,22 @@ import 'models/product_model.dart';
 import 'models/sold_item_model.dart';
 import 'services/product_service.dart';
 import 'services/notification_service.dart';
+import 'services/currency_service.dart';
 import 'scripts/generate_test_data.dart';
+import 'quan_ly_san_pham.dart';
 
 class SalesPage extends StatefulWidget {
   final bool soundEnabled;
   final int lowStockThreshold;
   final bool notificationsEnabled;
+  final ProductService? productService;
 
   const SalesPage({
     super.key,
     this.soundEnabled = true,
     this.lowStockThreshold = 5,
     this.notificationsEnabled = false,
+    this.productService,
   });
 
   @override
@@ -30,7 +34,7 @@ class _SalesPageState extends State<SalesPage> {
   final ScrollController soldItemsScrollController = ScrollController();
   bool _showSoldItems = false;
 
-  final ProductService _productService = ProductService();
+  late final ProductService _productService;
   late AudioPlayer _audioPlayer;
   bool _audioPlayerInitialized = false;
 
@@ -45,14 +49,44 @@ class _SalesPageState extends State<SalesPage> {
   
   // Cache for extracted image colors
   final Map<int, List<Color>> _productColorCache = {};
-  
-  // Memoize RegExp to avoid recompilation on every call
-  static final RegExp _numberFormatterRegex = RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))');
 
-  /// Format number with thousand separator
-  String _formatNumberWithSeparator(int number) {
-    return number.toString().replaceAllMapped(_numberFormatterRegex, (Match m) => '${m[1]}.');
+  @override
+  void initState() {
+    super.initState();
+    // Use injected service or create default
+    _productService = widget.productService ?? ProductService();
+    allProducts = [];
+    filteredProducts = [];
+    soldItems = [];
+    _initializeData();
+    searchController.addListener(_filterProducts);
+    _initializeAudioPlayer();
   }
+
+  Future<void> _initializeAudioPlayer() async {
+    try {
+      // Skip audio initialization on Windows (just_audio not supported)
+      if (Platform.isWindows) {
+        print('Audio player not supported on Windows - skipping initialization');
+        _audioPlayerInitialized = false;
+        return;
+      }
+      
+      try {
+        _audioPlayer = AudioPlayer();
+        _audioPlayerInitialized = true;
+        print('Audio player initialized successfully');
+      } catch (e) {
+        print('Failed to create AudioPlayer instance: $e');
+        _audioPlayerInitialized = false;
+      }
+    } catch (e) {
+      print('Error in audio initialization: $e');
+      _audioPlayerInitialized = false;
+    }
+  }
+
+
 
   /// Check if a product has duplicates with the same name and price
   bool _hasDuplicatesWithSamePricing(Product product, List<Product> productList) {
@@ -118,27 +152,6 @@ class _SalesPageState extends State<SalesPage> {
   }
 
 
-  @override
-  void initState() {
-    super.initState();
-    allProducts = [];
-    filteredProducts = [];
-    soldItems = [];
-    _initializeData();
-    searchController.addListener(_filterProducts);
-    _initializeAudioPlayer();
-  }
-
-  Future<void> _initializeAudioPlayer() async {
-    try {
-      _audioPlayer = AudioPlayer();
-      _audioPlayerInitialized = true;
-    } catch (e) {
-      print('Error initializing audio player: $e');
-      _audioPlayerInitialized = false;
-    }
-  }
-
   /// Initialize data from database
   Future<void> _initializeData() async {
     try {
@@ -153,7 +166,6 @@ class _SalesPageState extends State<SalesPage> {
 
       setState(() {
         allProducts = products;
-        filteredProducts = products;
         soldItems = sold;
 
         // Initialize quantities
@@ -161,6 +173,9 @@ class _SalesPageState extends State<SalesPage> {
           quantities[product.id] = 1;
         }
       });
+      
+      // Apply default sorting by name
+      _filterProducts();
       
       // Don't pre-extract colors - it causes slowdown
       // Colors will be extracted lazily on first view if needed
@@ -416,7 +431,7 @@ class _SalesPageState extends State<SalesPage> {
                                               ),
                                             ),
                                             Text(
-                                              '${_formatNumberWithSeparator(product.price)} VND',
+                                              CurrencyService.formatCurrency(product.price),
                                               style: const TextStyle(
                                                 fontSize: 14,
                                                 color: Colors.green,
@@ -427,7 +442,7 @@ class _SalesPageState extends State<SalesPage> {
                                               Padding(
                                                 padding: const EdgeInsets.only(top: 4),
                                                 child: Text(
-                                                  'Giá vốn: ${_formatNumberWithSeparator(product.costPrice)} VND',
+                                                  'Giá vốn: ${CurrencyService.formatCurrency(product.costPrice)}',
                                                   style: TextStyle(
                                                     fontSize: 12,
                                                     color: Colors.purple[600],
@@ -618,7 +633,7 @@ class _SalesPageState extends State<SalesPage> {
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
-                                  '${_formatNumberWithSeparator(product.price)} VND',
+                                  CurrencyService.formatCurrency(product.price),
                                   style: const TextStyle(
                                     fontSize: 16,
                                     color: Colors.green,
@@ -629,7 +644,7 @@ class _SalesPageState extends State<SalesPage> {
                                   Padding(
                                     padding: const EdgeInsets.only(top: 4),
                                     child: Text(
-                                      'Giá vốn: ${_formatNumberWithSeparator(product.costPrice)} VND',
+                                      'Giá vốn: ${CurrencyService.formatCurrency(product.costPrice)}',
                                       style: TextStyle(
                                         fontSize: 13,
                                         color: Colors.purple[600],
@@ -847,14 +862,14 @@ class _SalesPageState extends State<SalesPage> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            '${_formatNumberWithSeparator(product.price)} VND',
+                            CurrencyService.formatCurrency(product.price),
                             style: const TextStyle(fontSize: 12, color: Colors.green, fontWeight: FontWeight.w600),
                           ),
                           if (_hasDuplicatesWithSamePricing(product, filteredProducts))
                             Padding(
                               padding: const EdgeInsets.only(top: 2),
                               child: Text(
-                                'Vốn: ${_formatNumberWithSeparator(product.costPrice)} VND',
+                                'Vốn: ${CurrencyService.formatCurrency(product.costPrice)}',
                                 style: TextStyle(fontSize: 10, color: Colors.purple[600]),
                               ),
                             ),
@@ -948,7 +963,7 @@ class _SalesPageState extends State<SalesPage> {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            '${_formatNumberWithSeparator(product.price)} VND',
+                            CurrencyService.formatCurrency(product.price),
                             style: const TextStyle(fontSize: 14, color: Colors.green, fontWeight: FontWeight.bold),
                           ),
                         ],
@@ -1235,6 +1250,31 @@ class _SalesPageState extends State<SalesPage> {
                               label: const Text('Tạo dữ liệu thử nghiệm'),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.blue,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 24,
+                                  vertical: 12,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            // Go to Product Management button
+                            ElevatedButton.icon(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const ProductManagementPage(),
+                                  ),
+                                ).then((_) {
+                                  // Reload data when returning from product management
+                                  _initializeData();
+                                });
+                              },
+                              icon: const Icon(Icons.shopping_bag),
+                              label: const Text('Quản lý sản phẩm'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.purple,
                                 foregroundColor: Colors.white,
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 24,
@@ -1543,7 +1583,7 @@ class _SalesPageState extends State<SalesPage> {
                       ),
                     ),
                     Text(
-                      '+ ${_formatNumberWithSeparator(soldItems.fold<int>(0, (sum, item) => sum + item.totalPrice))} VND',
+                      '+ ${CurrencyService.formatCurrency(soldItems.fold<int>(0, (sum, item) => sum + item.totalPrice))},',
                       style: TextStyle(
                         color: Colors.green[700],
                         fontSize: 13,

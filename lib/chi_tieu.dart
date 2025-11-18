@@ -6,6 +6,7 @@ import 'models/recurring_expense_model.dart';
 import 'services/expense_service.dart';
 import 'services/permission_service.dart';
 import 'services/recurring_expense_service.dart';
+import 'services/currency_service.dart';
 
 class DateRange {
   final DateTime start;
@@ -14,17 +15,23 @@ class DateRange {
 }
 
 class ExpensesPage extends StatefulWidget {
-  const ExpensesPage({super.key});
+  final ExpenseService? expenseService;
+  final RecurringExpenseService? recurringExpenseService;
+
+  const ExpensesPage({
+    super.key,
+    this.expenseService,
+    this.recurringExpenseService,
+  });
 
   @override
   State<ExpensesPage> createState() => _ExpensesPageState();
 }
 
 class _ExpensesPageState extends State<ExpensesPage> {
-  final ExpenseService _expenseService = ExpenseService();
-  final RecurringExpenseService _recurringExpenseService = RecurringExpenseService();
+  late final ExpenseService _expenseService;
+  late final RecurringExpenseService _recurringExpenseService;
   final ScrollController _expenseListScrollController = ScrollController();
-  static final RegExp _numberFormatterRegex = RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))');
 
   List<Expense> todayExpenses = [];
   int totalExpensesToday = 0;
@@ -33,8 +40,13 @@ class _ExpensesPageState extends State<ExpensesPage> {
   Map<String, bool> expandedCategories = {};
   List<RecurringExpense> recurringExpenses = [];
 
-  String _formatNumberWithSeparator(int number) {
-    return number.toString().replaceAllMapped(_numberFormatterRegex, (Match m) => '${m[1]}.');
+  @override
+  void initState() {
+    super.initState();
+    // Use injected services or create defaults
+    _expenseService = widget.expenseService ?? ExpenseService();
+    _recurringExpenseService = widget.recurringExpenseService ?? RecurringExpenseService();
+    _loadExpenses();
   }
 
   String _getFrequencyLabel(String frequency) {
@@ -76,12 +88,6 @@ class _ExpensesPageState extends State<ExpensesPage> {
       start: DateTime(now.year, now.month, now.day),
       end: DateTime(now.year, now.month, now.day, 23, 59, 59),
     );
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _loadExpenses();
   }
 
   Future<void> _loadExpenses() async {
@@ -818,7 +824,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '${_formatNumberWithSeparator(expense.amount)} VND',
+                  CurrencyService.formatCurrency(expense.amount),
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -1550,7 +1556,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                                     ),
                                   ),
                                   Text(
-                                    '${_formatNumberWithSeparator(totalExpensesToday)} VND',
+                                    CurrencyService.formatCurrency(totalExpensesToday),
                                     style: const TextStyle(
                                       fontSize: 24,
                                       fontWeight: FontWeight.bold,
@@ -1664,7 +1670,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                                             children: [
                                               // Amount
                                               Text(
-                                                '${_formatNumberWithSeparator(recurring.amount)} đ',
+                                                CurrencyService.formatCurrency(recurring.amount),
                                                 style: const TextStyle(
                                                   color: Color.fromARGB(255, 160, 0, 0),
                                                   fontWeight: FontWeight.bold,
@@ -1873,7 +1879,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                                                     crossAxisAlignment: CrossAxisAlignment.end,
                                                     children: [
                                                       Text(
-                                                        '${_formatNumberWithSeparator(amount)} đ',
+                                                        CurrencyService.formatCurrency(amount),
                                                         style: const TextStyle(
                                                           color: Colors.red,
                                                           fontWeight: FontWeight.bold,
@@ -2006,7 +2012,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                                                                     crossAxisAlignment: CrossAxisAlignment.end,
                                                                     children: [
                                                                       Text(
-                                                                        '${_formatNumberWithSeparator(expense.amount)} đ',
+                                                                        CurrencyService.formatCurrency(expense.amount),
                                                                         style: const TextStyle(
                                                                           color: Colors.red,
                                                                           fontWeight: FontWeight.bold,

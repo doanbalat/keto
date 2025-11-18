@@ -6,20 +6,22 @@ import 'dart:io';
 import 'database/database_helper.dart';
 import 'models/sold_item_model.dart';
 import 'models/expense_model.dart';
+import 'services/currency_service.dart';
 
 class StatisticsPage extends StatefulWidget {
-  const StatisticsPage({super.key});
+  final dynamic databaseHelper; // Can be DatabaseHelper or mock for testing
+
+  const StatisticsPage({super.key, this.databaseHelper});
 
   @override
   State<StatisticsPage> createState() => _StatisticsPageState();
 }
 
 class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAliveClientMixin {
-  final DatabaseHelper _db = DatabaseHelper();
+  late final dynamic _db; // Can be DatabaseHelper or mock for testing
   final ScrollController _scrollController = ScrollController();
   
   // Memoized formatters to avoid recreation on every call
-  late final NumberFormat _currencyFormatter = NumberFormat.currency(locale: 'vi_VN', symbol: '₫');
   late final DateFormat _dateFormatter = DateFormat('dd/MM/yyyy');
   late final DateFormat _dateKeyFormatter = DateFormat('yyyy-MM-dd');
   late final DateFormat _compactDateFormatter = DateFormat('dd/MM');
@@ -64,6 +66,7 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
   @override
   void initState() {
     super.initState();
+    _db = widget.databaseHelper ?? DatabaseHelper();
     _initializeLocale();
     _loadStatistics();
   }
@@ -91,13 +94,13 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
       int totalItemsSold = 0;
 
       for (var item in soldItems) {
-        totalRevenue += item.priceAfterDiscount;
-        totalItemsSold += item.quantity;
+        totalRevenue += (item.priceAfterDiscount as int);
+        totalItemsSold += (item.quantity as int);
       }
 
       int totalExpenses = expenses.fold(
         0,
-        (sum, expense) => sum + expense.amount,
+        (sum, expense) => sum + (expense.amount as int),
       );
 
       if (mounted) {
@@ -165,13 +168,13 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
       int totalItemsSold = 0;
 
       for (var item in soldItems) {
-        totalRevenue += item.priceAfterDiscount;
-        totalItemsSold += item.quantity;
+        totalRevenue += (item.priceAfterDiscount as int);
+        totalItemsSold += (item.quantity as int);
       }
 
       int totalExpenses = expenses.fold(
         0,
-        (sum, expense) => sum + expense.amount,
+        (sum, expense) => sum + (expense.amount as int),
       );
 
       if (mounted) {
@@ -215,10 +218,6 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
         );
       }
     }
-  }
-
-  String _formatCurrency(int amount) {
-    return _currencyFormatter.format(amount);
   }
 
   String _formatDate(DateTime date) {
@@ -366,7 +365,7 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
             Expanded(
               child: _buildSummaryCard(
                 'Doanh thu',
-                _formatCurrency(_totalRevenue),
+                CurrencyService.formatCurrency(_totalRevenue),
                 Icons.trending_up,
                 Colors.green,
               ),
@@ -375,7 +374,7 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
             Expanded(
               child: _buildSummaryCard(
                 'Chi phí',
-                _formatCurrency(_totalExpenses),
+                CurrencyService.formatCurrency(_totalExpenses),
                 Icons.trending_down,
                 Colors.red,
               ),
@@ -388,7 +387,7 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
             Expanded(
               child: _buildSummaryCard(
                 'Lợi nhuận',
-                _formatCurrency(_netProfit),
+                CurrencyService.formatCurrency(_netProfit),
                 Icons.account_balance_wallet,
                 _netProfit >= 0 ? Colors.blue : Colors.red,
               ),
@@ -779,6 +778,16 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
                               );
                             }).toList(),
                           ),
+                          // X-axis line
+                          Positioned(
+                            left: 0,
+                            right: 0,
+                            bottom: 22,
+                            child: Container(
+                              height: 2,
+                              color: Colors.black26,
+                            ),
+                          ),
                           // Average line
                           if (average > 0)
                             Positioned(
@@ -1167,7 +1176,7 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
                               ),
                               children: [
                                 TextSpan(
-                                  text: _formatCurrency(spot.y.toInt()),
+                                  text: CurrencyService.formatCurrency(spot.y.toInt()),
                                   style: TextStyle(
                                     color: spot.bar.color,
                                     fontWeight: FontWeight.bold,
@@ -1178,7 +1187,7 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
                             );
                           } else {
                             return LineTooltipItem(
-                              _formatCurrency(spot.y.toInt()),
+                              CurrencyService.formatCurrency(spot.y.toInt()),
                               TextStyle(
                                 color: spot.bar.color,
                                 fontWeight: FontWeight.bold,
@@ -1358,7 +1367,7 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
                             Text(
-                              _formatCurrency(revenue),
+                              CurrencyService.formatCurrency(revenue),
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                                 color: Colors.green,
@@ -1543,7 +1552,7 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
                     ),
                   ),
                   Text(
-                    _formatCurrency(_totalExpenses),
+                    CurrencyService.formatCurrency(_totalExpenses),
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 18,
@@ -1641,7 +1650,7 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
                           ),
                         ),
                         Text(
-                          _formatCurrency(categoryEntry.value),
+                          CurrencyService.formatCurrency(categoryEntry.value),
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             color: Colors.red,

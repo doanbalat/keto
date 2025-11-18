@@ -6,26 +6,26 @@ import 'services/product_service.dart';
 import 'services/image_service.dart';
 import 'services/permission_service.dart';
 import 'services/notification_service.dart';
-import 'package:intl/intl.dart';
+import 'services/currency_service.dart';
 import 'package:image_picker/image_picker.dart';
 
 class InventoryPage extends StatefulWidget {
   final int lowStockThreshold;
+  final ProductService? productService;
 
-  const InventoryPage({super.key, this.lowStockThreshold = 5});
+  const InventoryPage({
+    super.key,
+    this.lowStockThreshold = 5,
+    this.productService,
+  });
 
   @override
   State<InventoryPage> createState() => _InventoryPageState();
 }
 
 class _InventoryPageState extends State<InventoryPage> {
-  final ProductService _productService = ProductService();
+  late final ProductService _productService;
   final TextEditingController _searchController = TextEditingController();
-  late final NumberFormat _currencyFormatter = NumberFormat.currency(
-    locale: 'vi',
-    symbol: 'đ',
-    decimalDigits: 0,
-  );
 
   List<Product> allProducts = [];
   List<Product> filteredProducts = [];
@@ -41,6 +41,7 @@ class _InventoryPageState extends State<InventoryPage> {
   @override
   void initState() {
     super.initState();
+    _productService = widget.productService ?? ProductService();
     _loadProducts();
     _searchController.addListener(_filterProducts);
   }
@@ -497,7 +498,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                 ),
                               ),
                               Text(
-                                _currencyFormatter.format(product.price),
+                                CurrencyService.formatCurrency(product.price),
                                 style: const TextStyle(
                                   color: Colors.black87,
                                   fontWeight: FontWeight.w600,
@@ -518,7 +519,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                 ),
                               ),
                               Text(
-                                _currencyFormatter.format(product.costPrice),
+                                CurrencyService.formatCurrency(product.costPrice),
                                 style: const TextStyle(
                                   color: Colors.black87,
                                   fontWeight: FontWeight.w600,
@@ -530,7 +531,7 @@ class _InventoryPageState extends State<InventoryPage> {
                           const SizedBox(height: 6),
                           Divider(height: 12, color: Colors.orange[200]),
                           Text(
-                            'Giá trị kho hiện tại: ${_currencyFormatter.format(product.stock * product.price)}',
+                            'Giá trị kho hiện tại: ${CurrencyService.formatCurrency(product.stock * product.price)}',
                             style: TextStyle(
                               fontSize: 11,
                               color: Colors.black87,
@@ -1283,7 +1284,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                                                                 height: 4,
                                                                               ),
                                                                               Text(
-                                                                                _currencyFormatter.format(product.price),
+                                                                                CurrencyService.formatCurrency(product.price),
                                                                                 style: const TextStyle(
                                                                                   fontSize: 14,
                                                                                   fontWeight: FontWeight.bold,
@@ -1310,7 +1311,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                                                                 height: 4,
                                                                               ),
                                                                               Text(
-                                                                                _currencyFormatter.format(product.costPrice),
+                                                                                CurrencyService.formatCurrency(product.costPrice),
                                                                                 style: const TextStyle(
                                                                                   fontSize: 14,
                                                                                   fontWeight: FontWeight.bold,
@@ -1599,7 +1600,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                                               children: [
                                                                 Expanded(
                                                                   child: Text(
-                                                                    'Giá bán: ${_currencyFormatter.format(product.price)}',
+                                                                    'Giá bán: ${CurrencyService.formatCurrency(product.price)}',
                                                                     style: TextStyle(
                                                                       fontSize:
                                                                           12,
@@ -1617,7 +1618,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                                               height: 2,
                                                             ),
                                                             Text(
-                                                              'Giá vốn: ${_currencyFormatter.format(product.costPrice)}',
+                                                              'Giá vốn: ${CurrencyService.formatCurrency(product.costPrice)}',
                                                               style: TextStyle(
                                                                 fontSize: 12,
                                                                 color: Colors.purple,
@@ -1859,7 +1860,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                                                                           height: 4,
                                                                                         ),
                                                                                         Text(
-                                                                                          _currencyFormatter.format(product.price),
+                                                                                          CurrencyService.formatCurrency(product.price),
                                                                                           style: const TextStyle(
                                                                                             fontSize: 14,
                                                                                             fontWeight: FontWeight.bold,
@@ -1885,7 +1886,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                                                                           height: 4,
                                                                                         ),
                                                                                         Text(
-                                                                                          _currencyFormatter.format(product.costPrice),
+                                                                                          CurrencyService.formatCurrency(product.costPrice),
                                                                                           style: const TextStyle(
                                                                                             fontSize: 14,
                                                                                             fontWeight: FontWeight.bold,
@@ -2405,7 +2406,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                                 children: [
                                                   Expanded(
                                                     child: Text(
-                                                      'Giá bán: ${_currencyFormatter.format(product.price)}',
+                                                      'Giá bán: ${CurrencyService.formatCurrency(product.price)}',
                                                       style: TextStyle(
                                                         fontSize: 13,
                                                         color: Theme.of(context).brightness == Brightness.dark
@@ -2416,7 +2417,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                                   ),
                                                   Expanded(
                                                     child: Text(
-                                                      ' Giá vốn: ${_currencyFormatter.format(product.costPrice)}',
+                                                      ' Giá vốn: ${CurrencyService.formatCurrency(product.costPrice)}',
                                                       style: TextStyle(
                                                         fontSize: 13,
                                                         color: Theme.of(context).brightness == Brightness.dark
@@ -2607,7 +2608,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                         Column(
                                           children: [
                                             Text(
-                                              'Giá bán: ${_currencyFormatter.format(product.price)}',
+                                              'Giá bán: ${CurrencyService.formatCurrency(product.price)}',
                                               style: const TextStyle(
                                                 fontSize: 14,
                                                 color: Colors.green,
@@ -2619,7 +2620,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                             ),
                                             const SizedBox(height: 2),
                                             Text(
-                                              'Giá vốn: ${_currencyFormatter.format(product.costPrice)}',
+                                              'Giá vốn: ${CurrencyService.formatCurrency(product.costPrice)}',
                                               style: TextStyle(
                                                 fontSize: 13,
                                                 color: Colors.purple[600],

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'services/permission_service.dart';
+import 'services/currency_service.dart';
+import 'services/product_category_service.dart';
+import 'theme/theme_manager.dart';
 
 class SettingsPage extends StatefulWidget {
   final int lowStockThreshold;
@@ -9,6 +12,7 @@ class SettingsPage extends StatefulWidget {
   final Function(String) onShopNameChanged;
   final bool soundEnabled;
   final Function(bool) onSoundEnabledChanged;
+  final Function(bool) onThemeChanged;
 
   const SettingsPage({
     super.key,
@@ -18,6 +22,7 @@ class SettingsPage extends StatefulWidget {
     required this.onShopNameChanged,
     required this.soundEnabled,
     required this.onSoundEnabledChanged,
+    required this.onThemeChanged,
   });
 
   @override
@@ -28,6 +33,9 @@ class _SettingsPageState extends State<SettingsPage> {
   late int _lowStockThreshold;
   late bool _notificationsEnabled;
   late bool _soundEnabled;
+  late String _selectedCurrency;
+  late bool _isDarkMode;
+  String _defaultProductCategory = 'Khác'; // Initialize directly with default value
   late TextEditingController _thresholdController;
   late TextEditingController _shopNameController;
 
@@ -37,6 +45,12 @@ class _SettingsPageState extends State<SettingsPage> {
     _lowStockThreshold = widget.lowStockThreshold;
     _loadNotificationsEnabled();
     _soundEnabled = widget.soundEnabled;
+    _isDarkMode = false; // Default value
+    _loadDarkMode(); // Load actual dark mode asynchronously
+    _selectedCurrency = 'VND'; // Default value
+    _loadCurrency(); // Load actual currency asynchronously
+    _defaultProductCategory = 'Khác'; // Default value
+    _loadDefaultProductCategory(); // Load actual default category asynchronously
     // Set initial value to 5 if not provided
     if (_lowStockThreshold <= 0) {
       _lowStockThreshold = 5;
@@ -44,6 +58,46 @@ class _SettingsPageState extends State<SettingsPage> {
     }
     _thresholdController = TextEditingController(text: _lowStockThreshold.toString());
     _shopNameController = TextEditingController(text: widget.shopName);
+  }
+
+  Future<void> _loadDefaultProductCategory() async {
+    try {
+      final category = await ProductCategoryService.getDefaultCategory();
+      setState(() {
+        _defaultProductCategory = category;
+      });
+    } catch (e) {
+      // Fallback to default if service not ready
+      setState(() {
+        _defaultProductCategory = 'Khác';
+      });
+    }
+  }
+
+  Future<void> _loadDarkMode() async {
+    try {
+      setState(() {
+        _isDarkMode = ThemeManager().isDarkMode;
+      });
+    } catch (e) {
+      // Fallback to default if theme manager not ready
+      setState(() {
+        _isDarkMode = false;
+      });
+    }
+  }
+
+  Future<void> _loadCurrency() async {
+    try {
+      setState(() {
+        _selectedCurrency = CurrencyService.getCurrency();
+      });
+    } catch (e) {
+      // Fallback to default if currency service not ready
+      setState(() {
+        _selectedCurrency = 'VND';
+      });
+    }
   }
 
   @override
@@ -139,6 +193,172 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                   const SizedBox(height: 12),
                 ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Card(
+              child: Column(
+                children: [
+                  ListTile(
+                    leading: Icon(
+                      _isDarkMode ? Icons.dark_mode : Icons.light_mode,
+                      color: Colors.blue,
+                    ),
+                    title: const Text('Chế độ tối'),
+                    subtitle: Text(
+                      _isDarkMode ? 'Bật' : 'Tắt',
+                      style: TextStyle(
+                        color: _isDarkMode ? Colors.blue : Colors.grey,
+                      ),
+                    ),
+                    trailing: Switch(
+                      value: _isDarkMode,
+                      onChanged: (value) {
+                        setState(() {
+                          _isDarkMode = value;
+                        });
+                        widget.onThemeChanged(value);
+                      },
+                      activeThumbColor: Colors.blue,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Tiền tệ',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+            const SizedBox(height: 16),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Row(
+                  children: [
+                    const Icon(Icons.currency_exchange, color: Colors.green),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Chọn loại tiền tệ',
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ),
+                    DropdownButton<String>(
+                      value: _selectedCurrency,
+                      items: CurrencyService.getAvailableCurrencies().map((String currency) {
+                        return DropdownMenuItem<String>(
+                          value: currency,
+                          child: Text(
+                            '$currency ${CurrencyService.getSymbol(currency)}',
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (String? newValue) async {
+                        if (newValue != null) {
+                          setState(() {
+                            _selectedCurrency = newValue;
+                          });
+                          await CurrencyService.setCurrency(newValue);
+                        }
+                      },
+                      underline: Container(),
+                      style: const TextStyle(color: Colors.blue),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Âm thanh',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+            const SizedBox(height: 16),
+            Card(
+              child: Column(
+                children: [
+                  ListTile(
+                    leading: Icon(
+                      _soundEnabled ? Icons.volume_up : Icons.volume_off,
+                      color: Colors.blue,
+                    ),
+                    title: const Text('Âm thanh khi bán hàng'),
+                    subtitle: Text(
+                      _soundEnabled ? 'Bật' : 'Tắt',
+                      style: TextStyle(
+                        color: _soundEnabled ? Colors.green : Colors.grey,
+                      ),
+                    ),
+                    trailing: Switch(
+                      value: _soundEnabled,
+                      onChanged: (value) {
+                        setState(() {
+                          _soundEnabled = value;
+                        });
+                        widget.onSoundEnabledChanged(value);
+                      },
+                      activeThumbColor: Colors.blue,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Sản phẩm',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+            const SizedBox(height: 16),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Row(
+                  children: [
+                    const Icon(Icons.category, color: Colors.purple),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Loại sản phẩm mặc định',
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ),
+                    DropdownButton<String>(
+                      value: _defaultProductCategory,
+                      items: ProductCategoryService.categories.map((String category) {
+                        final displayName = ProductCategoryService.getCategoryDisplayName(category);
+                        return DropdownMenuItem<String>(
+                          value: category,
+                          child: Text(
+                            displayName,
+                            style: const TextStyle(fontSize: 13),
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (String? newValue) async {
+                        if (newValue != null) {
+                          setState(() {
+                            _defaultProductCategory = newValue;
+                          });
+                          await ProductCategoryService.setDefaultCategory(newValue);
+                        }
+                      },
+                      underline: Container(),
+                      style: const TextStyle(color: Colors.purple),
+                    ),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 24),
@@ -250,30 +470,6 @@ class _SettingsPageState extends State<SettingsPage> {
                           _notificationsEnabled = value;
                         });
                         _saveNotificationsEnabled(value);
-                      },
-                      activeThumbColor: Colors.blue,
-                    ),
-                  ),
-                  const Divider(height: 10),
-                  ListTile(
-                    leading: Icon(
-                      _soundEnabled ? Icons.volume_up : Icons.volume_off,
-                      color: Colors.blue,
-                    ),
-                    title: const Text('Âm thanh khi bán hàng'),
-                    subtitle: Text(
-                      _soundEnabled ? 'Bật' : 'Tắt',
-                      style: TextStyle(
-                        color: _soundEnabled ? Colors.green : Colors.grey,
-                      ),
-                    ),
-                    trailing: Switch(
-                      value: _soundEnabled,
-                      onChanged: (value) {
-                        setState(() {
-                          _soundEnabled = value;
-                        });
-                        widget.onSoundEnabledChanged(value);
                       },
                       activeThumbColor: Colors.blue,
                     ),

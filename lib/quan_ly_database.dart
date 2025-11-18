@@ -1242,7 +1242,7 @@ Vui lòng kiểm tra:
                   ],
 
                   // Database Stats
-                  _buildSectionTitle('Thông tin Database'),
+                  _buildSectionTitle('📊 Thống kê Database'),
                   _buildActionButton(
                     icon: Icons.info_outline,
                     label: 'Xem thống kê Database',
@@ -1272,7 +1272,7 @@ Vui lòng kiểm tra:
                   const SizedBox(height: 24),
 
                   // Test Data Generation
-                  _buildSectionTitle('Test Thử Nghiệm App'),
+                  _buildSectionTitle('🧪 Test Thử Nghiệm App'),
                   _buildActionButton(
                     icon: Icons.auto_awesome,
                     label: 'Tạo dữ liệu để test (30 ngày)',
@@ -1282,7 +1282,7 @@ Vui lòng kiểm tra:
                   const SizedBox(height: 24),
 
                   // Selective Delete
-                  _buildSectionTitle('Xóa từng phần'),
+                  _buildSectionTitle('🗑️ Xóa từng phần'),
                   _buildActionButton(
                     icon: Icons.delete_outline,
                     label: 'Xóa tất cả dữ liệu bán hàng',
@@ -1338,14 +1338,14 @@ Vui lòng kiểm tra:
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            '• Sử dụng "Xem thống kê" để kiểm tra dữ liệu hiện tại\n'
-                            '• "Xuất dữ liệu" để tải về máy tính dưới các định dạng:\n'
+                            '• "Xem thống kê Database" kiểm tra tổng số dữ liệu hiện tại\n'
+                            '• "Import/Export String" sao chép dữ liệu sang app khác (như Factorio blueprint)\n'
+                            '• "JSON / CSV Export" xuất dữ liệu:\n'
                             '  - JSON: Để backup hoặc import vào hệ thống khác\n'
                             '  - CSV: Để mở trong Excel hoặc Google Sheets\n'
-                            '  - XLSX: Định dạng Excel chuẩn (được khuyến nghị)\n'
-                            '• "Tạo dữ liệu test" tạo 2 tháng dữ liệu test (10 sản phẩm, 60 ngày giao dịch)\n'
-                            '• "Xóa dữ liệu bán hàng/chi phí" xóa từng phần dữ liệu\n'
-                            '• Dữ liệu bị xóa KHÔNG THỂ khôi phục',
+                            '• "Tạo dữ liệu test" tạo 30 ngày dữ liệu (10 sản phẩm + giao dịch + chi phí)\n'
+                            '• "Xóa dữ liệu bán hàng/chi phí" xóa từng phần mà không ảnh hưởng đến sản phẩm\n'
+                            '• ⚠️ "XÓA TOÀN BỘ DATABASE" xóa mọi dữ liệu - KHÔNG THỂ KHÔI PHỤC',
                             style: TextStyle(
                               fontSize: 13,
                               color: Theme.of(context).brightness == Brightness.dark
