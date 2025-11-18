@@ -7,6 +7,7 @@ import 'services/image_service.dart';
 import 'services/permission_service.dart';
 import 'services/notification_service.dart';
 import 'services/currency_service.dart';
+import 'services/product_category_service.dart';
 import 'package:image_picker/image_picker.dart';
 
 class InventoryPage extends StatefulWidget {
@@ -458,6 +459,32 @@ class _InventoryPageState extends State<InventoryPage> {
                     ),
                     const SizedBox(height: 12),
 
+                    // Button to add with different price
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        _showAddStockWithDifferentPriceDialog(
+                          context,
+                          product,
+                          quantityController,
+                          setDialogState,
+                        );
+                      },
+                      icon: const Icon(Icons.shopping_cart_checkout),
+                      label: const Text('Nhập hàng với giá khác'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 12,
+                          horizontal: 16,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 30),
+
                     // Unit input field
                     TextField(
                       controller: unitController,
@@ -559,18 +586,21 @@ class _InventoryPageState extends State<InventoryPage> {
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              'Nếu bạn nhập hàng với giá vốn mới thì nên tạo mặt hàng mới',
+                              'Keto tính giá vốn TRUNG BÌNH khi bạn cập nhật kho hàng với mức giá vốn mới.',
                               style: TextStyle(
                                 fontStyle: FontStyle.italic,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
-                                color: Colors.black54,
+                                color: Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.grey[300]
+                                  : Colors.black54,
                               ),
                             ),
                           ),
                         ],
                       ),
                     ),
+                    const SizedBox(height: 16),
                     Row(
                       children: [
                         TextButton(
@@ -661,6 +691,972 @@ class _InventoryPageState extends State<InventoryPage> {
                   ],
                 ),
               ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showAddStockWithDifferentPriceDialog(
+    BuildContext context,
+    Product product,
+    TextEditingController quantityController,
+    StateSetter setDialogState,
+  ) {
+    final newCostPriceController = TextEditingController();
+    final newQuantityController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setInnerDialogState) {
+            // Calculate values based on current input
+            int? calculatedNewQuantity;
+            int? calculatedAverageCostPrice;
+            String errorMessage = '';
+
+            if (newCostPriceController.text.isNotEmpty &&
+                newQuantityController.text.isNotEmpty) {
+              try {
+                final newCostPrice = int.parse(newCostPriceController.text);
+                final newQuantity = int.parse(newQuantityController.text);
+
+                if (newQuantity <= 0) {
+                  errorMessage = 'Số lượng phải lớn hơn 0';
+                } else if (newCostPrice <= 0) {
+                  errorMessage = 'Giá vốn phải lớn hơn 0';
+                } else {
+                  calculatedNewQuantity = product.stock + newQuantity;
+                  final totalCostOld = product.costPrice * product.stock;
+                  final totalCostNew = newCostPrice * newQuantity;
+                  calculatedAverageCostPrice =
+                      ((totalCostOld + totalCostNew) / calculatedNewQuantity)
+                          .round();
+                }
+              } catch (e) {
+                errorMessage = 'Giá trị không hợp lệ';
+              }
+            }
+
+            return AlertDialog(
+              title: const Text('Nhập hàng với giá khác'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Current cost price info
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.blue[50],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Thông tin hàng hiện tại:',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.black87,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Số lượng hiện tại:',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                              Text(
+                                '${product.stock} ${product.unit}',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.blue,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Giá vốn hiện tại:',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                              Text(
+                                CurrencyService.formatCurrency(product.costPrice),
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.blue,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // New cost price field
+                    TextField(
+                      controller: newCostPriceController,
+                      keyboardType: TextInputType.number,
+                      onChanged: (value) {
+                        setInnerDialogState(() {});
+                      },
+                      decoration: InputDecoration(
+                        labelText: 'Giá vốn mới (VND)',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        prefixIcon: const Icon(Icons.attach_money),
+                        hintText: product.costPrice.toString(),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // New quantity field
+                    TextField(
+                      controller: newQuantityController,
+                      keyboardType: TextInputType.number,
+                      onChanged: (value) {
+                        setInnerDialogState(() {});
+                      },
+                      decoration: InputDecoration(
+                        labelText: 'Số lượng mới cần nhập',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        prefixIcon: const Icon(Icons.inventory_2),
+                        suffixText: product.unit,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Calculation info - Reactive
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: errorMessage.isNotEmpty
+                            ? Colors.red[50]
+                            : Colors.orange[50],
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: errorMessage.isNotEmpty
+                              ? Colors.red[200]!
+                              : Colors.orange[200]!,
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Tính toán:',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: errorMessage.isNotEmpty
+                                  ? Colors.red[800]
+                                  : Colors.orange[800],
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          if (errorMessage.isNotEmpty)
+                            Text(
+                              '⚠️ $errorMessage',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.red[700],
+                                fontWeight: FontWeight.w600,
+                              ),
+                            )
+                          else
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // New quantity calculation
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.6),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        'Số lượng mới:',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: Colors.black87,
+                                        ),
+                                      ),
+                                      Text(
+                                        calculatedNewQuantity != null
+                                            ? '$calculatedNewQuantity ${product.unit}'
+                                            : '---',
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.green,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                // Average cost price calculation
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.6),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        'Giá vốn trung bình:',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: Colors.black87,
+                                        ),
+                                      ),
+                                      Text(
+                                        calculatedAverageCostPrice != null
+                                            ? CurrencyService.formatCurrency(
+                                                calculatedAverageCostPrice,
+                                              )
+                                            : '---',
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.purple,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                // Calculation breakdown
+                                Text(
+                                  'Công thức: (${product.costPrice} × ${product.stock} + [giá mới] × [số lượng nhập]) ÷ [số lượng mới]',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: Colors.grey[600],
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                              ],
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Hủy'),
+                ),
+                ElevatedButton(
+                  onPressed: errorMessage.isNotEmpty
+                      ? null
+                      : () async {
+                          try {
+                            if (newCostPriceController.text.isEmpty ||
+                                newQuantityController.text.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Vui lòng điền đầy đủ thông tin'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                              return;
+                            }
+
+                            final newCostPrice =
+                                int.parse(newCostPriceController.text);
+                            final newQuantity =
+                                int.parse(newQuantityController.text);
+
+                            if (newQuantity <= 0) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Số lượng phải lớn hơn 0'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                              return;
+                            }
+
+                            if (newCostPrice <= 0) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Giá vốn phải lớn hơn 0'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                              return;
+                            }
+
+                            // Calculate new average cost price
+                            final totalCostOld =
+                                product.costPrice * product.stock;
+                            final totalCostNew = newCostPrice * newQuantity;
+                            final totalQuantity = product.stock + newQuantity;
+                            final averageCostPrice =
+                                ((totalCostOld + totalCostNew) / totalQuantity)
+                                    .round();
+
+                            // Update product
+                            final updatedProduct = product.copyWith(
+                              stock: totalQuantity,
+                              costPrice: averageCostPrice,
+                            );
+
+                            await _productService.updateProduct(updatedProduct);
+
+                            if (!mounted) return;
+                            Navigator.pop(context); // Close the inner dialog
+                            Navigator.pop(context); // Close the main "Cập nhật kho" dialog
+
+                            await _loadProducts();
+
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Cập nhật kho cho "${product.name}" thành công\nSố lượng: +$newQuantity, Giá vốn trung bình: ${CurrencyService.formatCurrency(averageCostPrice)}',
+                                ),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                          } catch (e) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Lỗi: $e')),
+                            );
+                          }
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: errorMessage.isNotEmpty
+                        ? Colors.grey
+                        : Colors.orange,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('Cập nhật'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showAddProductDialog(BuildContext context) {
+    final nameController = TextEditingController();
+    final priceController = TextEditingController();
+    final costPriceController = TextEditingController(text: '0');
+    final quantityController = TextEditingController(text: '0');
+    final unitController = TextEditingController(text: 'cái');
+    String selectedCategory = 'Khác'; // Will be updated from default
+    File? selectedImage;
+    final ImagePicker _picker = ImagePicker();
+
+    // Load default category from settings
+    ProductCategoryService.getDefaultCategory().then((defaultCategory) {
+      // This will be used when the dialog is shown
+    });
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            // Load default category when dialog is first built
+            if (selectedCategory == 'Khác') {
+              ProductCategoryService.getDefaultCategory().then((defaultCategory) {
+                setDialogState(() {
+                  selectedCategory = defaultCategory;
+                });
+              });
+            }
+            
+            return Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              insetPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 24,
+              ),
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? const Color(0xFF1E1E1E)
+                      : Colors.white,
+                ),
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.9,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Header with gradient
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Colors.purple[600]!, Colors.purple[400]!],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(16),
+                          topRight: Radius.circular(16),
+                        ),
+                      ),
+                      padding: const EdgeInsets.all(20),
+                      child: Row(
+                        children: [
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.3),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            padding: const EdgeInsets.all(12),
+                            child: const Icon(
+                              Icons.add_circle_outline,
+                              color: Colors.white,
+                              size: 28,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Thêm sản phẩm mới',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Quản lý kho hàng',
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.8),
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Content - scrollable
+                    Expanded(
+                      child: SingleChildScrollView(
+                        child: Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // Image picker section
+                              GestureDetector(
+                                onTap: () async {
+                                  // Check if permission is already granted
+                                  bool hasPermission =
+                                      await PermissionService.isPhotoLibraryPermissionGranted();
+
+                                  // If not granted, request permission
+                                  if (!hasPermission) {
+                                    hasPermission =
+                                        await PermissionService.requestPhotoLibraryPermission();
+
+                                    // If still not granted after request, user denied it
+                                    if (!hasPermission) {
+                                      if (!mounted) return;
+                                      showDialog(
+                                        context: context,
+                                        builder: (BuildContext ctx) {
+                                          return AlertDialog(
+                                            title: const Text(
+                                              'Yêu cầu quyền truy cập',
+                                            ),
+                                            content: const Text(
+                                              'Ứng dụng cần quyền truy cập thư viện ảnh để chọn ảnh sản phẩm. '
+                                              'Vui lòng cấp quyền trong cài đặt.',
+                                            ),
+                                            actions: [
+                                              TextButton(
+                                                onPressed: () =>
+                                                    Navigator.pop(ctx),
+                                                child: const Text('Hủy'),
+                                              ),
+                                              ElevatedButton(
+                                                onPressed: () async {
+                                                  Navigator.pop(ctx);
+                                                  await PermissionService.openSettings();
+                                                },
+                                                child: const Text(
+                                                  'Mở cài đặt',
+                                                ),
+                                              ),
+                                            ],
+                                          );
+                                        },
+                                      );
+                                      return;
+                                    }
+                                  }
+
+                                  // Permission granted - open image picker
+                                  final XFile? image = await _picker.pickImage(
+                                    source: ImageSource.gallery,
+                                  );
+                                  if (image != null) {
+                                    setDialogState(() {
+                                      selectedImage = File(image.path);
+                                    });
+                                  }
+                                },
+                                child: Container(
+                                  width: double.infinity,
+                                  height: 120,
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey[200],
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: Colors.purple[200]!,
+                                      width: 2,
+                                    ),
+                                  ),
+                                  child: selectedImage != null
+                                      ? ClipRRect(
+                                          borderRadius: BorderRadius.circular(10),
+                                          child: Image.file(
+                                            selectedImage!,
+                                            fit: BoxFit.cover,
+                                          ),
+                                        )
+                                      : Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Icon(
+                                              Icons.image_outlined,
+                                              size: 40,
+                                              color: Colors.purple[300],
+                                            ),
+                                            const SizedBox(height: 6),
+                                            Text(
+                                              'Chọn ảnh sản phẩm',
+                                              style: TextStyle(
+                                                color: Colors.purple[400],
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              // Name field
+                              TextField(
+                                controller: nameController,
+                                decoration: InputDecoration(
+                                  labelText: 'Tên sản phẩm',
+                                  labelStyle: TextStyle(
+                                    color: Theme.of(context).brightness == Brightness.dark
+                                        ? Colors.grey[300]
+                                        : Colors.black,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  floatingLabelBehavior: FloatingLabelBehavior.always,
+                                  prefixIcon: const Icon(Icons.label_outline),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide(
+                                      color: Colors.grey[300]!,
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: const BorderSide(
+                                      color: Colors.purple,
+                                      width: 2,
+                                    ),
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 12,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              // Price field
+                              TextField(
+                                controller: priceController,
+                                keyboardType: TextInputType.number,
+                                decoration: InputDecoration(
+                                  labelText: 'Giá bán (VND)',
+                                  labelStyle: TextStyle(
+                                    color: Theme.of(context).brightness == Brightness.dark
+                                        ? Colors.grey[300]
+                                        : Colors.black,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  floatingLabelBehavior: FloatingLabelBehavior.always,
+                                  prefixIcon: const Icon(Icons.attach_money),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide(
+                                      color: Colors.grey[300]!,
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: const BorderSide(
+                                      color: Colors.purple,
+                                      width: 2,
+                                    ),
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 12,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              // Cost price field
+                              TextField(
+                                controller: costPriceController,
+                                keyboardType: TextInputType.number,
+                                decoration: InputDecoration(
+                                  labelText: 'Giá vốn (VND)',
+                                  labelStyle: TextStyle(
+                                    color: Theme.of(context).brightness == Brightness.dark
+                                        ? Colors.grey[300]
+                                        : Colors.black,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  prefixIcon: const Icon(Icons.shopping_bag),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide(
+                                      color: Colors.grey[300]!,
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: const BorderSide(
+                                      color: Colors.purple,
+                                      width: 2,
+                                    ),
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 12,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              // Quantity field
+                              TextField(
+                                controller: quantityController,
+                                keyboardType: TextInputType.number,
+                                decoration: InputDecoration(
+                                  labelText: 'Số lượng hàng',
+                                  labelStyle: TextStyle(
+                                    color: Theme.of(context).brightness == Brightness.dark
+                                        ? Colors.grey[300]
+                                        : Colors.black,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  prefixIcon: const Icon(Icons.inventory_2),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide(
+                                      color: Colors.grey[300]!,
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: const BorderSide(
+                                      color: Colors.purple,
+                                      width: 2,
+                                    ),
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 12,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              // Unit field
+                              TextField(
+                                controller: unitController,
+                                decoration: InputDecoration(
+                                  labelText: 'Đơn vị (cái, kg, ly, hộp, phần, ...)',
+                                  labelStyle: TextStyle(
+                                    color: Theme.of(context).brightness == Brightness.dark
+                                        ? Colors.grey[300]
+                                        : Colors.black,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  prefixIcon: const Icon(Icons.straighten),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide(
+                                      color: Colors.grey[300]!,
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: const BorderSide(
+                                      color: Colors.purple,
+                                      width: 2,
+                                    ),
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 12,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              // Category dropdown
+                              StatefulBuilder(
+                                builder: (context, setDropdownState) {
+                                  return InputDecorator(
+                                    decoration: InputDecoration(
+                                      labelText: 'Danh mục',
+                                      labelStyle: TextStyle(
+                                        color: Theme.of(context).brightness == Brightness.dark
+                                            ? Colors.grey[300]
+                                            : Colors.black,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                      prefixIcon: const Icon(Icons.category),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      enabledBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                        borderSide: BorderSide(
+                                          color: Colors.grey[300]!,
+                                          width: 1.5,
+                                        ),
+                                      ),
+                                      contentPadding: const EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                        vertical: 8,
+                                      ),
+                                    ),
+                                    child: DropdownButton<int>(
+                                      value: ProductCategoryService.categories.indexOf(selectedCategory),
+                                      isExpanded: true,
+                                      underline: const SizedBox(),
+                                      items: List.generate(ProductCategoryService.categoryDisplayNames.length, (index) {
+                                        return DropdownMenuItem<int>(
+                                          value: index,
+                                          child: Text(ProductCategoryService.categoryDisplayNames[index]),
+                                        );
+                                      }),
+                                      onChanged: (int? newIndex) {
+                                        setDialogState(() {
+                                          if (newIndex != null) {
+                                            selectedCategory = ProductCategoryService.categories[newIndex];
+                                          }
+                                        });
+                                      },
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    // Action buttons
+                    Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              style: TextButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
+                                side: BorderSide(
+                                  color: Colors.grey[300]!,
+                                  width: 1.5,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: const Text(
+                                'Hủy',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.red,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: () async {
+                                try {
+                                  if (nameController.text.isEmpty ||
+                                      priceController.text.isEmpty ||
+                                      costPriceController.text.isEmpty) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Vui lòng điền đầy đủ thông tin',
+                                        ),
+                                        backgroundColor: Colors.red,
+                                      ),
+                                    );
+                                    return;
+                                  }
+
+                                  final name = nameController.text;
+                                  final price = int.parse(priceController.text);
+                                  final costPrice = int.parse(
+                                    costPriceController.text,
+                                  );
+                                  final quantity = int.parse(
+                                    quantityController.text,
+                                  );
+                                  final unit = unitController.text.isEmpty
+                                      ? 'cái'
+                                      : unitController.text;
+
+                                  // Save image if selected
+                                  String? imagePath;
+                                  if (selectedImage != null) {
+                                    imagePath = await ImageService.saveProductImage(
+                                      selectedImage!,
+                                    );
+                                  }
+
+                                  // Add to database
+                                  await _productService.addProduct(
+                                    name,
+                                    price,
+                                    costPrice,
+                                    category: selectedCategory,
+                                    unit: unit,
+                                    stock: quantity,
+                                    imagePath: imagePath,
+                                  );
+
+                                  if (!mounted) return;
+                                  Navigator.pop(context);
+
+                                  // Reload products
+                                  await _loadProducts();
+
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Thêm sản phẩm "$name" thành công',
+                                      ),
+                                      backgroundColor: Colors.green,
+                                    ),
+                                  );
+                                } catch (e) {
+                                  if (!mounted) return;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Lỗi: $e'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.purple,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: const Text(
+                                'Thêm sản phẩm',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             );
           },
         );
@@ -824,6 +1820,22 @@ class _InventoryPageState extends State<InventoryPage> {
                         ),
                       ),
                     ),
+                  ),
+                  const SizedBox(width: 8),
+                  // Add Product Button
+                  ElevatedButton(
+                    onPressed: () {
+                      _showAddProductDialog(context);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.purple,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.all(1),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(50),
+                      ),
+                    ),
+                    child: const Icon(Icons.add, size: 32),
                   ),
                   const SizedBox(width: 8),
                   // Delete Product Button

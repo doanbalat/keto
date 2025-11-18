@@ -472,7 +472,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                           ),
                           const SizedBox(height: 8),
                           DropdownButtonFormField<String>(
-                            value: selectedPaymentMethod,
+                            initialValue: selectedPaymentMethod,
                             decoration: InputDecoration(
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
@@ -1056,7 +1056,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                       ),
                       const SizedBox(height: 8),
                       DropdownButtonFormField<String>(
-                        value: selectedCategory,
+                        initialValue: selectedCategory,
                         decoration: InputDecoration(
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
@@ -1086,7 +1086,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                               onChanged: (value) {
                                 setStateDialog(() => isActive = value);
                               },
-                              activeColor: Colors.green,
+                              activeThumbColor: Colors.green,
                             ),
                           ],
                         ),
@@ -1144,7 +1144,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                       ),
                       const SizedBox(height: 8),
                       DropdownButtonFormField<String>(
-                        value: selectedFrequency,
+                        initialValue: selectedFrequency,
                         decoration: InputDecoration(
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
@@ -1264,7 +1264,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                       ),
                       const SizedBox(height: 8),
                       DropdownButtonFormField<String>(
-                        value: selectedPaymentMethod,
+                        initialValue: selectedPaymentMethod,
                         decoration: InputDecoration(
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),

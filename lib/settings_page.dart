@@ -322,40 +322,65 @@ class _SettingsPageState extends State<SettingsPage> {
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
-                child: Row(
+                child: Column(
                   children: [
-                    const Icon(Icons.category, color: Colors.purple),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        'Loại sản phẩm mặc định',
-                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          fontWeight: FontWeight.w400,
-                        ),
-                      ),
-                    ),
-                    DropdownButton<String>(
-                      value: _defaultProductCategory,
-                      items: ProductCategoryService.categories.map((String category) {
-                        final displayName = ProductCategoryService.getCategoryDisplayName(category);
-                        return DropdownMenuItem<String>(
-                          value: category,
+                    Row(
+                      children: [
+                        const Icon(Icons.category, color: Colors.purple),
+                        const SizedBox(width: 12),
+                        Expanded(
                           child: Text(
-                            displayName,
-                            style: const TextStyle(fontSize: 13),
+                            'Loại sản phẩm mặc định',
+                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                              fontWeight: FontWeight.w400,
+                            ),
                           ),
-                        );
-                      }).toList(),
-                      onChanged: (String? newValue) async {
-                        if (newValue != null) {
-                          setState(() {
-                            _defaultProductCategory = newValue;
-                          });
-                          await ProductCategoryService.setDefaultCategory(newValue);
-                        }
-                      },
-                      underline: Container(),
-                      style: const TextStyle(color: Colors.purple),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.grey[800]
+                            : Colors.grey[300],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      child: DropdownButton<String>(
+                        value: _defaultProductCategory,
+                        items: ProductCategoryService.categories.map((String category) {
+                          final displayName = ProductCategoryService.getCategoryDisplayName(category);
+                          return DropdownMenuItem<String>(
+                            value: category,
+                            child: Text(
+                              displayName,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.orange[200]
+                                    : Colors.green,
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                        onChanged: (String? newValue) async {
+                          if (newValue != null) {
+                            setState(() {
+                              _defaultProductCategory = newValue;
+                            });
+                            await ProductCategoryService.setDefaultCategory(newValue);
+                          }
+                        },
+                        underline: Container(),
+                        style: TextStyle(
+                          color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.orange[200]
+                            : Colors.green,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        isExpanded: true,
+                      ),
                     ),
                   ],
                 ),
