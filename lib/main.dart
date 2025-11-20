@@ -17,6 +17,7 @@ import 'theme/app_theme.dart';
 import 'theme/theme_manager.dart';
 import 'services/notification_service.dart';
 import 'services/currency_service.dart';
+import 'services/admob_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,6 +36,9 @@ void main() async {
 
   // Initialize CurrencyService
   await CurrencyService.init();
+
+  // Initialize AdMob (only on mobile platforms)
+  await AdMobService.initialize();
 
   // Note: Permissions are requested on-demand when user needs them
   // Camera/Photo permissions: requested when user chooses "Add Image"
@@ -214,6 +218,7 @@ class _KetoHomepageState extends State<KetoHomepage> {
         ),
       ),
       drawer: NavigationDrawer(
+        selectedIndex: _selectedIndex,
         children: [
           Container(
             decoration: BoxDecoration(
@@ -233,14 +238,19 @@ class _KetoHomepageState extends State<KetoHomepage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
+                      Image.asset(
+                        'assets/images/logo.png',
+                        width: 50,
+                        height: 50,
+                        fit: BoxFit.contain,
+                      ),
                       const Text(
-                        'Keto (Free version)',
+                        'Keto',
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black,
+                          color: Colors.blue,
                         ),
                       ),
                     ],

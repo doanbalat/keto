@@ -23,6 +23,10 @@
         android:label="Keto"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon">
+        <!-- AdMob Application ID -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-1784657756610351~7893935690"/>
         <activity
             android:name=".MainActivity"
             android:exported="true"

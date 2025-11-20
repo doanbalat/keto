@@ -8,6 +8,7 @@ import 'models/sold_item_model.dart';
 import 'services/product_service.dart';
 import 'services/notification_service.dart';
 import 'services/currency_service.dart';
+import 'services/statistics_cache_service.dart';
 import 'scripts/generate_test_data.dart';
 import 'quan_ly_san_pham.dart';
 
@@ -284,6 +285,9 @@ class _SalesPageState extends State<SalesPage> {
       await updateStockFuture;
 
       if (success) {
+        // Invalidate statistics cache when a sale is made
+        StatisticsCacheService.invalidateCache();
+
         // Update the product in allProducts list to keep data in sync
         final productIndex = allProducts.indexWhere((p) => p.id == product.id);
         if (productIndex != -1) {
@@ -356,6 +360,9 @@ class _SalesPageState extends State<SalesPage> {
       final success = await _productService.deleteSoldItem(soldItemId);
 
       if (success) {
+        // Invalidate statistics cache when a sale is deleted
+        StatisticsCacheService.invalidateCache();
+
         // Reload sold items from database
         await _loadTodaySoldItems();
       }
@@ -376,12 +383,13 @@ class _SalesPageState extends State<SalesPage> {
         final isMobile = sizingInformation.isMobile;
         final isTablet = sizingInformation.isTablet;
         
-        return ListView.builder(
-          padding: const EdgeInsets.only(bottom: 100),
-          itemCount: filteredProducts.length,
-          itemBuilder: (context, index) {
-            final product = filteredProducts[index];
-            final quantity = quantities[product.id] ?? 1;
+        return RepaintBoundary(
+          child: ListView.builder(
+            padding: const EdgeInsets.only(bottom: 100),
+            itemCount: filteredProducts.length,
+            itemBuilder: (context, index) {
+              final product = filteredProducts[index];
+              final quantity = quantities[product.id] ?? 1;
             
             if (!_productColorCache.containsKey(product.id)) {
               _extractColorsFromImage(product);
@@ -392,7 +400,7 @@ class _SalesPageState extends State<SalesPage> {
                 horizontal: isMobile ? 12 : (isTablet ? 16 : 20),
                 vertical: 4,
               ),
-              elevation: 10,
+              elevation: 4,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
               child: isMobile
                   ? Row(
@@ -773,6 +781,7 @@ class _SalesPageState extends State<SalesPage> {
                     ),
             );
           },
+        ),
         );
       },
     );
@@ -799,11 +808,12 @@ class _SalesPageState extends State<SalesPage> {
           spacing = 10;
         }
         
-        return GridView.builder(
-          padding: EdgeInsets.only(
-            left: isMobile ? 8 : 12,
-            right: isMobile ? 8 : 12,
-            top: 8,
+        return RepaintBoundary(
+          child: GridView.builder(
+            padding: EdgeInsets.only(
+              left: isMobile ? 8 : 12,
+              right: isMobile ? 8 : 12,
+              top: 8,
             bottom: 100,
           ),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -881,6 +891,7 @@ class _SalesPageState extends State<SalesPage> {
               ),
             );
           },
+        ),
         );
       },
     );
@@ -905,11 +916,12 @@ class _SalesPageState extends State<SalesPage> {
           spacing = 7;
         }
         
-        return GridView.builder(
-          padding: const EdgeInsets.only(left: 8, right: 8, top: 8, bottom: 100),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: crossAxisCount,
-            childAspectRatio: childAspectRatio,
+        return RepaintBoundary(
+          child: GridView.builder(
+            padding: const EdgeInsets.only(left: 8, right: 8, top: 8, bottom: 100),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: crossAxisCount,
+              childAspectRatio: childAspectRatio,
             crossAxisSpacing: spacing,
             mainAxisSpacing: spacing,
           ),
@@ -974,6 +986,7 @@ class _SalesPageState extends State<SalesPage> {
               ),
             );
           },
+        ),
         );
       },
     );
@@ -987,6 +1000,195 @@ class _SalesPageState extends State<SalesPage> {
     super.dispose();
   }
 
+  Widget _buildSearchAndControlsSection() {
+    return Column(
+      children: [
+        // Search Bar with Add Button and Delete Button
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 5.0, horizontal: 25.0),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Tìm kiếm mặt hàng',
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: searchController.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () {
+                              searchController.clear();
+                            },
+                          )
+                        : null,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(
+                        color: Colors.grey,
+                        width: 2,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(
+                        color: Colors.blue,
+                        width: 4,
+                      ),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 12,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              // Layout Change Button
+              IconButton(
+                icon: const Icon(Icons.view_list_rounded, size: 30, color: Colors.blue),
+                tooltip: 'Thay đổi bố cục',
+                onPressed: () {
+                  setState(() {
+                    _layoutMode = (_layoutMode + 1) % 3;
+                  });
+                },
+                style: IconButton.styleFrom(
+                  side: const BorderSide(
+                    color: Colors.grey,
+                    width: 2,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        // Sort buttons section
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 25.0, vertical: 0),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 110,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      setState(() {
+                        _sortBy = 'bestselling';
+                        _filterProducts();
+                      });
+                    },
+                    icon: const Icon(Icons.local_fire_department, size: 18, color: Colors.orange),
+                    label: const Text('Bán chạy', style: TextStyle(fontSize: 13)),
+                    style: ElevatedButton.styleFrom(
+                      elevation: 4,
+                      backgroundColor: _sortBy == 'bestselling' ? Colors.blue : Colors.grey[300],
+                      foregroundColor: _sortBy == 'bestselling' ? Colors.white : Colors.black87,
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                SizedBox(
+                  width: 100,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        if (_sortBy == 'name') {
+                          _sortAscending = !_sortAscending;
+                        } else {
+                          _sortBy = 'name';
+                          _sortAscending = true;
+                        }
+                        _filterProducts();
+                      });
+                    },
+                    style: ElevatedButton.styleFrom(
+                      elevation: 4,
+                      backgroundColor: _sortBy == 'name' ? const Color.fromARGB(255, 233, 247, 114) : Colors.grey[300],
+                      foregroundColor: Colors.black87,
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.sort_by_alpha, size: 16, color: Colors.blue),
+                        const SizedBox(width: 2),
+                        const Text('Tên', style: TextStyle(fontSize: 12)),
+                        if (_sortBy == 'name')
+                          const SizedBox(width: 2),
+                        if (_sortBy == 'name')
+                          Icon(
+                            _sortAscending ? Icons.arrow_upward : Icons.arrow_downward,
+                            size: 10,
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                SizedBox(
+                  width: 115,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        if (_sortBy == 'price') {
+                          _sortAscending = !_sortAscending;
+                        } else {
+                          _sortBy = 'price';
+                          _sortAscending = false;
+                        }
+                        _filterProducts();
+                      });
+                    },
+                    style: ElevatedButton.styleFrom(
+                      elevation: 4,
+                      backgroundColor: _sortBy == 'price' ? const Color.fromARGB(255, 255, 151, 53) : Colors.grey[300],
+                      foregroundColor: _sortBy == 'price' ? Colors.white : Colors.black87,
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.attach_money, size: 16, color: Colors.green),
+                        const SizedBox(width: 2),
+                        const Text('Giá bán', style: TextStyle(fontSize: 12)),
+                        if (_sortBy == 'price')
+                          const SizedBox(width: 2),
+                        if (_sortBy == 'price')
+                          Icon(
+                            _sortAscending ? Icons.arrow_upward : Icons.arrow_downward,
+                            size: 10,
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -995,180 +1197,9 @@ class _SalesPageState extends State<SalesPage> {
         children: [
           Column(
             children: [
-              // Search Bar with Add Button and Delete Button
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 5.0, horizontal: 25.0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: searchController,
-                        decoration: InputDecoration(
-                          hintText: 'Tìm kiếm mặt hàng',
-                          prefixIcon: const Icon(Icons.search),
-                          suffixIcon: searchController.text.isNotEmpty
-                              ? IconButton(
-                                  icon: const Icon(Icons.clear),
-                                  onPressed: () {
-                                    searchController.clear();
-                                  },
-                                )
-                              : null,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: const BorderSide(
-                              color: Colors.grey,
-                              width: 2,
-                            ),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: const BorderSide(
-                              color: Colors.blue,
-                              width: 4,
-                            ),
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 12,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    // Layout Change Button
-                    IconButton(
-                      icon: const Icon(Icons.view_list_rounded, size: 30, color: Colors.blue),
-                      tooltip: 'Thay đổi bố cục',
-                      onPressed: () {
-                        setState(() {
-                          _layoutMode = (_layoutMode + 1) % 3;
-                        });
-                      },
-                      style: IconButton.styleFrom(
-                        side: const BorderSide(
-                          color: Colors.grey,
-                          width: 2,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+              RepaintBoundary(
+                child: _buildSearchAndControlsSection(),
               ),
-              // Sort buttons section
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 25.0, vertical: 0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () {
-                          setState(() {
-                            _sortBy = 'bestselling';
-                            _filterProducts();
-                          });
-                        },
-                        icon: const Icon(Icons.local_fire_department, size: 20, color: Colors.orange),
-                        label: const Text('Bán chạy', style: TextStyle(fontSize: 15)),
-                        style: ElevatedButton.styleFrom(
-                          elevation: 4,
-                          backgroundColor: _sortBy == 'bestselling' ? Colors.blue : Colors.grey[300],
-                          foregroundColor: _sortBy == 'bestselling' ? Colors.white : Colors.black87,
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () {
-                          setState(() {
-                            if (_sortBy == 'name') {
-                              _sortAscending = !_sortAscending;
-                            } else {
-                              _sortBy = 'name';
-                              _sortAscending = true;
-                            }
-                            _filterProducts();
-                          });
-                        },
-                        style: ElevatedButton.styleFrom(
-                          elevation: 4,
-                          backgroundColor: _sortBy == 'name' ? const Color.fromARGB(255, 233, 247, 114) : Colors.grey[300],
-                          foregroundColor: Colors.black87,
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.sort_by_alpha, size: 20, color: Colors.blue),
-                            const SizedBox(width: 4),
-                            const Text('Tên', style: TextStyle(fontSize: 15)),
-                            const SizedBox(width: 4),
-                            if (_sortBy == 'name')
-                              Icon(
-                                _sortAscending ? Icons.arrow_upward : Icons.arrow_downward,
-                                size: 12,
-                              ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () {
-                          setState(() {
-                            if (_sortBy == 'price') {
-                              _sortAscending = !_sortAscending;
-                            } else {
-                              _sortBy = 'price';
-                              _sortAscending = false; // Default descending for price (highest first)
-                            }
-                            _filterProducts();
-                          });
-                        },
-                        style: ElevatedButton.styleFrom(
-                          elevation: 4,
-                          backgroundColor: _sortBy == 'price' ? const Color.fromARGB(255, 255, 151, 53) : Colors.grey[300],
-                          foregroundColor: _sortBy == 'price' ? Colors.white : Colors.black87,
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.attach_money, size: 20, color: Colors.green),
-                            const SizedBox(width: 4),
-                            const Text('Giá bán', style: TextStyle(fontSize: 15)),
-                            const SizedBox(width: 4),
-                            if (_sortBy == 'price')
-                              Icon(
-                                _sortAscending ? Icons.arrow_upward : Icons.arrow_downward,
-                                size: 12,
-                              ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 10),
               // Product List
               Expanded(
                 child: filteredProducts.isEmpty
@@ -1473,12 +1504,12 @@ class _SalesPageState extends State<SalesPage> {
                               child: Card(
                                 margin: const EdgeInsets.symmetric(
                                   horizontal: 20,
-                                  vertical: 1,
+                                  vertical: 2,
                                 ),
                                 child: Padding(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 10,
-                                    vertical: 1,
+                                    vertical: 15,
                                   ),
                                   child: Row(
                                     children: [
@@ -1501,31 +1532,39 @@ class _SalesPageState extends State<SalesPage> {
                                         child: Row(
                                           children: [
                                             Flexible(
-                                              flex: 3,
+                                              flex: 2,
                                               child: Text(
                                                 item.product?.name ?? 'Unknown',
                                                 style: const TextStyle(
-                                                  fontSize: 15,
+                                                  fontSize: 14,
                                                   fontWeight: FontWeight.w600,
                                                 ),
                                                 overflow: TextOverflow.ellipsis,
                                               ),
                                             ),
-                                            const SizedBox(width: 15),
-                                            Text(
-                                              'SL: ${item.quantity}',
-                                              style: TextStyle(
-                                                fontSize: 15,
-                                                color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87,
+                                            const SizedBox(width: 8),
+                                            Flexible(
+                                              flex: 1,
+                                              child: Text(
+                                                'SL:${item.quantity}',
+                                                style: TextStyle(
+                                                  fontSize: 13,
+                                                  color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87,
+                                                ),
+                                                overflow: TextOverflow.ellipsis,
                                               ),
                                             ),
-                                            const SizedBox(width: 15),
-                                            Text(
-                                              timeString,
-                                              style: TextStyle(
-                                                fontSize: 15,
-                                                fontWeight: FontWeight.w600,
-                                                color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87,
+                                            const SizedBox(width: 6),
+                                            Flexible(
+                                              flex: 1,
+                                              child: Text(
+                                                timeString,
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87,
+                                                ),
+                                                overflow: TextOverflow.ellipsis,
                                               ),
                                             ),
                                           ],

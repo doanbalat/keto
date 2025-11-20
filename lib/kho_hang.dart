@@ -8,6 +8,7 @@ import 'services/permission_service.dart';
 import 'services/notification_service.dart';
 import 'services/currency_service.dart';
 import 'services/product_category_service.dart';
+import 'services/statistics_cache_service.dart';
 import 'package:image_picker/image_picker.dart';
 
 class InventoryPage extends StatefulWidget {
@@ -658,6 +659,9 @@ class _InventoryPageState extends State<InventoryPage> {
                                 updatedProduct,
                               );
 
+                              // Invalidate statistics cache when product is updated
+                              StatisticsCacheService.invalidateCache();
+
                               if (!mounted) return;
                               Navigator.pop(context);
 
@@ -1040,6 +1044,9 @@ class _InventoryPageState extends State<InventoryPage> {
                             );
 
                             await _productService.updateProduct(updatedProduct);
+
+                            // Invalidate statistics cache when product stock is updated
+                            StatisticsCacheService.invalidateCache();
 
                             if (!mounted) return;
                             Navigator.pop(context); // Close the inner dialog
@@ -1677,6 +1684,7 @@ class _InventoryPageState extends State<InventoryPage> {
           children: [
             // Summary card with gradient
             Container(
+              width: double.infinity,
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [Colors.orangeAccent, Colors.white],
@@ -1687,99 +1695,106 @@ class _InventoryPageState extends State<InventoryPage> {
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 30.0, vertical: 0.0),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _activeFilter = _activeFilter == 'all'
-                                  ? null
-                                  : 'all';
-                              _filterProducts();
-                            });
-                          },
-                          child: _buildStatItem(
-                            value: allProducts.length.toString(),
-                            label: 'Tổng\n',
-                            color: Colors.blue,
-                            icon: Icons.inventory_2,
-                            isActive:
-                                _activeFilter == 'all' || _activeFilter == null,
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _activeFilter = _activeFilter == 'all'
+                                    ? null
+                                    : 'all';
+                                _filterProducts();
+                              });
+                            },
+                            child: _buildStatItem(
+                              value: allProducts.length.toString(),
+                              label: 'Tổng\n',
+                              color: Colors.blue,
+                              icon: Icons.inventory_2,
+                              isActive:
+                                  _activeFilter == 'all' || _activeFilter == null,
+                            ),
                           ),
-                        ),
-                        GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _activeFilter = _activeFilter == 'inStock'
-                                  ? null
-                                  : 'inStock';
-                              _filterProducts();
-                            });
-                          },
-                          child: _buildStatItem(
-                            value: _getProductsInStock().toString(),
-                            label: 'Còn hàng\n',
-                            color: Colors.green,
-                            icon: Icons.check_circle,
-                            isActive: _activeFilter == 'inStock',
+                          const SizedBox(width: 8),
+                          GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _activeFilter = _activeFilter == 'inStock'
+                                    ? null
+                                    : 'inStock';
+                                _filterProducts();
+                              });
+                            },
+                            child: _buildStatItem(
+                              value: _getProductsInStock().toString(),
+                              label: 'Còn hàng\n',
+                              color: Colors.green,
+                              icon: Icons.check_circle,
+                              isActive: _activeFilter == 'inStock',
+                            ),
                           ),
-                        ),
-                        GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _activeFilter = _activeFilter == 'lowStock'
-                                  ? null
-                                  : 'lowStock';
-                              _filterProducts();
-                            });
-                          },
-                          child: _buildStatItem(
-                            value: _getLowStockProducts().toString(),
-                            label: 'Sắp hết\n',
-                            color: Colors.orange,
-                            icon: Icons.warning,
-                            isActive: _activeFilter == 'lowStock',
+                          const SizedBox(width: 8),
+                          GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _activeFilter = _activeFilter == 'lowStock'
+                                    ? null
+                                    : 'lowStock';
+                                _filterProducts();
+                              });
+                            },
+                            child: _buildStatItem(
+                              value: _getLowStockProducts().toString(),
+                              label: 'Sắp hết\n',
+                              color: Colors.orange,
+                              icon: Icons.warning,
+                              isActive: _activeFilter == 'lowStock',
+                            ),
                           ),
-                        ),
-                        GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _activeFilter = _activeFilter == 'outOfStock'
-                                  ? null
-                                  : 'outOfStock';
-                              _filterProducts();
-                            });
-                          },
-                          child: _buildStatItem(
-                            value: _getProductsOutOfStock().toString(),
-                            label: 'Hết hàng /\nKhông Rõ SL',
-                            color: Colors.red,
-                            icon: Icons.cancel,
-                            isActive: _activeFilter == 'outOfStock',
+                          const SizedBox(width: 8),
+                          GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _activeFilter = _activeFilter == 'outOfStock'
+                                    ? null
+                                    : 'outOfStock';
+                                _filterProducts();
+                              });
+                            },
+                            child: _buildStatItem(
+                              value: _getProductsOutOfStock().toString(),
+                              label: 'Hết hàng /\nKhông Rõ SL',
+                              color: Colors.red,
+                              icon: Icons.cancel,
+                              isActive: _activeFilter == 'outOfStock',
+                            ),
                           ),
-                        ),
-                        GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _activeFilter = _activeFilter == 'value'
-                                  ? null
-                                  : 'value';
-                              _filterProducts();
-                            });
-                          },
-                          child: _buildStatItem(
-                            value:
-                                '${(_getTotalInventoryValue() / 1000000).toStringAsFixed(1)} Tr',
-                            label: 'Giá trị kho\n(VND)',
-                            color: Colors.purple,
-                            icon: Icons.monetization_on,
-                            isActive: false,
+                          const SizedBox(width: 8),
+                          GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _activeFilter = _activeFilter == 'value'
+                                    ? null
+                                    : 'value';
+                                _filterProducts();
+                              });
+                            },
+                            child: _buildStatItem(
+                              value:
+                                  '${(_getTotalInventoryValue() / 1000000).toStringAsFixed(1)} Tr',
+                              label: 'Giá trị kho\n(VND)',
+                              color: Colors.purple,
+                              icon: Icons.monetization_on,
+                              isActive: false,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -3357,16 +3372,17 @@ class _InventoryPageState extends State<InventoryPage> {
 
                         // Mobile: ListView with horizontal row layout
                         if (isMobile) {
-                          return ListView.builder(
-                            padding: const EdgeInsets.all(12),
-                            itemCount: filteredProducts.length,
-                            itemBuilder: (context, index) {
+                          return RepaintBoundary(
+                            child: ListView.builder(
+                              padding: const EdgeInsets.all(12),
+                              itemCount: filteredProducts.length,
+                              itemBuilder: (context, index) {
                               final product = filteredProducts[index];
                               final stockColor = _getStockIndicatorColor(product.stock);
                               final stockStatus = _getStockStatus(product.stock);
 
                               return Card(
-                                elevation: 10,
+                                elevation: 4,
                                 margin: const EdgeInsets.only(bottom: 12),
                                 child: InkWell(
                                   onTap: () => _showAdjustStockDialog(product),
@@ -3496,11 +3512,13 @@ class _InventoryPageState extends State<InventoryPage> {
                                 ),
                               );
                             },
+                            ),
                           );
                         }
 
                         // Tablet and Desktop: GridView with 2 columns
-                        return GridView.builder(
+                        return RepaintBoundary(
+                          child: GridView.builder(
                           padding: const EdgeInsets.all(16),
                           gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
                             maxCrossAxisExtent: 400,
@@ -3514,7 +3532,7 @@ class _InventoryPageState extends State<InventoryPage> {
                             final stockStatus = _getStockStatus(product.stock);
 
                             return Card(
-                              elevation: 10,
+                              elevation: 4,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
@@ -3651,6 +3669,7 @@ class _InventoryPageState extends State<InventoryPage> {
                               ),
                             );
                           },
+                          ),
                         );
                       },
                     ),

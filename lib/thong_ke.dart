@@ -264,17 +264,19 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
                   top: 0,
                   left: 0,
                   right: 0,
-                  child: Container(
-                    color: Theme.of(context).scaffoldBackgroundColor,
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _buildPeriodSelector(),
-                        const SizedBox(height: 12),
-                        _buildDateRangeDisplay(),
-                      ],
+                  child: RepaintBoundary(
+                    child: Container(
+                      color: Theme.of(context).scaffoldBackgroundColor,
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _buildPeriodSelector(),
+                          const SizedBox(height: 12),
+                          _buildDateRangeDisplay(),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -480,8 +482,10 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
 
         final last7DaysSoldItems = snapshot.data ?? [];
 
-        // Group sales by date and product
+        // Group sales by date and product - OPTIMIZED SINGLE PASS
         Map<String, Map<String, dynamic>> dailySalesData = {};
+        int totalWeek = 0;
+        int maxQuantity = 10;
 
         for (var date in last7Days) {
           final dateKey = _dateKeyFormatter.format(date);
@@ -492,36 +496,24 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
           };
         }
 
-        // Process last 7 days sold items
+        // Single pass through items
         for (var item in last7DaysSoldItems) {
           final dateKey = _dateKeyFormatter.format(item.timestamp);
           if (dailySalesData.containsKey(dateKey)) {
             final productName = item.product?.name ?? 'Khác';
-            dailySalesData[dateKey]!['products'][productName] =
-                ((dailySalesData[dateKey]!['products']
-                        as Map<String, int>)[productName] ??
-                    0) +
-                item.quantity;
-            dailySalesData[dateKey]!['total'] =
-                (dailySalesData[dateKey]!['total'] as int) + item.quantity;
+            final products = dailySalesData[dateKey]!['products'] as Map<String, int>;
+            products[productName] = (products[productName] ?? 0) + item.quantity;
+            
+            final newTotal = (dailySalesData[dateKey]!['total'] as int) + item.quantity;
+            dailySalesData[dateKey]!['total'] = newTotal;
+            
+            totalWeek += item.quantity;
+            if (newTotal > maxQuantity) maxQuantity = newTotal;
           }
         }
 
-        // Find max value for chart scaling
-        int maxQuantity = 10; // Minimum scale
-        int totalWeek = 0;
-        for (var data in dailySalesData.values) {
-          final total = data['total'] as int;
-          totalWeek += total;
-          if (total > maxQuantity) maxQuantity = total;
-        }
-        maxQuantity =
-            ((maxQuantity / 10).ceil() + 1) * 10; // Round up to nearest 10
-
-        // Calculate average
+        maxQuantity = ((maxQuantity / 10).ceil() + 1) * 10;
         final average = totalWeek / 7;
-
-        // Always show total week sales
         final referenceTotal = totalWeek;
 
         // Calculate comparison with previous week
@@ -557,25 +549,26 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
               isIncrease = referenceTotal >= previousWeekTotal;
             }
 
-            return Card(
-              elevation: 10,
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Số lượng bán ra',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: isDarkMode ? Colors.white : Colors.black,
-                            letterSpacing: 0.5,
+            return RepaintBoundary(
+              child: Card(
+                elevation: 10,
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Số lượng bán ra',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: isDarkMode ? Colors.white : Colors.black,
+                              letterSpacing: 0.5,
+                            ),
                           ),
-                        ),
                         Column(
                           children: [
                             Row(
@@ -820,6 +813,7 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
                   ],
                 ),
               ),
+            ),
             );
           },
         );
@@ -1015,17 +1009,18 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
     maxY = (maxY * 1.2); // Add 20% padding
     if (maxY == 0) maxY = 100000; // Default if no data
 
-    return Card(
-      elevation: 10,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Xu hướng Doanh thu & Chi phí',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
+    return RepaintBoundary(
+      child: Card(
+        elevation: 10,
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Xu hướng Doanh thu & Chi phí',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
             const SizedBox(height: 8),
             const SizedBox(height: 20),
             SizedBox(
@@ -1206,7 +1201,8 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
           ],
         ),
       ),
-    );
+    ),
+  );
   }
 
   String _formatCompactCurrency(int amount) {
@@ -1269,13 +1265,14 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
       );
     }
 
-    return Card(
-      elevation: 10,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+    return RepaintBoundary(
+      child: Card(
+        elevation: 10,
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -1401,7 +1398,8 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
           ],
         ),
       ),
-    );
+    ),
+  );
   }
 
   Widget _buildSortButton(String label, bool isActive, VoidCallback onPressed) {
@@ -1503,17 +1501,18 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
       colorIndex++;
     }
 
-    return Card(
-      elevation: 10,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Biểu đồ Chi phí',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
+    return RepaintBoundary(
+      child: Card(
+        elevation: 10,
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Biểu đồ Chi phí',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
             const SizedBox(height: 20),
             // Pie Chart only (larger, full width)
             SizedBox(
@@ -1565,7 +1564,8 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
           ],
         ),
       ),
-    );
+    ),
+  );
   }
 
   Widget _buildExpensesCategoryBreakdown() {

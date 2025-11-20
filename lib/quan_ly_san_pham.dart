@@ -7,6 +7,7 @@ import 'services/image_service.dart';
 import 'services/permission_service.dart';
 import 'services/currency_service.dart';
 import 'services/product_category_service.dart';
+import 'services/statistics_cache_service.dart';
 
 class ProductManagementPage extends StatefulWidget {
   const ProductManagementPage({super.key});
@@ -653,6 +654,9 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
                                     return;
                                   }
 
+                                  // Invalidate statistics cache when a product is added
+                                  StatisticsCacheService.invalidateCache();
+
                                   if (!mounted) return;
                                   Navigator.pop(context);
 
@@ -1204,6 +1208,9 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
                                       .updateProduct(updatedProduct);
 
                                   if (success) {
+                                    // Invalidate statistics cache when a product is updated
+                                    StatisticsCacheService.invalidateCache();
+
                                     if (!mounted) return;
                                     Navigator.pop(context);
 
@@ -1544,6 +1551,9 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
                                 await _productService.hardDeleteProduct(product.id);
 
                             if (success) {
+                              // Invalidate statistics cache when a product is deleted
+                              StatisticsCacheService.invalidateCache();
+
                               final products =
                                   await _productService.getAllProducts();
 
@@ -1844,10 +1854,11 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
                       ],
                     ),
                   )
-                : ListView.separated(
-                    itemCount: filteredProducts.length,
-                    separatorBuilder: (context, index) => Divider(
-                      height: 1,
+                : RepaintBoundary(
+                    child: ListView.separated(
+                      itemCount: filteredProducts.length,
+                      separatorBuilder: (context, index) => Divider(
+                        height: 1,
                       thickness: 1,
                       indent: 16,
                       endIndent: 16,
@@ -2002,6 +2013,7 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
                         ),
                       );
                     },
+                    ),
                   ),
           ),
         ],

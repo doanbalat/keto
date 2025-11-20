@@ -7,6 +7,7 @@ import 'services/expense_service.dart';
 import 'services/permission_service.dart';
 import 'services/recurring_expense_service.dart';
 import 'services/currency_service.dart';
+import 'services/statistics_cache_service.dart';
 
 class DateRange {
   final DateTime start;
@@ -685,6 +686,9 @@ class _ExpensesPageState extends State<ExpensesPage> {
                       );
 
                       if (success) {
+                        // Invalidate statistics cache when an expense is added
+                        StatisticsCacheService.invalidateCache();
+
                         await _loadExpenses();
 
                         if (!mounted) return;
@@ -1539,7 +1543,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                       const SizedBox(height: 12),
                       Card(
                         color: Colors.grey[50],
-                        elevation: 4,
+                        elevation: 2,
                         child: Padding(
                           padding: const EdgeInsets.all(16),
                           child: Row(
@@ -1636,9 +1640,10 @@ class _ExpensesPageState extends State<ExpensesPage> {
                         const SizedBox(height: 12),
                         SizedBox(
                           height: 160,
-                          child: ListView.builder(
-                            scrollDirection: Axis.horizontal,
-                            itemCount: recurringExpenses.length,
+                          child: RepaintBoundary(
+                            child: ListView.builder(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: recurringExpenses.length,
                             itemBuilder: (context, index) {
                               final recurring = recurringExpenses[index];
                               final nextOccurrence = _recurringExpenseService.getNextOccurrenceDate(recurring);
@@ -1649,7 +1654,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                                     _showAddRecurringExpenseDialog(existingRecurring: recurring);
                                   },
                                   child: Card(
-                                    elevation: 4,
+                                    elevation: 2,
                                     child: Container(
                                       width: 280,
                                       padding: const EdgeInsets.all(12),
@@ -1764,6 +1769,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                                 ),
                               );
                             },
+                            ),
                           ),
                         ),
                         const SizedBox(height: 12),
@@ -1795,10 +1801,11 @@ class _ExpensesPageState extends State<ExpensesPage> {
                             final sortedEntries = categories.entries.toList()
                               ..sort((a, b) => b.value.compareTo(a.value));
                             
-                            return ListView.builder(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: sortedEntries.length,
+                            return RepaintBoundary(
+                              child: ListView.builder(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                itemCount: sortedEntries.length,
                               itemBuilder: (context, index) {
                                 final category = sortedEntries[index].key;
                                 final amount = sortedEntries[index].value;
@@ -1961,47 +1968,50 @@ class _ExpensesPageState extends State<ExpensesPage> {
                                                                         ),
                                                                         const SizedBox(height: 8),
                                                                         // Date and payment method row
-                                                                        Row(
-                                                                          children: [
-                                                                            // Date
-                                                                            Text(
-                                                                              dateStr,
-                                                                              style: TextStyle(
-                                                                                fontSize: 13,
-                                                                                color: Colors.grey[600],
-                                                                                fontWeight: FontWeight.w400,
-                                                                              ),
-                                                                            ),
-                                                                            const SizedBox(width: 12),
-                                                                            // Divider
-                                                                            Container(
-                                                                              width: 1,
-                                                                              height: 16,
-                                                                              color: Colors.grey[400],
-                                                                            ),
-                                                                            const SizedBox(width: 12),
-                                                                            // Payment method badge
-                                                                            Container(
-                                                                              padding: const EdgeInsets.symmetric(
-                                                                                horizontal: 10,
-                                                                                vertical: 4,
-                                                                              ),
-                                                                              decoration: BoxDecoration(
-                                                                                color: Colors.blue.withValues(alpha: 0.15),
-                                                                                borderRadius: BorderRadius.circular(6),
-                                                                              ),
-                                                                              child: Text(
-                                                                                expense.paymentMethod,
+                                                                        SingleChildScrollView(
+                                                                          scrollDirection: Axis.horizontal,
+                                                                          child: Row(
+                                                                            children: [
+                                                                              // Date
+                                                                              Text(
+                                                                                dateStr,
                                                                                 style: TextStyle(
-                                                                                  fontSize: 12,
-                                                                                  color: Theme.of(context).brightness == Brightness.dark
-                                                                                    ? Colors.blue[200]
-                                                                                    : Colors.blue[700],
-                                                                                  fontWeight: FontWeight.w500,
+                                                                                  fontSize: 13,
+                                                                                  color: Colors.grey[600],
+                                                                                  fontWeight: FontWeight.w400,
+                                                                                ),
+                                                                              ),
+                                                                              const SizedBox(width: 8),
+                                                                              // Divider
+                                                                              Container(
+                                                                                width: 1,
+                                                                                height: 16,
+                                                                                color: Colors.grey[400],
+                                                                              ),
+                                                                              const SizedBox(width: 8),
+                                                                              // Payment method badge
+                                                                              Container(
+                                                                                padding: const EdgeInsets.symmetric(
+                                                                                  horizontal: 8,
+                                                                                  vertical: 4,
+                                                                                ),
+                                                                                decoration: BoxDecoration(
+                                                                                  color: Colors.blue.withValues(alpha: 0.15),
+                                                                                  borderRadius: BorderRadius.circular(6),
+                                                                                ),
+                                                                                child: Text(
+                                                                                  expense.paymentMethod,
+                                                                                  style: TextStyle(
+                                                                                    fontSize: 11,
+                                                                                    color: Theme.of(context).brightness == Brightness.dark
+                                                                                      ? Colors.blue[200]
+                                                                                      : Colors.blue[700],
+                                                                                    fontWeight: FontWeight.w500,
                                                                                 ),
                                                                               ),
                                                                             ),
                                                                           ],
+                                                                        ),
                                                                         ),
                                                                       ],
                                                                     ),
@@ -2042,6 +2052,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                                   ),
                                 );
                               },
+                              ),
                             );
                           }
                           return const Center(

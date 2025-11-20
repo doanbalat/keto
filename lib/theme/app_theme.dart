@@ -24,6 +24,13 @@ class AppTheme {
       selectedItemColor: Colors.blue,
       unselectedItemColor: Colors.black,
     ),
+    navigationDrawerTheme: NavigationDrawerThemeData(
+      backgroundColor: Colors.white,
+      indicatorColor: const Color.fromARGB(255, 243, 230, 230),
+      indicatorShape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+      ),
+    ),
   );
 
   static ThemeData darkTheme = ThemeData(
@@ -48,6 +55,13 @@ class AppTheme {
       backgroundColor: Color(0xFF1E1E1E),
       selectedItemColor: Colors.red,
       unselectedItemColor: Colors.grey,
+    ),
+    navigationDrawerTheme: NavigationDrawerThemeData(
+      backgroundColor: const Color(0xFF1E1E1E),
+      indicatorColor: const Color.fromARGB(255, 79, 79, 79),
+      indicatorShape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+      ),
     ),
   );
 }
