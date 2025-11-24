@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../models/product_model.dart';
@@ -616,7 +617,7 @@ class DatabaseHelper {
         );
         count++;
       } catch (e) {
-        print('⚠️ Error importing product ${product.name}: $e');
+        if (kDebugMode) print('⚠️ Error importing product ${product.name}: $e');
       }
     }
     
@@ -652,7 +653,7 @@ class DatabaseHelper {
         );
         count++;
       } catch (e) {
-        print('⚠️ Error importing sold item ${item.id}: $e');
+        if (kDebugMode) print('⚠️ Error importing sold item ${item.id}: $e');
       }
     }
     
@@ -687,7 +688,7 @@ class DatabaseHelper {
         );
         count++;
       } catch (e) {
-        print('⚠️ Error importing expense ${expense.id}: $e');
+        if (kDebugMode) print('⚠️ Error importing expense ${expense.id}: $e');
       }
     }
     

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../services/admob_service.dart';
@@ -36,7 +37,7 @@ class _AdMobBannerWidgetState extends State<AdMobBannerWidget> {
         },
         onAdFailedToLoad: (ad, error) {
           ad.dispose();
-          print('Banner ad failed to load: ${error.message}');
+          if (kDebugMode) print('Banner ad failed to load: ${error.message}');
         },
         onAdOpened: (ad) {},
         onAdClosed: (ad) {},

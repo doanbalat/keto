@@ -1,5 +1,6 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'dart:convert';
 import 'dart:async';
 import '../models/notification_model.dart';
@@ -67,9 +68,9 @@ class NotificationService {
       // Initialize history stream
       _historyStream = StreamController<List<AppNotification>>.broadcast();
 
-      print('NotificationService initialized successfully');
+      if (kDebugMode) print('NotificationService initialized successfully');
     } catch (e) {
-      print('Error initializing NotificationService: $e');
+      if (kDebugMode) print('Error initializing NotificationService: $e');
       // Continue without notifications rather than crashing the app
       _historyStream = StreamController<List<AppNotification>>.broadcast();
     }
@@ -135,7 +136,7 @@ class NotificationService {
 
   /// Callback when notification is tapped
   void _onNotificationTapped(NotificationResponse response) {
-    print('Notification tapped: ${response.payload}');
+    if (kDebugMode) print('Notification tapped: ${response.payload}');
   }
 
   /// Show a notification with the given type, title, and message
@@ -162,7 +163,7 @@ class NotificationService {
     // Show native notification
     await _showPlatformNotification(notification);
 
-    print('Notification shown: ${notification.title}');
+    if (kDebugMode) print('Notification shown: ${notification.title}');
   }
 
   /// Show success notification
@@ -295,7 +296,7 @@ class NotificationService {
       // Emit update to history stream
       _historyStream.add(history);
     } catch (e) {
-      print('Error saving notification to history: $e');
+      if (kDebugMode) print('Error saving notification to history: $e');
     }
   }
 
@@ -312,11 +313,11 @@ class NotificationService {
           final json = jsonDecode(jsonString) as Map<String, dynamic>;
           _notifications.add(AppNotification.fromJson(json));
         } catch (e) {
-          print('Error parsing notification: $e');
+          if (kDebugMode) print('Error parsing notification: $e');
         }
       }
     } catch (e) {
-      print('Error loading notification history: $e');
+      if (kDebugMode) print('Error loading notification history: $e');
     }
   }
 
@@ -353,7 +354,7 @@ class NotificationService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_notificationHistoryKey);
     _historyStream.add([]);
-    print('All notifications cleared');
+    if (kDebugMode) print('All notifications cleared');
   }
 
   /// Clear notifications by type
@@ -371,7 +372,7 @@ class NotificationService {
           _notifications.map((n) => jsonEncode(n.toJson())).toList();
       await prefs.setStringList(_notificationHistoryKey, jsonList);
     } catch (e) {
-      print('Error saving notifications: $e');
+      if (kDebugMode) print('Error saving notifications: $e');
     }
   }
 

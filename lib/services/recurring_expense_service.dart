@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:keto/models/recurring_expense_model.dart';
 import 'package:keto/database/database_helper.dart';
 import 'expense_service.dart';
@@ -36,7 +37,7 @@ class RecurringExpenseService {
       final id = await _dbHelper.insertRecurringExpense(recurringExpense);
       return id > 0;
     } catch (e) {
-      print('Error adding recurring expense: $e');
+      if (kDebugMode) print('Error adding recurring expense: $e');
       return false;
     }
   }
@@ -46,7 +47,7 @@ class RecurringExpenseService {
     try {
       return await _dbHelper.getActiveRecurringExpenses();
     } catch (e) {
-      print('Error getting active recurring expenses: $e');
+      if (kDebugMode) print('Error getting active recurring expenses: $e');
       return [];
     }
   }
@@ -56,7 +57,7 @@ class RecurringExpenseService {
     try {
       return await _dbHelper.getAllRecurringExpenses();
     } catch (e) {
-      print('Error getting all recurring expenses: $e');
+      if (kDebugMode) print('Error getting all recurring expenses: $e');
       return [];
     }
   }
@@ -67,7 +68,7 @@ class RecurringExpenseService {
       final result = await _dbHelper.updateRecurringExpense(recurringExpense);
       return result > 0;
     } catch (e) {
-      print('Error updating recurring expense: $e');
+      if (kDebugMode) print('Error updating recurring expense: $e');
       return false;
     }
   }
@@ -78,7 +79,7 @@ class RecurringExpenseService {
       final result = await _dbHelper.updateRecurringExpenseActiveStatus(id, isActive);
       return result > 0;
     } catch (e) {
-      print('Error toggling recurring expense: $e');
+      if (kDebugMode) print('Error toggling recurring expense: $e');
       return false;
     }
   }
@@ -89,7 +90,7 @@ class RecurringExpenseService {
       final result = await _dbHelper.deleteRecurringExpense(id);
       return result > 0;
     } catch (e) {
-      print('Error deleting recurring expense: $e');
+      if (kDebugMode) print('Error deleting recurring expense: $e');
       return false;
     }
   }
@@ -123,7 +124,7 @@ class RecurringExpenseService {
         }
       }
     } catch (e) {
-      print('Error generating due recurring expenses: $e');
+      if (kDebugMode) print('Error generating due recurring expenses: $e');
     }
   }
 

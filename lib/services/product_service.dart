@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kDebugMode;
 import '../database/database_helper.dart';
 import '../models/product_model.dart';
 import '../models/sold_item_model.dart';
@@ -12,7 +13,7 @@ class ProductService {
     try {
       return await _dbHelper.getAllProducts();
     } catch (e) {
-      print('Error getting all products: $e');
+      if (kDebugMode) print('Error getting all products: $e');
       return [];
     }
   }
@@ -25,7 +26,7 @@ class ProductService {
       }
       return await _dbHelper.searchProducts(query);
     } catch (e) {
-      print('Error searching products: $e');
+      if (kDebugMode) print('Error searching products: $e');
       return [];
     }
   }
@@ -59,7 +60,7 @@ class ProductService {
       final id = await _dbHelper.insertProduct(product);
       return id;
     } catch (e) {
-      print('Error adding product: $e');
+      if (kDebugMode) print('Error adding product: $e');
       return null;
     }
   }
@@ -70,7 +71,7 @@ class ProductService {
       await _dbHelper.updateProduct(product);
       return true;
     } catch (e) {
-      print('Error updating product: $e');
+      if (kDebugMode) print('Error updating product: $e');
       return false;
     }
   }
@@ -81,7 +82,7 @@ class ProductService {
       await _dbHelper.deleteProduct(productId);
       return true;
     } catch (e) {
-      print('Error deleting product: $e');
+      if (kDebugMode) print('Error deleting product: $e');
       return false;
     }
   }
@@ -92,7 +93,7 @@ class ProductService {
       await _dbHelper.hardDeleteProduct(productId);
       return true;
     } catch (e) {
-      print('Error hard deleting product: $e');
+      if (kDebugMode) print('Error hard deleting product: $e');
       return false;
     }
   }
@@ -102,7 +103,7 @@ class ProductService {
     try {
       return await _dbHelper.getProductById(id);
     } catch (e) {
-      print('Error getting product: $e');
+      if (kDebugMode) print('Error getting product: $e');
       return null;
     }
   }
@@ -135,7 +136,7 @@ class ProductService {
       await _dbHelper.insertSoldItem(soldItem);
       return true;
     } catch (e) {
-      print('Error adding sold item: $e');
+      if (kDebugMode) print('Error adding sold item: $e');
       return false;
     }
   }
@@ -145,7 +146,7 @@ class ProductService {
     try {
       return await _dbHelper.getAllSoldItems();
     } catch (e) {
-      print('Error getting sold items: $e');
+      if (kDebugMode) print('Error getting sold items: $e');
       return [];
     }
   }
@@ -155,7 +156,7 @@ class ProductService {
     try {
       return await _dbHelper.getSoldItemsForToday();
     } catch (e) {
-      print('Error getting today\'s sold items: $e');
+      if (kDebugMode) print('Error getting today\'s sold items: $e');
       return [];
     }
   }
@@ -168,7 +169,7 @@ class ProductService {
     try {
       return await _dbHelper.getSoldItemsByDateRange(start, end);
     } catch (e) {
-      print('Error getting sold items by date range: $e');
+      if (kDebugMode) print('Error getting sold items by date range: $e');
       return [];
     }
   }
@@ -179,7 +180,7 @@ class ProductService {
       await _dbHelper.deleteSoldItem(soldItemId);
       return true;
     } catch (e) {
-      print('Error deleting sold item: $e');
+      if (kDebugMode) print('Error deleting sold item: $e');
       return false;
     }
   }
@@ -191,7 +192,7 @@ class ProductService {
     try {
       return await _dbHelper.getTotalSalesToday();
     } catch (e) {
-      print('Error getting today\'s total sales: $e');
+      if (kDebugMode) print('Error getting today\'s total sales: $e');
       return 0;
     }
   }
@@ -201,7 +202,7 @@ class ProductService {
     try {
       return await _dbHelper.getTotalProfitToday();
     } catch (e) {
-      print('Error getting today\'s total profit: $e');
+      if (kDebugMode) print('Error getting today\'s total profit: $e');
       return 0;
     }
   }
@@ -211,7 +212,7 @@ class ProductService {
     try {
       return await _dbHelper.getTotalItemsSoldToday();
     } catch (e) {
-      print('Error getting today\'s total items sold: $e');
+      if (kDebugMode) print('Error getting today\'s total items sold: $e');
       return 0;
     }
   }
@@ -222,9 +223,9 @@ class ProductService {
   Future<void> clearAllData() async {
     try {
       await _dbHelper.clearAllData();
-      print('All data cleared');
+      if (kDebugMode) print('All data cleared');
     } catch (e) {
-      print('Error clearing data: $e');
+      if (kDebugMode) print('Error clearing data: $e');
     }
   }
 
@@ -236,10 +237,10 @@ class ProductService {
         await addProduct('Trà Dâu', 25000, 10000, category: 'Đồ uống');
         await addProduct('Cà Phê', 30000, 12000, category: 'Đồ uống');
         await addProduct('Nước Ngọt', 15000, 5000, category: 'Đồ uống');
-        print('Sample data initialized');
+        if (kDebugMode) print('Sample data initialized');
       }
     } catch (e) {
-      print('Error initializing sample data: $e');
+      if (kDebugMode) print('Error initializing sample data: $e');
     }
   }
 }

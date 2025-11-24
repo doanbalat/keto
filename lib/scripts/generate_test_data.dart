@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import '../database/database_helper.dart';
 import '../models/product_model.dart';
 import '../models/sold_item_model.dart';
@@ -155,39 +156,39 @@ class TestDataGenerator {
 
   /// Generate 1 month of test data
   static Future<void> generateTestData() async {
-    print('🔄 Starting test data generation...');
+    if (kDebugMode) print('🔄 Starting test data generation...');
 
     final db = DatabaseHelper();
 
     try {
       // Clear existing data
-      print('🗑️  Clearing existing data...');
+      if (kDebugMode) print('🗑️  Clearing existing data...');
       await db.clearAllData();
 
       // Insert sample products
-      print('📦 Inserting sample products...');
+      if (kDebugMode) print('📦 Inserting sample products...');
       final productIds = await _insertProducts(db);
 
       // Generate 1 month of sold items
-      print('📊 Generating 1 month of sold items...');
+      if (kDebugMode) print('📊 Generating 1 month of sold items...');
       await _generateSalesData(db, productIds);
 
       // Generate recurring expenses
-      print('⏱️  Generating recurring expenses...');
+      if (kDebugMode) print('⏱️  Generating recurring expenses...');
       await _generateRecurringExpenses(db);
 
       // Generate 1 month of one-time expenses
-      print('💰 Generating 1 month of one-time expenses...');
+      if (kDebugMode) print('💰 Generating 1 month of one-time expenses...');
       await _generateExpenseData(db);
 
-      print('✅ Test data generation completed successfully!');
-      print('📈 Summary:');
-      print('   - ${productIds.length} products created');
-      print('   - 30 days of sales data generated');
-      print('   - Recurring expenses created');
-      print('   - 30 days of one-time expense data generated');
+      if (kDebugMode) print('✅ Test data generation completed successfully!');
+      if (kDebugMode) print('📈 Summary:');
+      if (kDebugMode) print('   - ${productIds.length} products created');
+      if (kDebugMode) print('   - 30 days of sales data generated');
+      if (kDebugMode) print('   - Recurring expenses created');
+      if (kDebugMode) print('   - 30 days of one-time expense data generated');
     } catch (e) {
-      print('❌ Error generating test data: $e');
+      if (kDebugMode) print('❌ Error generating test data: $e');
       rethrow;
     }
   }
@@ -210,7 +211,7 @@ class TestDataGenerator {
       productIds.add(id);
     }
 
-    print('   ✓ Created ${productIds.length} products');
+    if (kDebugMode) print('   ✓ Created ${productIds.length} products');
     return productIds;
   }
 
@@ -304,8 +305,8 @@ class TestDataGenerator {
       }
     }
 
-    print('\n   ✓ Generated $totalItems sales transactions');
-    print('   ✓ Total sales revenue: ${_formatCurrency(_totalSalesRevenue)}');
+    if (kDebugMode) print('\n   ✓ Generated $totalItems sales transactions');
+    if (kDebugMode) print('   ✓ Total sales revenue: ${_formatCurrency(_totalSalesRevenue)}');
   }
 
   /// Generate recurring expenses (monthly, weekly, and annual)
@@ -409,8 +410,8 @@ class TestDataGenerator {
       await db.insertRecurringExpense(recurring);
     }
 
-    print('\n   ✓ Created ${recurringExpenses.length} recurring expense templates');
-    print('   ✓ Total monthly recurring amount: ${_formatCurrency(totalRecurringAmount)}');
+    if (kDebugMode) print('\n   ✓ Created ${recurringExpenses.length} recurring expense templates');
+    if (kDebugMode) print('   ✓ Total monthly recurring amount: ${_formatCurrency(totalRecurringAmount)}');
   }
 
   /// Get random customer notes
@@ -535,9 +536,9 @@ class TestDataGenerator {
       }
     }
 
-    print('\n   ✓ Generated $totalExpenses expenses');
-    print('   ✓ Total expense amount: ${_formatCurrency(totalExpenseAmount)}');
-    print('   ✓ Expense ratio: ${((_totalSalesRevenue > 0) ? ((totalExpenseAmount / _totalSalesRevenue) * 100).toStringAsFixed(1) : "0.0")}% of sales revenue');
+    if (kDebugMode) print('\n   ✓ Generated $totalExpenses expenses');
+    if (kDebugMode) print('   ✓ Total expense amount: ${_formatCurrency(totalExpenseAmount)}');
+    if (kDebugMode) print('   ✓ Expense ratio: ${((_totalSalesRevenue > 0) ? ((totalExpenseAmount / _totalSalesRevenue) * 100).toStringAsFixed(1) : "0.0")}% of sales revenue');
   }
 
   /// Get relevant notes for expense category (returns list for caching)

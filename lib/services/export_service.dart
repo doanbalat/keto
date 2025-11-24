@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:path_provider/path_provider.dart';
 import 'package:intl/intl.dart';
 import '../models/product_model.dart';
@@ -95,20 +96,20 @@ class ExportService {
         final cachePath = externalCacheDir.first.path;
         final filesPath = cachePath.replaceAll('/cache', '/files');
         directory = Directory(filesPath);
-        print('📂 Using external files directory: ${directory.path}');
+        if (kDebugMode) print('📂 Using external files directory: ${directory.path}');
       } else {
         throw Exception('External cache directory not available');
       }
     } catch (e) {
-      print('❌ Error getting external files directory: $e');
+      if (kDebugMode) print('❌ Error getting external files directory: $e');
       try {
         // Fallback to app documents directory
         directory = await getApplicationDocumentsDirectory();
-        print('📂 Fallback to app documents directory: ${directory.path}');
+        if (kDebugMode) print('📂 Fallback to app documents directory: ${directory.path}');
       } catch (e2) {
-        print('❌ Error getting app documents: $e2');
+        if (kDebugMode) print('❌ Error getting app documents: $e2');
         directory = await getTemporaryDirectory();
-        print('📂 Fallback to temp directory: ${directory.path}');
+        if (kDebugMode) print('📂 Fallback to temp directory: ${directory.path}');
       }
     }
 
@@ -116,13 +117,13 @@ class ExportService {
     if (!await directory.exists()) {
       try {
         await directory.create(recursive: true);
-        print('✅ Created directory: ${directory.path}');
+        if (kDebugMode) print('✅ Created directory: ${directory.path}');
       } catch (e) {
-        print('❌ Could not create directory: $e');
+        if (kDebugMode) print('❌ Could not create directory: $e');
         throw Exception('Cannot create directory: $e');
       }
     } else {
-      print('✅ Directory already exists: ${directory.path}');
+      if (kDebugMode) print('✅ Directory already exists: ${directory.path}');
     }
 
     final timestamp = DateFormat('yyyy-MM-dd_HH-mm-ss').format(DateTime.now());
@@ -130,41 +131,41 @@ class ExportService {
     final fileName = 'keto_export_$timestamp.$extension';
     final filePath = '${directory.path}/$fileName';
 
-    print('📝 Attempting to save file to: $filePath');
-    print('📊 Content size: ${content.length} characters');
+    if (kDebugMode) print('📝 Attempting to save file to: $filePath');
+    if (kDebugMode) print('📊 Content size: ${content.length} characters');
 
     try {
       final file = File(filePath);
       
       // Write the file
       await file.writeAsString(content);
-      print('✅ Write operation completed');
+      if (kDebugMode) print('✅ Write operation completed');
       
       // Verify the file exists
       final exists = await file.exists();
       if (!exists) {
         throw Exception('File was not created after write operation');
       }
-      print('✅ File exists verification passed');
+      if (kDebugMode) print('✅ File exists verification passed');
       
       // Get file size
       final fileSize = await file.length();
-      print('✅ File size: $fileSize bytes');
+      if (kDebugMode) print('✅ File size: $fileSize bytes');
       
       if (fileSize == 0) {
         throw Exception('File is empty after write');
       }
-      print('✅ File is not empty');
+      if (kDebugMode) print('✅ File is not empty');
       
       // Read first 100 characters to verify content
       final firstChars = await file.readAsString().then((c) => c.substring(0, (c.length < 100 ? c.length : 100)));
-      print('✅ File content verified (first 100 chars): $firstChars');
+      if (kDebugMode) print('✅ File content verified (first 100 chars): $firstChars');
       
-      print('✅✅✅ File saved successfully at: $filePath');
+      if (kDebugMode) print('✅✅✅ File saved successfully at: $filePath');
       return file;
     } catch (e) {
-      print('❌❌❌ Error writing file: $e');
-      print('Stack trace: $e');
+      if (kDebugMode) print('❌❌❌ Error writing file: $e');
+      if (kDebugMode) print('Stack trace: $e');
       rethrow;
     }
   }

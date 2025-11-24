@@ -1,4 +1,5 @@
 import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 
 class PermissionService {
   /// Request camera permission
@@ -11,11 +12,11 @@ class PermissionService {
   static Future<bool> requestPhotoLibraryPermission() async {
     // Try photos permission first (Android 13+/iOS)
     final status = await Permission.photos.request();
-    print('Photo permission status after request: $status');
+    if (kDebugMode) print('Photo permission status after request: $status');
 
     // Re-check the actual permission status after request
     final finalStatus = await Permission.photos.status;
-    print('Photo permission final status: $finalStatus');
+    if (kDebugMode) print('Photo permission final status: $finalStatus');
 
     // Accept both granted and limited (iOS partial access)
     if (finalStatus.isGranted || finalStatus.isLimited) {
@@ -24,7 +25,7 @@ class PermissionService {
 
     // Fallback: Try storage permission (Android 12 and below)
     final storageStatus = await Permission.storage.request();
-    print('Storage permission status after request: $storageStatus');
+    if (kDebugMode) print('Storage permission status after request: $storageStatus');
     return storageStatus.isGranted;
   }
 
@@ -62,14 +63,14 @@ class PermissionService {
   /// Request notification permission (Android 13+)
   static Future<bool> requestNotificationPermission() async {
     final status = await Permission.notification.request();
-    print('Notification permission status: $status');
+    if (kDebugMode) print('Notification permission status: $status');
     return status.isGranted;
   }
 
   /// Check if notification permission is granted
   static Future<bool> isNotificationPermissionGranted() async {
     final status = await Permission.notification.status;
-    print('Notification permission status: $status');
+    if (kDebugMode) print('Notification permission status: $status');
     return status.isGranted;
   }
 
@@ -88,10 +89,10 @@ class PermissionService {
       // Request photo library permission for image picker
       await requestPhotoLibraryPermission();
 
-      print('Permissions requested successfully');
+      if (kDebugMode) print('Permissions requested successfully');
       return true;
     } catch (e) {
-      print('Error requesting permissions: $e');
+      if (kDebugMode) print('Error requesting permissions: $e');
       return false;
     }
   }

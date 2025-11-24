@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:crypto/crypto.dart';
 import '../models/product_model.dart';
 import '../models/sold_item_model.dart';
@@ -43,10 +44,10 @@ class StringCodecService {
       final checksum = _calculateChecksum(base64String);
       final finalString = '$prefix$version$checksum$base64String';
 
-      print('✅ Encoded string (${finalString.length} chars): ${finalString.substring(0, 50)}...');
+      if (kDebugMode) print('✅ Encoded string (${finalString.length} chars): ${finalString.substring(0, 50)}...');
       return finalString;
     } catch (e) {
-      print('❌ Error encoding: $e');
+      if (kDebugMode) print('❌ Error encoding: $e');
       rethrow;
     }
   }
@@ -89,7 +90,7 @@ class StringCodecService {
         'expenses': _decodeExpenses(data['e'] as List<dynamic>? ?? []),
       };
     } catch (e) {
-      print('❌ Error decoding: $e');
+      if (kDebugMode) print('❌ Error decoding: $e');
       rethrow;
     }
   }

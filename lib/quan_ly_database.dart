@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'dart:io';
 import 'database/database_helper.dart';
 import 'models/product_model.dart';
@@ -1271,15 +1272,17 @@ Vui lòng kiểm tra:
                   ),
                   const SizedBox(height: 24),
 
-                  // Test Data Generation
-                  _buildSectionTitle('🧪 Test Thử Nghiệm App'),
-                  _buildActionButton(
-                    icon: Icons.auto_awesome,
-                    label: 'Tạo dữ liệu để test (30 ngày)',
-                    color: Colors.purple,
-                    onPressed: _generateTestData,
-                  ),
-                  const SizedBox(height: 24),
+                  // Test Data Generation (only visible in debug/profile mode)
+                  if (!kReleaseMode) ...[                  
+                    _buildSectionTitle('🧪 Test Thử Nghiệm App'),
+                    _buildActionButton(
+                      icon: Icons.auto_awesome,
+                      label: 'Tạo dữ liệu để test (30 ngày)',
+                      color: Colors.purple,
+                      onPressed: _generateTestData,
+                    ),
+                    const SizedBox(height: 24),
+                  ],
 
                   // Selective Delete
                   _buildSectionTitle('🗑️ Xóa từng phần'),

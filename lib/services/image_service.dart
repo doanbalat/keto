@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 
@@ -34,10 +35,10 @@ class ImageService {
       // Copy image file to the new location
       final savedImage = await imageFile.copy(savedImagePath);
       
-      print('Image saved successfully to: ${savedImage.path}');
+      if (kDebugMode) print('Image saved successfully to: ${savedImage.path}');
       return savedImage.path;
     } catch (e) {
-      print('Error saving product image: $e');
+      if (kDebugMode) print('Error saving product image: $e');
       return null;
     }
   }
@@ -50,12 +51,12 @@ class ImageService {
       final imageFile = File(imagePath);
       if (await imageFile.exists()) {
         await imageFile.delete();
-        print('Image deleted successfully: $imagePath');
+        if (kDebugMode) print('Image deleted successfully: $imagePath');
         return true;
       }
       return false;
     } catch (e) {
-      print('Error deleting product image: $e');
+      if (kDebugMode) print('Error deleting product image: $e');
       return false;
     }
   }
@@ -66,7 +67,7 @@ class ImageService {
       final imageFile = File(imagePath);
       return await imageFile.exists();
     } catch (e) {
-      print('Error checking image existence: $e');
+      if (kDebugMode) print('Error checking image existence: $e');
       return false;
     }
   }

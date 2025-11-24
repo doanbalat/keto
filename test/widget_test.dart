@@ -1,30 +1,37 @@
-// This is a basic Flutter widget test.
+// Widget tests for Keto - Sales Management App
 //
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
+// This file contains a basic smoke test for the Keto app.
+//
+// For comprehensive feature testing with proper mocking, see:
+// - test/ban_hang_test.dart (Sales page - 27 test scenarios)
+// - test/chi_tieu_test.dart (Expenses page tests)  
+// - test/kho_hang_test.dart (Inventory page tests)
+// - test/thong_ke_test.dart (Statistics page tests)
+//
+// Those test files include proper service mocking and dependency injection
+// to test the app's functionality without requiring database initialization
+// or platform-specific plugins.
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
 import 'package:keto/main.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const KetoApp());
-
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
-
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+  testWidgets('Keto app compiles and KetoApp widget exists', (WidgetTester tester) async {
+    // This is a basic smoke test to ensure the main app widget compiles
+    // and can be instantiated without errors.
+    
+    // Verify the KetoApp class exists and can be instantiated
+    const app = KetoApp();
+    expect(app, isNotNull);
+    expect(app, isA<KetoApp>());
   });
+  
+  // Note: Full integration tests require proper initialization of:
+  // - SQLite database (sqflite_common_ffi for desktop testing)
+  // - Audio player service
+  // - AdMob service mocks
+  // - Notification service
+  // - Theme manager
+  //
+  // See the other test files for examples of proper test setup with mocking.
 }

@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
 
 enum AdPlacement {
   bannerStatistics,
@@ -52,7 +52,7 @@ class AdMobService {
 
     // Only initialize on mobile platforms (iOS and Android)
     if (kIsWeb || (!Platform.isAndroid && !Platform.isIOS)) {
-      print('Google Mobile Ads not supported on this platform');
+      if (kDebugMode) print('Google Mobile Ads not supported on this platform');
       _isInitialized = true;
       return;
     }
@@ -60,9 +60,9 @@ class AdMobService {
     try {
       await MobileAds.instance.initialize();
       _isInitialized = true;
-      print('Google Mobile Ads SDK initialized');
+      if (kDebugMode) print('Google Mobile Ads SDK initialized');
     } catch (e) {
-      print('Failed to initialize Google Mobile Ads: $e');
+      if (kDebugMode) print('Failed to initialize Google Mobile Ads: $e');
       // Don't throw - allow app to continue even if AdMob fails
       _isInitialized = true;
     }

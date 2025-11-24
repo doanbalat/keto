@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kDebugMode;
 import '../database/database_helper.dart';
 import '../models/expense_model.dart';
 
@@ -43,7 +44,7 @@ class ExpenseService {
       final id = await _dbHelper.insertExpense(expense);
       return id > 0;
     } catch (e) {
-      print('Error adding expense: $e');
+      if (kDebugMode) print('Error adding expense: $e');
       return false;
     }
   }
@@ -53,7 +54,7 @@ class ExpenseService {
     try {
       return await _dbHelper.getAllExpenses();
     } catch (e) {
-      print('Error getting all expenses: $e');
+      if (kDebugMode) print('Error getting all expenses: $e');
       return [];
     }
   }
@@ -63,7 +64,7 @@ class ExpenseService {
     try {
       return await _dbHelper.getExpensesForToday();
     } catch (e) {
-      print('Error getting today expenses: $e');
+      if (kDebugMode) print('Error getting today expenses: $e');
       return [];
     }
   }
@@ -76,7 +77,7 @@ class ExpenseService {
     try {
       return await _dbHelper.getExpensesByDateRange(start, end);
     } catch (e) {
-      print('Error getting expenses by date range: $e');
+      if (kDebugMode) print('Error getting expenses by date range: $e');
       return [];
     }
   }
@@ -86,7 +87,7 @@ class ExpenseService {
     try {
       return await _dbHelper.getExpensesByCategory(category);
     } catch (e) {
-      print('Error getting expenses by category: $e');
+      if (kDebugMode) print('Error getting expenses by category: $e');
       return [];
     }
   }
@@ -97,7 +98,7 @@ class ExpenseService {
       final result = await _dbHelper.deleteExpense(id);
       return result > 0;
     } catch (e) {
-      print('Error deleting expense: $e');
+      if (kDebugMode) print('Error deleting expense: $e');
       return false;
     }
   }
@@ -107,7 +108,7 @@ class ExpenseService {
     try {
       return await _dbHelper.getTotalExpensesToday();
     } catch (e) {
-      print('Error getting total expenses today: $e');
+      if (kDebugMode) print('Error getting total expenses today: $e');
       return 0;
     }
   }
@@ -117,7 +118,7 @@ class ExpenseService {
     try {
       return await _dbHelper.getTotalExpensesByDateRange(start, end);
     } catch (e) {
-      print('Error getting total expenses by date range: $e');
+      if (kDebugMode) print('Error getting total expenses by date range: $e');
       return 0;
     }
   }
@@ -135,7 +136,7 @@ class ExpenseService {
 
       return categoryTotals;
     } catch (e) {
-      print('Error getting expenses by category today: $e');
+      if (kDebugMode) print('Error getting expenses by category today: $e');
       return {};
     }
   }
