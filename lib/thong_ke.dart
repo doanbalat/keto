@@ -7,6 +7,8 @@ import 'database/database_helper.dart';
 import 'models/sold_item_model.dart';
 import 'models/expense_model.dart';
 import 'services/currency_service.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'services/admob_service.dart';
 
 class StatisticsPage extends StatefulWidget {
   final dynamic databaseHelper; // Can be DatabaseHelper or mock for testing
@@ -60,6 +62,21 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
 
   bool _isLoading = true;
 
+  // Top Banner Ad variables
+  BannerAd? _topBannerAd;
+  AdSize? _topAdSize;
+  bool _topBannerLoaded = false;
+
+  // Middle Banner Ad variables
+  BannerAd? _middleBannerAd;
+  AdSize? _middleAdSize;
+  bool _middleBannerLoaded = false;
+
+  // Bottom Banner Ad variables
+  BannerAd? _bottomBannerAd;
+  AdSize? _bottomAdSize;
+  bool _bottomBannerLoaded = false;
+
   @override
   bool get wantKeepAlive => true;
 
@@ -69,16 +86,118 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
     _db = widget.databaseHelper ?? DatabaseHelper();
     _initializeLocale();
     _loadStatistics();
+    _loadTopBannerAd();
+    _loadMiddleBannerAd();
+    _loadBottomBannerAd();
   }
 
   @override
   void dispose() {
     _scrollController.dispose();
+    _topBannerAd?.dispose();
+    _middleBannerAd?.dispose();
+    _bottomBannerAd?.dispose();
     super.dispose();
   }
 
   Future<void> _initializeLocale() async {
     await initializeDateFormatting('vi', null);
+  }
+
+  Future<void> _loadTopBannerAd() async {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final context = this.context;
+      final width = MediaQuery.of(context).size.width.truncate();
+      final adSize = await AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(width);
+      setState(() {
+        _topAdSize = adSize;
+      });
+      if (adSize == null) return;
+      final banner = BannerAd(
+        size: adSize,
+        adUnitId: AdMobService.getAdUnitId(AdPlacement.bannerStatistics),
+        listener: BannerAdListener(
+          onAdLoaded: (ad) {
+            setState(() {
+              _topBannerAd = ad as BannerAd;
+              _topBannerLoaded = true;
+            });
+          },
+          onAdFailedToLoad: (ad, error) {
+            ad.dispose();
+            setState(() {
+              _topBannerLoaded = false;
+            });
+          },
+        ),
+        request: const AdRequest(),
+      );
+      await banner.load();
+    });
+  }
+
+  Future<void> _loadMiddleBannerAd() async {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final context = this.context;
+      final width = MediaQuery.of(context).size.width.truncate();
+      final adSize = await AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(width);
+      setState(() {
+        _middleAdSize = adSize;
+      });
+      if (adSize == null) return;
+      final banner = BannerAd(
+        size: adSize,
+        adUnitId: AdMobService.getAdUnitId(AdPlacement.bannerStatistics),
+        listener: BannerAdListener(
+          onAdLoaded: (ad) {
+            setState(() {
+              _middleBannerAd = ad as BannerAd;
+              _middleBannerLoaded = true;
+            });
+          },
+          onAdFailedToLoad: (ad, error) {
+            ad.dispose();
+            setState(() {
+              _middleBannerLoaded = false;
+            });
+          },
+        ),
+        request: const AdRequest(),
+      );
+      await banner.load();
+    });
+  }
+
+  Future<void> _loadBottomBannerAd() async {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final context = this.context;
+      final width = MediaQuery.of(context).size.width.truncate();
+      final adSize = await AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(width);
+      setState(() {
+        _bottomAdSize = adSize;
+      });
+      if (adSize == null) return;
+      final banner = BannerAd(
+        size: adSize,
+        adUnitId: AdMobService.getAdUnitId(AdPlacement.bannerStatistics),
+        listener: BannerAdListener(
+          onAdLoaded: (ad) {
+            setState(() {
+              _bottomBannerAd = ad as BannerAd;
+              _bottomBannerLoaded = true;
+            });
+          },
+          onAdFailedToLoad: (ad, error) {
+            ad.dispose();
+            setState(() {
+              _bottomBannerLoaded = false;
+            });
+          },
+        ),
+        request: const AdRequest(),
+      );
+      await banner.load();
+    });
   }
 
   Future<void> _loadStatistics() async {
@@ -224,6 +343,8 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
     return _dateFormatter.format(date);
   }
 
+
+
   @override
   Widget build(BuildContext context) {
     super.build(context);
@@ -238,6 +359,13 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
                   padding: EdgeInsets.zero,
                   children: [
                     const SizedBox(height: 140), // Space for sticky header
+                    // Top Banner Ad
+                    if (_topBannerLoaded && _topBannerAd != null && _topAdSize != null)
+                      SizedBox(
+                        width: _topAdSize!.width.toDouble(),
+                        height: _topAdSize!.height.toDouble(),
+                        child: AdWidget(ad: _topBannerAd!),
+                      ),
                     Padding(
                       padding: const EdgeInsets.all(16.0),
                       child: Column(
@@ -251,12 +379,21 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
                           const SizedBox(height: 24),
                           _buildTopProductsList(),
                           const SizedBox(height: 24),
+                          _buildMiddleBannerAd(),
+                          const SizedBox(height: 24),
                           _buildExpensesPieChart(),
                           const SizedBox(height: 24),
                           _buildExpensesCategoryBreakdown(),
                         ],
                       ),
                     ),
+                    // Bottom Banner Ad
+                    if (_bottomBannerLoaded && _bottomBannerAd != null && _bottomAdSize != null)
+                      SizedBox(
+                        width: _bottomAdSize!.width.toDouble(),
+                        height: _bottomAdSize!.height.toDouble(),
+                        child: AdWidget(ad: _bottomBannerAd!),
+                      ),
                   ],
                 ),
                 // Sticky header with period selector
@@ -1439,6 +1576,17 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
       }
     }
     return const Icon(Icons.inventory_2, color: Colors.blue);
+  }
+
+  Widget _buildMiddleBannerAd() {
+    if (_middleBannerLoaded && _middleBannerAd != null && _middleAdSize != null) {
+      return SizedBox(
+        width: _middleAdSize!.width.toDouble(),
+        height: _middleAdSize!.height.toDouble(),
+        child: AdWidget(ad: _middleBannerAd!),
+      );
+    }
+    return const SizedBox.shrink();
   }
 
   Widget _buildExpensesPieChart() {

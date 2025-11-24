@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-
+import 'ad_page.dart';
+import 'widgets/feedback_form_dialog.dart';
 class AboutPage extends StatefulWidget {
   const AboutPage({super.key});
 
@@ -10,21 +11,21 @@ class AboutPage extends StatefulWidget {
 
 class _AboutPageState extends State<AboutPage> {
   final ScrollController _scrollController = ScrollController();
-  double _scrollOffset = 0;
+  late final ValueNotifier<double> _scrollOffset;
 
   @override
   void initState() {
     super.initState();
+    _scrollOffset = ValueNotifier(0);
     _scrollController.addListener(() {
-      setState(() {
-        _scrollOffset = _scrollController.offset;
-      });
+      _scrollOffset.value = _scrollController.offset;
     });
   }
 
   @override
   void dispose() {
     _scrollController.dispose();
+    _scrollOffset.dispose();
     super.dispose();
   }
 
@@ -33,10 +34,23 @@ class _AboutPageState extends State<AboutPage> {
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = screenWidth < 600;
+    final isTablet = screenWidth >= 600 && screenWidth < 1024;
 
     // Responsive heights
-    final topBannerHeight = isMobile ? screenHeight * 0.35 : screenHeight * 0.32;
-    final bottomBannerHeight = isMobile ? screenHeight * 0.30 : screenHeight * 0.25;
+    double topBannerHeight;
+    double bottomBannerHeight;
+
+    if (isMobile) { // Mobile
+      topBannerHeight = screenHeight * 0.35;
+      bottomBannerHeight = screenHeight * 0.30;
+    } else if (isTablet) { // Tablet
+      topBannerHeight = screenHeight * 0.32;
+      bottomBannerHeight = screenHeight * 0.25;
+    } else { // Desktop
+      topBannerHeight = screenHeight * 0.28;
+      bottomBannerHeight = screenHeight * 0.20;
+    }
+
 
     return Scaffold(
       body: CustomScrollView(
@@ -46,7 +60,7 @@ class _AboutPageState extends State<AboutPage> {
           SliverAppBar(
             expandedHeight: topBannerHeight,
             floating: false,
-            pinned: true,
+            pinned: false,
             flexibleSpace: FlexibleSpaceBar(
               background: Stack(
                 fit: StackFit.expand,
@@ -80,27 +94,17 @@ class _AboutPageState extends State<AboutPage> {
               ),
             ),
           ),
-          // Bottom banner image - full width with reveal animation
-          SliverToBoxAdapter(
-            child: Container(
-              width: double.infinity,
-              height: bottomBannerHeight,
-              decoration: BoxDecoration(
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.15),
-                    blurRadius: 8,
-                    offset: const Offset(0, -2),
-                  ),
-                ],
-              ),
-              child: Opacity(
-                opacity: ((_scrollOffset - 300) / 300).clamp(0, 1),
-                child: Image.asset(
-                  'assets/images/banner2.png',
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                ),
+          // Bottom banner image - Default SliverAppBar
+          SliverAppBar(
+            expandedHeight: bottomBannerHeight,
+            floating: false,
+            pinned: false,
+            automaticallyImplyLeading: false,
+            flexibleSpace: FlexibleSpaceBar(
+              collapseMode: CollapseMode.parallax,
+              background: Image.asset(
+                'assets/images/banner2.png',
+                fit: BoxFit.cover,
               ),
             ),
           ),
@@ -120,11 +124,11 @@ class _AboutPageContent extends StatefulWidget {
 
 class _AboutPageContentState extends State<_AboutPageContent> {
   // Replace with your actual PayPal email or username
-  static const String _paypalEmail = 'doanbalat@gmail.com';
+  static const String _paypalUsername = 'doanbalat';
 
   Future<void> _openPayPalPayment() async {
     // PayPal.Me link - user can choose amount and payment method
-    final paypalUrl = 'https://www.paypal.me/$_paypalEmail';
+    final paypalUrl = 'https://www.paypal.me/$_paypalUsername';
     
     try {
       if (await canLaunchUrl(Uri.parse(paypalUrl))) {
@@ -154,7 +158,7 @@ class _AboutPageContentState extends State<_AboutPageContent> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Choose Payment Method'),
+        title: const Text('Choose Your Donation Method'),
         contentPadding: const EdgeInsets.all(0),
         content: SingleChildScrollView(
           child: Column(
@@ -177,7 +181,7 @@ class _AboutPageContentState extends State<_AboutPageContent> {
                 isDarkMode: isDarkMode,
                 onTap: () {
                   Navigator.pop(context);
-                  // TODO: Show bank account details
+                  _showBankQRCode(context);
                 },
               ),
               _DonationOption(
@@ -187,22 +191,132 @@ class _AboutPageContentState extends State<_AboutPageContent> {
                 isDarkMode: isDarkMode,
                 onTap: () {
                   Navigator.pop(context);
-                  // TODO: Open MoMo payment
-                },
-              ),
-              _DonationOption(
-                label: 'Patreon',
-                icon: Icons.favorite,
-                color: Colors.red,
-                isDarkMode: isDarkMode,
-                onTap: () {
-                  Navigator.pop(context);
-                  // TODO: Open Patreon link
+                  _showMoMoQRCode(context);
                 },
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  void _showBankQRCode(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Donate via Bank Account'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Open your banking app and scan the QR code below:',
+              style: TextStyle(fontSize: 14),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: isDarkMode ? Colors.grey[800] : Colors.grey[100],
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Image.asset(
+                'assets/images/bank_qr.jpeg',
+                width: 250,
+                height: 250,
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    width: 250,
+                    height: 250,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Center(
+                      child: Text('QR code image not found'),
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Thank you for your support! 🙏',
+              style: TextStyle(fontSize: 13, fontStyle: FontStyle.italic),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showMoMoQRCode(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Donate via MoMo'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Open MoMo app and scan QR code:',
+              style: TextStyle(fontSize: 14),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: isDarkMode ? Colors.grey[800] : Colors.grey[100],
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Image.asset(
+                'assets/images/momo_qr.jpeg',
+                width: 250,
+                height: 250,
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    width: 250,
+                    height: 250,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Center(
+                      child: Text('QR code image not found'),
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Thank you for your support! 🙏',
+              style: TextStyle(fontSize: 13, fontStyle: FontStyle.italic),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
       ),
     );
   }
@@ -285,17 +399,22 @@ class _AboutPageContentState extends State<_AboutPageContent> {
                 color: Colors.red,
                 isDarkMode: isDarkMode,
                 onTap: () {
-                  // TODO: Implement Patreon support
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (context) => const AdPage()),
+                  );
                 },
               ),
               const SizedBox(height: 12),
               _ActionButton(
                 label: 'Feedback & Report Bugs',
-                icon: Icons.payment,
+                icon: Icons.message,
                 color: Colors.blue,
                 isDarkMode: isDarkMode,
                 onTap: () {
-                  // TODO: Implement PayPal support
+                  showDialog(
+                    context: context,
+                    builder: (context) => const FeedbackFormDialog(),
+                  );
                 },
               ),
             ],

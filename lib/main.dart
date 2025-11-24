@@ -233,7 +233,7 @@ class _KetoHomepageState extends State<KetoHomepage> {
               ),
             ),
             child: Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 2.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -241,21 +241,27 @@ class _KetoHomepageState extends State<KetoHomepage> {
                     children: [
                       Image.asset(
                         'assets/images/logo.png',
-                        width: 50,
-                        height: 50,
+                        width: 35,
+                        height: 35,
                         fit: BoxFit.contain,
                       ),
                       const Text(
                         'Keto',
                         style: TextStyle(
-                          fontSize: 24,
+                          fontSize: 20,
                           fontWeight: FontWeight.bold,
-                          color: Colors.blue,
+                          color: Colors.purple,
                         ),
                       ),
+                      Image.asset(
+                        'assets/images/logo.png',
+                        width: 35,
+                        height: 35,
+                        fit: BoxFit.contain,
+                      ),
+
                     ],
                   ),
-                  const SizedBox(height: 12),
                   ElevatedButton.icon(
                     onPressed: () {
                       showDialog(
@@ -279,7 +285,7 @@ class _KetoHomepageState extends State<KetoHomepage> {
                       foregroundColor: Colors.green,
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 32),
                   // Theme Toggle
                   Container(
                     decoration: BoxDecoration(
@@ -359,6 +365,7 @@ class _KetoHomepageState extends State<KetoHomepage> {
                       ),
                     ),
                   ),
+                  const SizedBox(height: 8),
                 ],
               ),
             ),
