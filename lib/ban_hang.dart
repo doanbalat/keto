@@ -8,6 +8,8 @@ import 'models/sold_item_model.dart';
 import 'services/product_service.dart';
 import 'services/notification_service.dart';
 import 'services/currency_service.dart';
+import 'services/firebase_service.dart';
+import 'services/localization_service.dart';
 import 'services/statistics_cache_service.dart';
 import 'scripts/generate_test_data.dart';
 import 'quan_ly_san_pham.dart';
@@ -54,6 +56,8 @@ class _SalesPageState extends State<SalesPage> {
   @override
   void initState() {
     super.initState();
+    // Log screen view to Analytics
+    FirebaseService.logScreenView('Sales Page');
     // Use injected service or create default
     _productService = widget.productService ?? ProductService();
     allProducts = [];
@@ -317,7 +321,7 @@ class _SalesPageState extends State<SalesPage> {
         // Show snackbar immediately without waiting
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${product.name} x$quantity đã bán'),
+            content: Text('${product.name} x$quantity ${LocalizationService.getString('sales_sold')}'),
             duration: const Duration(milliseconds: 500),
             backgroundColor: Colors.green,
           ),
@@ -492,7 +496,7 @@ class _SalesPageState extends State<SalesPage> {
                           padding: const EdgeInsets.all(1),
                           child: Column(
                             children: [
-                              const Text('Số lượng bán', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+                              Text(LocalizationService.getString('sales_quantity_sold'), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
                               Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
@@ -514,7 +518,7 @@ class _SalesPageState extends State<SalesPage> {
                                         context: context,
                                         builder: (BuildContext context) {
                                           return AlertDialog(
-                                            title: const Text('Nhập số lượng'),
+                                            title: Text(LocalizationService.getString('sales_enter_quantity')),
                                             content: Column(
                                               mainAxisSize: MainAxisSize.min,
                                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -524,7 +528,7 @@ class _SalesPageState extends State<SalesPage> {
                                                   builder: (context, snapshot) {
                                                     final currentProduct = snapshot.data ?? product;
                                                     return Text(
-                                                      'Trong kho: ${currentProduct.stock} ${currentProduct.unit}',
+                                                      '${LocalizationService.getString('sales_in_stock')}: ${currentProduct.stock} ${currentProduct.unit}',
                                                       style: TextStyle(
                                                         fontSize: 13,
                                                         color: Theme.of(context).brightness == Brightness.dark
@@ -539,9 +543,9 @@ class _SalesPageState extends State<SalesPage> {
                                                   controller: controller,
                                                   keyboardType: TextInputType.number,
                                                   autofocus: true,
-                                                  decoration: const InputDecoration(
-                                                    labelText: 'Số lượng muôn bán',
-                                                    border: OutlineInputBorder(),
+                                                  decoration: InputDecoration(
+                                                    labelText: LocalizationService.getString('sales_quantity_want_to_sell'),
+                                                    border: const OutlineInputBorder(),
                                                   ),
                                                 ),
                                               ],
@@ -549,7 +553,7 @@ class _SalesPageState extends State<SalesPage> {
                                             actions: [
                                               TextButton(
                                                 onPressed: () => Navigator.pop(context),
-                                                child: const Text('Hủy'),
+                                                child: Text(LocalizationService.getString('btn_cancel')),
                                               ),
                                               ElevatedButton(
                                                 onPressed: () {
@@ -559,11 +563,11 @@ class _SalesPageState extends State<SalesPage> {
                                                     Navigator.pop(context);
                                                   } else {
                                                     ScaffoldMessenger.of(context).showSnackBar(
-                                                      const SnackBar(content: Text('Vui lòng nhập số lượng hợp lệ')),
+                                                      SnackBar(content: Text(LocalizationService.getString('sales_invalid_quantity'))),
                                                     );
                                                   }
                                                 },
-                                                child: const Text('OK'),
+                                                child: Text(LocalizationService.getString('btn_ok')),
                                               ),
                                             ],
                                           );
@@ -667,7 +671,7 @@ class _SalesPageState extends State<SalesPage> {
                                     Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        const Text('Số lượng bán', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                                        Text(LocalizationService.getString('sales_quantity_sold'), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                                         const SizedBox(height: 4),
                                         Row(
                                           mainAxisSize: MainAxisSize.min,
@@ -690,7 +694,7 @@ class _SalesPageState extends State<SalesPage> {
                                                   context: context,
                                                   builder: (BuildContext context) {
                                                     return AlertDialog(
-                                                      title: const Text('Nhập số lượng'),
+                                                      title: Text(LocalizationService.getString('sales_enter_quantity')),
                                                       content: Column(
                                                         mainAxisSize: MainAxisSize.min,
                                                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -700,7 +704,7 @@ class _SalesPageState extends State<SalesPage> {
                                                             builder: (context, snapshot) {
                                                               final currentProduct = snapshot.data ?? product;
                                                               return Text(
-                                                                'Trong kho: ${currentProduct.stock} ${currentProduct.unit}',
+                                                                '${LocalizationService.getString('sales_in_stock')}: ${currentProduct.stock} ${currentProduct.unit}',
                                                                 style: TextStyle(
                                                                   fontSize: 13,
                                                                   color: Theme.of(context).brightness == Brightness.dark
@@ -715,9 +719,9 @@ class _SalesPageState extends State<SalesPage> {
                                                             controller: controller,
                                                             keyboardType: TextInputType.number,
                                                             autofocus: true,
-                                                            decoration: const InputDecoration(
-                                                              labelText: 'Số lượng muôn bán',
-                                                              border: OutlineInputBorder(),
+                                                            decoration: InputDecoration(
+                                                              labelText: LocalizationService.getString('sales_quantity_want_to_sell'),
+                                                              border: const OutlineInputBorder(),
                                                             ),
                                                           ),
                                                         ],
@@ -725,7 +729,7 @@ class _SalesPageState extends State<SalesPage> {
                                                       actions: [
                                                         TextButton(
                                                           onPressed: () => Navigator.pop(context),
-                                                          child: const Text('Hủy'),
+                                                          child: Text(LocalizationService.getString('btn_cancel')),
                                                         ),
                                                         ElevatedButton(
                                                           onPressed: () {
@@ -735,11 +739,11 @@ class _SalesPageState extends State<SalesPage> {
                                                               Navigator.pop(context);
                                                             } else {
                                                               ScaffoldMessenger.of(context).showSnackBar(
-                                                                const SnackBar(content: Text('Vui lòng nhập số lượng hợp lệ')),
+                                                                SnackBar(content: Text(LocalizationService.getString('sales_invalid_quantity'))),
                                                               );
                                                             }
                                                           },
-                                                          child: const Text('OK'),
+                                                          child: Text(LocalizationService.getString('btn_ok')),
                                                         ),
                                                       ],
                                                     );
@@ -1012,7 +1016,7 @@ class _SalesPageState extends State<SalesPage> {
                 child: TextField(
                   controller: searchController,
                   decoration: InputDecoration(
-                    hintText: 'Tìm kiếm mặt hàng',
+                    hintText: LocalizationService.getString('sales_search_product'),
                     prefixIcon: const Icon(Icons.search),
                     suffixIcon: searchController.text.isNotEmpty
                         ? IconButton(
@@ -1050,7 +1054,6 @@ class _SalesPageState extends State<SalesPage> {
               // Layout Change Button
               IconButton(
                 icon: const Icon(Icons.view_list_rounded, size: 30, color: Colors.blue),
-                tooltip: 'Thay đổi bố cục',
                 onPressed: () {
                   setState(() {
                     _layoutMode = (_layoutMode + 1) % 3;
@@ -1086,7 +1089,7 @@ class _SalesPageState extends State<SalesPage> {
                       });
                     },
                     icon: const Icon(Icons.local_fire_department, size: 18, color: Colors.orange),
-                    label: const Text('Bán chạy', style: TextStyle(fontSize: 13)),
+                    label: Text(LocalizationService.getString('sales_bestselling'), style: const TextStyle(fontSize: 13)),
                     style: ElevatedButton.styleFrom(
                       elevation: 4,
                       backgroundColor: _sortBy == 'bestselling' ? Colors.blue : Colors.grey[300],
@@ -1127,7 +1130,7 @@ class _SalesPageState extends State<SalesPage> {
                       children: [
                         const Icon(Icons.sort_by_alpha, size: 16, color: Colors.blue),
                         const SizedBox(width: 2),
-                        const Text('Tên', style: TextStyle(fontSize: 12)),
+                        Text(LocalizationService.getString('sales_product_name'), style: const TextStyle(fontSize: 12)),
                         if (_sortBy == 'name')
                           const SizedBox(width: 2),
                         if (_sortBy == 'name')
@@ -1168,7 +1171,7 @@ class _SalesPageState extends State<SalesPage> {
                       children: [
                         const Icon(Icons.attach_money, size: 16, color: Colors.green),
                         const SizedBox(width: 2),
-                        const Text('Giá bán', style: TextStyle(fontSize: 12)),
+                        Text(LocalizationService.getString('sales_selling_price'), style: const TextStyle(fontSize: 12)),
                         if (_sortBy == 'price')
                           const SizedBox(width: 2),
                         if (_sortBy == 'price')
@@ -1345,7 +1348,7 @@ class _SalesPageState extends State<SalesPage> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'Đã bán hôm nay',
+                            LocalizationService.getString('sales_sold_today'),
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.bold,
@@ -1359,7 +1362,7 @@ class _SalesPageState extends State<SalesPage> {
                               });
                             },
                             icon: const Icon(Icons.visibility_off, size: 16),
-                            label: const Text('Ẩn', style: TextStyle(fontWeight: FontWeight.bold)),
+                            label: Text(LocalizationService.getString('sales_hide'), style: const TextStyle(fontWeight: FontWeight.bold)),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.red,
                               foregroundColor: Colors.white,
@@ -1612,7 +1615,7 @@ class _SalesPageState extends State<SalesPage> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Đã bán hôm nay: ${soldItems.length}',
+                      '${LocalizationService.getString('sales_sold_today')}: ${soldItems.length}',
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
@@ -1636,7 +1639,7 @@ class _SalesPageState extends State<SalesPage> {
                         });
                       },
                       icon: const Icon(Icons.visibility, size: 16),
-                      label: const Text('Hiển thị', style: TextStyle(fontWeight: FontWeight.bold)),
+                      label: Text(LocalizationService.getString('sales_show'), style: const TextStyle(fontWeight: FontWeight.bold)),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green,
                         foregroundColor: Colors.white,

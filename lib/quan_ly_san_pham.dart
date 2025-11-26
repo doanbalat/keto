@@ -8,6 +8,7 @@ import 'services/permission_service.dart';
 import 'services/currency_service.dart';
 import 'services/product_category_service.dart';
 import 'services/statistics_cache_service.dart';
+import 'services/localization_service.dart';
 
 class ProductManagementPage extends StatefulWidget {
   const ProductManagementPage({super.key});
@@ -170,9 +171,9 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
-                                'Thêm sản phẩm mới',
-                                style: TextStyle(
+                              Text(
+                                LocalizationService.getString('product_add_new_title'),
+                                style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 22,
                                   fontWeight: FontWeight.bold,
@@ -180,7 +181,7 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                'Quản lý sản phẩm',
+                                LocalizationService.getString('product_add_new_subtitle'),
                                 style: TextStyle(
                                   color: Colors.white.withValues(alpha: 0.8),
                                   fontSize: 13,
@@ -218,26 +219,25 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
                                         context: context,
                                         builder: (BuildContext ctx) {
                                           return AlertDialog(
-                                            title: const Text(
-                                              'Yêu cầu quyền truy cập',
+                                            title: Text(
+                                              LocalizationService.getString('dialog_notification_permission'),
                                             ),
-                                            content: const Text(
-                                              'Ứng dụng cần quyền truy cập thư viện ảnh để chọn ảnh sản phẩm. '
-                                              'Vui lòng cấp quyền trong cài đặt.',
+                                            content: Text(
+                                              LocalizationService.getString('inventory_permission_gallery'),
                                             ),
                                             actions: [
                                               TextButton(
                                                 onPressed: () =>
                                                     Navigator.pop(ctx),
-                                                child: const Text('Hủy'),
+                                                child: Text(LocalizationService.getString('btn_cancel')),
                                               ),
                                               ElevatedButton(
                                                 onPressed: () async {
                                                   Navigator.pop(ctx);
                                                   await PermissionService.openSettings();
                                                 },
-                                                child: const Text(
-                                                  'Mở cài đặt',
+                                                child: Text(
+                                                  LocalizationService.getString('dialog_open_settings'),
                                                 ),
                                               ),
                                             ],
@@ -288,7 +288,7 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
                                             ),
                                             const SizedBox(height: 6),
                                             Text(
-                                              'Chọn ảnh sản phẩm',
+                                              LocalizationService.getString('product_select_image'),
                                               style: TextStyle(
                                                 color: Colors.purple[400],
                                                 fontSize: 13,
@@ -304,7 +304,7 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
                               TextField(
                                 controller: nameController,
                                 decoration: InputDecoration(
-                                  labelText: 'Tên sản phẩm',
+                                  labelText: LocalizationService.getString('product_name'),
                                   labelStyle: TextStyle(
                                     color: Theme.of(context).brightness == Brightness.dark
                                         ? Colors.grey[300]
@@ -342,7 +342,7 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
                                 controller: priceController,
                                 keyboardType: TextInputType.number,
                                 decoration: InputDecoration(
-                                  labelText: 'Giá bán (VND)',
+                                  labelText: LocalizationService.getString('product_selling_price'),
                                   labelStyle: TextStyle(
                                     color: Theme.of(context).brightness == Brightness.dark
                                         ? Colors.grey[300]
@@ -380,7 +380,7 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
                                 controller: costPriceController,
                                 keyboardType: TextInputType.number,
                                 decoration: InputDecoration(
-                                  labelText: 'Giá vốn (VND)',
+                                  labelText: LocalizationService.getString('product_cost_price_label'),
                                   labelStyle: TextStyle(
                                     color: Theme.of(context).brightness == Brightness.dark
                                         ? Colors.grey[300]
@@ -417,7 +417,7 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
                                 controller: quantityController,
                                 keyboardType: TextInputType.number,
                                 decoration: InputDecoration(
-                                  labelText: 'Số lượng hàng',
+                                  labelText: LocalizationService.getString('product_quantity_label'),
                                   labelStyle: TextStyle(
                                     color: Theme.of(context).brightness == Brightness.dark
                                         ? Colors.grey[300]
@@ -453,7 +453,7 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
                               TextField(
                                 controller: unitController,
                                 decoration: InputDecoration(
-                                  labelText: 'Đơn vị (cái, kg, ly, hộp, phần, ...)',
+                                  labelText: LocalizationService.getString('inventory_unit_hint'),
                                   labelStyle: TextStyle(
                                     color: Theme.of(context).brightness == Brightness.dark
                                         ? Colors.grey[300]
@@ -490,7 +490,7 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
                                 builder: (context, setDropdownState) {
                                   return InputDecorator(
                                     decoration: InputDecoration(
-                                      labelText: 'Danh mục',
+                                      labelText: LocalizationService.getString('product_category_label'),
                                       labelStyle: TextStyle(
                                         color: Theme.of(context).brightness == Brightness.dark
                                             ? Colors.grey[300]
@@ -559,9 +559,9 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                               ),
-                              child: const Text(
-                                'Hủy',
-                                style: TextStyle(
+                              child: Text(
+                                LocalizationService.getString('btn_cancel'),
+                                style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
                                   color: Colors.red,
@@ -578,9 +578,9 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
                                       priceController.text.isEmpty ||
                                       costPriceController.text.isEmpty) {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
+                                      SnackBar(
                                         content: Text(
-                                          'Vui lòng điền đầy đủ thông tin',
+                                          LocalizationService.getString('product_fill_required_fields'),
                                         ),
                                         backgroundColor: Colors.red,
                                       ),
@@ -604,9 +604,9 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
                                       costPrice < 0 ||
                                       quantity < 0) {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
+                                      SnackBar(
                                         content: Text(
-                                          'Giá phải dương, số lượng không được âm',
+                                          LocalizationService.getString('product_price_must_positive'),
                                         ),
                                         backgroundColor: Colors.red,
                                       ),
@@ -621,9 +621,9 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
                                         .saveProductImage(selectedImage!);
                                     if (savedImagePath == null) {
                                       ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(
+                                        SnackBar(
                                           content: Text(
-                                            'Lỗi khi lưu ảnh sản phẩm',
+                                            LocalizationService.getString('inventory_save_image_error'),
                                           ),
                                           backgroundColor: Colors.red,
                                         ),
@@ -646,8 +646,8 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
 
                                   if (productId == null) {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Lỗi khi thêm sản phẩm'),
+                                      SnackBar(
+                                        content: Text(LocalizationService.getString('product_error_adding')),
                                         backgroundColor: Colors.red,
                                       ),
                                     );
@@ -665,7 +665,7 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: Text(
-                                        'Thêm sản phẩm "$name" thành công',
+                                        LocalizationService.getString('product_add_success').replaceAll('{name}', name),
                                       ),
                                       backgroundColor: Colors.green,
                                     ),
@@ -689,9 +689,9 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                               ),
-                              child: const Text(
-                                'Thêm',
-                                style: TextStyle(
+                              child: Text(
+                                LocalizationService.getString('btn_add'),
+                                style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -779,9 +779,9 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
-                                'Chỉnh sửa sản phẩm',
-                                style: TextStyle(
+                              Text(
+                                LocalizationService.getString('product_edit_title'),
+                                style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
@@ -789,7 +789,7 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                'Cập nhật thông tin',
+                                LocalizationService.getString('product_edit_subtitle'),
                                 style: TextStyle(
                                   color: Colors.white.withValues(alpha: 0.9),
                                   fontSize: 13,
@@ -850,7 +850,7 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
                                             ),
                                             const SizedBox(height: 8),
                                             Text(
-                                              'Nhấn để chọn ảnh',
+                                              LocalizationService.getString('product_select_image_hint'),
                                               style: TextStyle(
                                                 color: Colors.grey[600],
                                                 fontSize: 14,
@@ -865,7 +865,7 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
                               TextField(
                                 controller: nameController,
                                 decoration: InputDecoration(
-                                  labelText: 'Tên sản phẩm',
+                                  labelText: LocalizationService.getString('product_name'),
                                   labelStyle: TextStyle(
                                     color: Theme.of(context).brightness == Brightness.dark
                                         ? Colors.grey[300]
@@ -903,7 +903,7 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
                                 controller: priceController,
                                 keyboardType: TextInputType.number,
                                 decoration: InputDecoration(
-                                  labelText: 'Giá bán (VND)',
+                                  labelText: LocalizationService.getString('product_selling_price'),
                                   labelStyle: TextStyle(
                                     color: Theme.of(context).brightness == Brightness.dark
                                         ? Colors.grey[300]
@@ -941,7 +941,7 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
                                 controller: costPriceController,
                                 keyboardType: TextInputType.number,
                                 decoration: InputDecoration(
-                                  labelText: 'Giá vốn (VND)',
+                                  labelText: LocalizationService.getString('product_cost_price_label'),
                                   labelStyle: TextStyle(
                                     color: Theme.of(context).brightness == Brightness.dark
                                         ? Colors.grey[300]
@@ -978,7 +978,7 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
                                 controller: quantityController,
                                 keyboardType: TextInputType.number,
                                 decoration: InputDecoration(
-                                  labelText: 'Số lượng hàng',
+                                  labelText: LocalizationService.getString('product_quantity_label'),
                                   labelStyle: TextStyle(
                                     color: Theme.of(context).brightness == Brightness.dark
                                         ? Colors.grey[300]
@@ -1014,7 +1014,7 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
                               TextField(
                                 controller: unitController,
                                 decoration: InputDecoration(
-                                  labelText: 'Đơn vị (cái, kg, ly, hộp, phần, ...)',
+                                  labelText: LocalizationService.getString('inventory_unit_hint'),
                                   labelStyle: TextStyle(
                                     color: Theme.of(context).brightness == Brightness.dark
                                         ? Colors.grey[300]
@@ -1051,7 +1051,7 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
                                 builder: (context, setDropdownState) {
                                   return InputDecorator(
                                     decoration: InputDecoration(
-                                      labelText: 'Danh mục',
+                                      labelText: LocalizationService.getString('product_category_label'),
                                       labelStyle: TextStyle(
                                         color: Theme.of(context).brightness == Brightness.dark
                                             ? Colors.grey[300]
@@ -1128,9 +1128,9 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                               ),
-                              child: const Text(
-                                'Hủy',
-                                style: TextStyle(
+                              child: Text(
+                                LocalizationService.getString('btn_cancel'),
+                                style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
                                   color: Colors.red,
@@ -1147,8 +1147,8 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
                                       priceController.text.isEmpty ||
                                       costPriceController.text.isEmpty) {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Vui lòng điền đầy đủ thông tin'),
+                                      SnackBar(
+                                        content: Text(LocalizationService.getString('product_fill_required_fields')),
                                         backgroundColor: Colors.red,
                                       ),
                                     );
@@ -1219,15 +1219,15 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
                                         content: Text(
-                                          'Cập nhật sản phẩm "$name" thành công',
+                                          LocalizationService.getString('product_update_success').replaceAll('{name}', name),
                                         ),
                                         backgroundColor: Colors.green,
                                       ),
                                     );
                                   } else {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Lỗi khi cập nhật sản phẩm'),
+                                      SnackBar(
+                                        content: Text(LocalizationService.getString('product_update_error')),
                                         backgroundColor: Colors.red,
                                       ),
                                     );
@@ -1251,9 +1251,9 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                               ),
-                              child: const Text(
-                                'Cập nhật',
-                                style: TextStyle(
+                              child: Text(
+                                LocalizationService.getString('btn_update'),
+                                style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -1307,9 +1307,9 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
                 ),
                 const SizedBox(height: 20),
                 // Title
-                const Text(
-                  'Xác nhận xóa',
-                  style: TextStyle(
+                Text(
+                  LocalizationService.getString('product_delete_confirm_title'),
+                  style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),
@@ -1375,7 +1375,7 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Tên sản phẩm',
+                                  LocalizationService.getString('inventory_product_label_name'),
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: Theme.of(context).brightness == Brightness.dark
@@ -1429,7 +1429,7 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Giá bán',
+                                  LocalizationService.getString('inventory_product_label_selling_price'),
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: Theme.of(context).brightness == Brightness.dark
@@ -1455,7 +1455,7 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Giá vốn',
+                                  LocalizationService.getString('inventory_product_label_cost_price'),
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: Theme.of(context).brightness == Brightness.dark
@@ -1493,8 +1493,8 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
                           : Colors.grey[700],
                     ),
                     children: [
-                      const TextSpan(
-                        text: 'Bạn có chắc chắn muốn xóa ',
+                      TextSpan(
+                        text: LocalizationService.getString('product_delete_confirm_part1'),
                       ),
                       TextSpan(
                         text: '"${product.name}"',
@@ -1503,8 +1503,8 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
                           color: Colors.red,
                         ),
                       ),
-                      const TextSpan(
-                        text: '? Hành động này không thể hoàn tác.',
+                      TextSpan(
+                        text: LocalizationService.getString('product_delete_confirm_part2'),
                       ),
                     ],
                   ),
@@ -1531,7 +1531,7 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
                           ),
                         ),
                         child: Text(
-                          'Hủy',
+                          LocalizationService.getString('btn_cancel'),
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
@@ -1569,7 +1569,7 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
 
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text('Đã xóa "${product.name}"'),
+                                  content: Text(LocalizationService.getString('product_delete_success').replaceAll('{name}', product.name)),
                                   backgroundColor: Colors.green,
                                 ),
                               );
@@ -1577,9 +1577,9 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
                               if (!mounted) return;
                               Navigator.pop(context);
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
+                                SnackBar(
                                   backgroundColor: Colors.red,
-                                  content: Text('Lỗi khi xóa sản phẩm'),
+                                  content: Text(LocalizationService.getString('product_delete_error')),
                                 ),
                               );
                             }
@@ -1589,7 +1589,7 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 backgroundColor: Colors.red,
-                                content: Text('Lỗi: $e'),
+                                content: Text('${LocalizationService.getString('error')}: $e'),
                               ),
                             );
                           }
@@ -1604,9 +1604,9 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
                             borderRadius: BorderRadius.circular(8),
                           ),
                         ),
-                        child: const Text(
-                          'Xóa',
-                          style: TextStyle(
+                        child: Text(
+                          LocalizationService.getString('btn_delete'),
+                          style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
                           ),
@@ -1633,7 +1633,7 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Quản lý Sản phẩm'),
+        title: Text(LocalizationService.getString('nav_product_management')),
       ),
       body: Column(
         children: [
@@ -1646,7 +1646,7 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
                   child: TextField(
                     controller: searchController,
                     decoration: InputDecoration(
-                      hintText: 'Tìm kiếm sản phẩm',
+                      hintText: LocalizationService.getString('inventory_search_placeholder'),
                       prefixIcon: const Icon(Icons.search),
                       suffixIcon: searchController.text.isNotEmpty
                           ? IconButton(
@@ -1720,7 +1720,7 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
                     label: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Text('Tên', style: TextStyle(fontSize: 13)),
+                        Text(LocalizationService.getString('inventory_sort_by_name'), style: const TextStyle(fontSize: 13)),
                         if (_sortBy == 'name')
                           Icon(
                             _sortAscending
@@ -1759,7 +1759,7 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
                     label: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Text('Danh mục', style: TextStyle(fontSize: 13)),
+                        Text(LocalizationService.getString('inventory_sort_by_category'), style: const TextStyle(fontSize: 13)),
                         if (_sortBy == 'category')
                           Icon(
                             _sortAscending
@@ -1798,7 +1798,7 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
                     label: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Text('Giá bán', style: TextStyle(fontSize: 13)),
+                        Text(LocalizationService.getString('inventory_sort_by_price'), style: const TextStyle(fontSize: 13)),
                         if (_sortBy == 'price')
                           Icon(
                             _sortAscending
@@ -1845,7 +1845,7 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Nhấn nút + để thêm sản phẩm mới',
+                          LocalizationService.getString('product_empty_hint'),
                           style: TextStyle(
                             fontSize: 14,
                             color: Colors.grey[500],
@@ -1958,7 +1958,7 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
                                   Text(
-                                    product.category,
+                                    LocalizationService.getLocalizedProductCategory(product.category),
                                     style: TextStyle(
                                       fontSize: 10,
                                       color: Colors.grey[600],
@@ -1976,7 +1976,7 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    'Vốn: ${CurrencyService.formatCurrency(product.costPrice)}',
+                                    '${LocalizationService.getString('inventory_product_label_cost_price')}: ${CurrencyService.formatCurrency(product.costPrice)}',
                                     style: const TextStyle(
                                       fontSize: 11,
                                       color: Colors.purple,

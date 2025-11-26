@@ -7,6 +7,8 @@ import 'database/database_helper.dart';
 import 'models/sold_item_model.dart';
 import 'models/expense_model.dart';
 import 'services/currency_service.dart';
+import 'services/localization_service.dart';
+import 'services/firebase_service.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'services/admob_service.dart';
 
@@ -43,7 +45,7 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
   // Date range
   DateTime _startDate = DateTime.now();
   DateTime _endDate = DateTime.now();
-  String _selectedPeriod = 'Hôm nay';
+  String _selectedPeriod = LocalizationService.getString('stat_period_today');
 
   // Week selector for sales chart (0 = current week, -1 = last week, etc.)
   int _weekOffset = 0;
@@ -83,6 +85,8 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
   @override
   void initState() {
     super.initState();
+    // Log screen view to Analytics
+    FirebaseService.logScreenView('Statistics Page');
     _db = widget.databaseHelper ?? DatabaseHelper();
     _initializeLocale();
     _loadStatistics();
@@ -238,7 +242,7 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Lỗi tải dữ liệu: $e')));
+        ).showSnackBar(SnackBar(content: Text('${LocalizationService.getString('error_load_data')} $e')));
       }
     }
   }
@@ -247,30 +251,30 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
     final now = DateTime.now();
     _selectedPeriod = period;
 
-    switch (period) {
-      case 'Hôm nay':
-        _startDate = DateTime(now.year, now.month, now.day);
-        _endDate = now;
-        break;
-      case 'Tuần này':
-        final weekday = now.weekday;
-        _startDate = now.subtract(Duration(days: weekday - 1));
-        _startDate = DateTime(
-          _startDate.year,
-          _startDate.month,
-          _startDate.day,
-        );
-        _endDate = now;
-        break;
-      case 'Tháng này':
-        _startDate = DateTime(now.year, now.month, 1);
-        _endDate = now;
-        break;
-      case 'Tháng trước':
-        final lastMonth = DateTime(now.year, now.month - 1, 1);
-        _startDate = lastMonth;
-        _endDate = DateTime(now.year, now.month, 0, 23, 59, 59);
-        break;
+    final periodToday = LocalizationService.getString('stat_period_today');
+    final periodThisWeek = LocalizationService.getString('stat_period_this_week');
+    final periodThisMonth = LocalizationService.getString('stat_period_this_month');
+    final periodLastMonth = LocalizationService.getString('stat_period_last_month');
+
+    if (period == periodToday) {
+      _startDate = DateTime(now.year, now.month, now.day);
+      _endDate = now;
+    } else if (period == periodThisWeek) {
+      final weekday = now.weekday;
+      _startDate = now.subtract(Duration(days: weekday - 1));
+      _startDate = DateTime(
+        _startDate.year,
+        _startDate.month,
+        _startDate.day,
+      );
+      _endDate = now;
+    } else if (period == periodThisMonth) {
+      _startDate = DateTime(now.year, now.month, 1);
+      _endDate = now;
+    } else if (period == periodLastMonth) {
+      final lastMonth = DateTime(now.year, now.month - 1, 1);
+      _startDate = lastMonth;
+      _endDate = DateTime(now.year, now.month, 0, 23, 59, 59);
     }
 
     _loadStatisticsWithoutReload();
@@ -310,7 +314,7 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Lỗi tải dữ liệu: $e')));
+        ).showSnackBar(SnackBar(content: Text('${LocalizationService.getString('error_load_data')} $e')));
       }
     }
   }
@@ -325,7 +329,7 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
       );
 
       if (picked != null) {
-        _selectedPeriod = 'Tùy chỉnh';
+        _selectedPeriod = LocalizationService.getString('stat_custom_period');
         _startDate = picked.start;
         _endDate = picked.end;
         _loadStatisticsWithoutReload();
@@ -427,10 +431,10 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
       scrollDirection: Axis.horizontal,
       child: Row(
         children: [
-          _buildPeriodChip('Hôm nay'),
-          _buildPeriodChip('Tuần này'),
-          _buildPeriodChip('Tháng này'),
-          _buildPeriodChip('Tháng trước'),
+          _buildPeriodChip(LocalizationService.getString('stat_period_today')),
+          _buildPeriodChip(LocalizationService.getString('stat_period_this_week')),
+          _buildPeriodChip(LocalizationService.getString('stat_period_this_month')),
+          _buildPeriodChip(LocalizationService.getString('stat_period_last_month')),
           _buildCustomDateChip(),
         ],
       ),
@@ -457,10 +461,10 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
   }
 
   Widget _buildCustomDateChip() {
-    final isSelected = _selectedPeriod == 'Tùy chỉnh';
+    final isSelected = _selectedPeriod == LocalizationService.getString('stat_custom_period');
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return ChoiceChip(
-      label: const Text('Tùy chỉnh'),
+      label: Text(LocalizationService.getString('stat_custom_period')),
       selected: isSelected,
       onSelected: (selected) {
         if (selected) _selectCustomDateRange();
@@ -503,7 +507,7 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
           children: [
             Expanded(
               child: _buildSummaryCard(
-                'Doanh thu',
+                LocalizationService.getString('stat_revenue'),
                 CurrencyService.formatCurrency(_totalRevenue),
                 Icons.trending_up,
                 Colors.green,
@@ -512,7 +516,7 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
             const SizedBox(width: 12),
             Expanded(
               child: _buildSummaryCard(
-                'Chi phí',
+                LocalizationService.getString('stat_expenses'),
                 CurrencyService.formatCurrency(_totalExpenses),
                 Icons.trending_down,
                 Colors.red,
@@ -525,7 +529,7 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
           children: [
             Expanded(
               child: _buildSummaryCard(
-                'Lợi nhuận',
+                LocalizationService.getString('stat_profit'),
                 CurrencyService.formatCurrency(_netProfit),
                 Icons.account_balance_wallet,
                 _netProfit >= 0 ? Colors.blue : Colors.red,
@@ -534,8 +538,8 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
             const SizedBox(width: 12),
             Expanded(
               child: _buildSummaryCard(
-                'Đã bán',
-                '$_itemsSold sản phẩm',
+                LocalizationService.getString('stat_items_sold'),
+                '${LocalizationService.getString('stat_quantity_sold')}: $_itemsSold',
                 Icons.shopping_cart,
                 Colors.orange,
               ),
@@ -698,7 +702,7 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'Số lượng bán ra',
+                            LocalizationService.getString('stat_quantity_sold'),
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -779,7 +783,7 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
                             Padding(
                               padding: const EdgeInsets.only(bottom: 12.0),
                               child: Text(
-                                'bán được tuần này',
+                                LocalizationService.getString('stat_week_sold'),
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w400,
@@ -803,7 +807,7 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
-                                  '$percentChange% so với tuần trước',
+                                  '$percentChange% ${LocalizationService.getString('stat_compared_last_week')}',
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: isIncrease
@@ -939,7 +943,7 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
                     // Info text
                     Center(
                       child: Text(
-                        'Nhấn vào cột để xem chi tiết',
+                        LocalizationService.getString('stat_click_bar_detail'),
                         style: TextStyle(
                           fontSize: 11,
                           color: Colors.grey[600],
@@ -961,8 +965,30 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
   String _getFixedDayLabel(int index) {
     // Always fixed pattern: T2, T3, T4, T5, T6, T7, CN
     // Index 0 = T2, Index 1 = T3, Index 2 = T4, etc., Index 6 = CN
-    const days = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
-    return days[index];
+    const dayKeys = ['day_monday', 'day_tuesday', 'day_wednesday', 'day_thursday', 'day_friday', 'day_saturday', 'day_sunday'];
+    return LocalizationService.getString(dayKeys[index]);
+  }
+
+  String _getLocalizedCategoryName(String vietnameseCategoryName) {
+    // Map Vietnamese category names to localization keys
+    const categoryMapping = {
+      'Tiền thuê': 'category_rent',
+      'Lương nhân viên': 'category_payroll',
+      'Điện nước': 'category_utilities',
+      'Nhập hàng': 'category_inventory',
+      'Vận chuyển': 'category_shipping',
+      'Marketing': 'category_marketing',
+      'Bảo trì': 'category_maintenance',
+      'Văn phòng phẩm': 'category_office_supplies',
+      'Ăn uống': 'category_food',
+      'Khác': 'category_other',
+    };
+    
+    final key = categoryMapping[vietnameseCategoryName];
+    if (key != null) {
+      return LocalizationService.getString(key);
+    }
+    return vietnameseCategoryName; // Fallback to original if not found
   }
 
   void _showProductDetails(
@@ -991,7 +1017,7 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      DateFormat('EEEE, dd/MM/yyyy', 'vi').format(date),
+                      DateFormat('EEEE, dd/MM/yyyy', LocalizationService.language == 'vi' ? 'vi' : 'en').format(date),
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -1002,13 +1028,13 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
               ),
               const SizedBox(height: 8),
               Text(
-                'Bán được $total sản phẩm',
+                LocalizationService.getString('stat_sold_items').replaceAll('{total}', total.toString()),
                 style: TextStyle(fontSize: 14, color: Colors.grey[600]),
               ),
               const Divider(height: 24),
-              const Text(
-                'Số lượng bán ra:',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+              Text(
+                LocalizationService.getString('stat_quantity_sold') + ':',
+                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
               Flexible(
@@ -1103,13 +1129,13 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
           padding: const EdgeInsets.all(16.0),
           child: Column(
             children: [
-              const Text(
-                'Xu hướng Doanh thu & Chi phí',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              Text(
+                LocalizationService.getString('stat_trend'),
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
               Text(
-                'Chưa có dữ liệu để hiển thị',
+                LocalizationService.getString('stat_no_data'),
                 style: TextStyle(color: Colors.grey[600]),
               ),
             ],
@@ -1154,9 +1180,9 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Xu hướng Doanh thu & Chi phí',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              Text(
+                LocalizationService.getString('stat_trend'),
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
             const SizedBox(height: 8),
             const SizedBox(height: 20),
@@ -1387,13 +1413,13 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
           padding: const EdgeInsets.all(16.0),
           child: Column(
             children: [
-              const Text(
-                'Sản phẩm bán chạy',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              Text(
+                LocalizationService.getString('stat_bestsellers'),
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
               Text(
-                'Chưa có dữ liệu bán hàng',
+                LocalizationService.getString('stat_no_sales_data'),
                 style: TextStyle(color: Colors.grey[600]),
               ),
             ],
@@ -1413,14 +1439,14 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'Sản phẩm bán chạy',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                Text(
+                  LocalizationService.getString('stat_bestsellers'),
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
                 Row(
                   children: [
                     _buildSortButton(
-                      'Số lượng',
+                      LocalizationService.getString('stat_quantity'),
                       !_sortByRevenue,
                       () {
                         setState(() => _sortByRevenue = false);
@@ -1428,7 +1454,7 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
                     ),
                     const SizedBox(width: 8),
                     _buildSortButton(
-                      'Doanh thu',
+                      LocalizationService.getString('stat_revenue'),
                       _sortByRevenue,
                       () {
                         setState(() => _sortByRevenue = true);
@@ -1478,7 +1504,7 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                product?.name ?? 'Sản phẩm',
+                                product?.name ?? LocalizationService.getString('stat_product_default'),
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
@@ -1486,7 +1512,7 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                'Đã bán: $quantity',
+                                '${LocalizationService.getString('stat_sold')}: $quantity',
                                 style: TextStyle(
                                   fontSize: 14,
                                   color: Theme.of(context).brightness == Brightness.dark
@@ -1516,7 +1542,7 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
-                                'Kho: $stock',
+                                '${LocalizationService.getString('stat_stock_label')} $stock',
                                 style: TextStyle(
                                   fontSize: 11,
                                   color: stock <= 5 ? Colors.red[700] : Colors.orange[700],
@@ -1605,13 +1631,13 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
           padding: const EdgeInsets.all(16.0),
           child: Column(
             children: [
-              const Text(
-                'Biểu đồ Chi phí',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              Text(
+                LocalizationService.getString('stat_expense_chart'),
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
               Text(
-                'Chưa có dữ liệu chi phí',
+                LocalizationService.getString('stat_no_expense_data'),
                 style: TextStyle(color: Colors.grey[600]),
               ),
             ],
@@ -1657,9 +1683,9 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Biểu đồ Chi phí',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              Text(
+                LocalizationService.getString('stat_expense_chart'),
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
             const SizedBox(height: 20),
             // Pie Chart only (larger, full width)
@@ -1690,9 +1716,9 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Tổng chi phí:',
-                    style: TextStyle(
+                  Text(
+                    LocalizationService.getString('stat_total_expenses'),
+                    style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
                       color: Colors.red,
@@ -1735,13 +1761,13 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
           padding: const EdgeInsets.all(16.0),
           child: Column(
             children: [
-              const Text(
-                'Chi phí theo danh mục',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              Text(
+                LocalizationService.getString('stat_expenses_by_category'),
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
               Text(
-                'Chưa có dữ liệu chi phí',
+                LocalizationService.getString('stat_no_expense_data'),
                 style: TextStyle(color: Colors.grey[600]),
               ),
             ],
@@ -1757,9 +1783,9 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Chi phí theo danh mục',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            Text(
+              LocalizationService.getString('stat_expenses_by_category'),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
             ...sortedCategories.asMap().entries.map((entry) {
@@ -1790,7 +1816,7 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
-                            categoryEntry.key,
+                            _getLocalizedCategoryName(categoryEntry.key),
                             style: const TextStyle(
                               fontWeight: FontWeight.w600,
                               fontSize: 13,

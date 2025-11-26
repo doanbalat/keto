@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "242116670716",
+    "project_id": "keto-220d5",
+    "storage_bucket": "keto-220d5.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:242116670716:android:55b720576cc1e6cf465379",
+        "android_client_info": {
+          "package_name": "com.doanbalat.keto"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCIiqyG4_ijIhEBlJGpeIW5vD-_bS11hTs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

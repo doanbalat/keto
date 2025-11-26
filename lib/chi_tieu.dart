@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'models/expense_model.dart';
+import 'services/localization_service.dart';
 import 'models/recurring_expense_model.dart';
 import 'services/expense_service.dart';
 import 'services/permission_service.dart';
 import 'services/recurring_expense_service.dart';
+import 'services/firebase_service.dart';
 import 'services/currency_service.dart';
 import 'services/statistics_cache_service.dart';
 
@@ -44,6 +46,8 @@ class _ExpensesPageState extends State<ExpensesPage> {
   @override
   void initState() {
     super.initState();
+    // Log screen view to Analytics
+    FirebaseService.logScreenView('Expenses Page');
     // Use injected services or create defaults
     _expenseService = widget.expenseService ?? ExpenseService();
     _recurringExpenseService = widget.recurringExpenseService ?? RecurringExpenseService();
@@ -52,12 +56,39 @@ class _ExpensesPageState extends State<ExpensesPage> {
 
   String _getFrequencyLabel(String frequency) {
     return frequency == 'DAILY'
-        ? 'Hàng ngày'
+        ? LocalizationService.getString('expense_daily')
         : frequency == 'WEEKLY'
-            ? 'Hàng tuần'
+            ? LocalizationService.getString('expense_weekly')
             : frequency == 'MONTHLY'
-                ? 'Hàng tháng'
-                : 'Hàng năm';
+                ? LocalizationService.getString('expense_monthly')
+                : LocalizationService.getString('expense_yearly');
+  }
+
+  String _getCategoryDisplayName(String category) {
+    final categoryMap = {
+      'Tiền thuê': 'category_rent',
+      'Điện nước': 'category_utilities',
+      'Nhập hàng': 'category_inventory',
+      'Lương nhân viên': 'category_payroll',
+      'Vận chuyển': 'category_shipping',
+      'Marketing': 'category_marketing',
+      'Bảo trì': 'category_maintenance',
+      'Văn phòng phẩm': 'category_office_supplies',
+      'Ăn uống': 'category_food',
+      'Khác': 'category_other',
+    };
+    final key = categoryMap[category] ?? 'category_other';
+    return LocalizationService.getString(key);
+  }
+
+  String _getPaymentMethodLabel(String paymentMethod) {
+    final paymentMap = {
+      'Tiền mặt': 'expense_cash',
+      'Chuyển khoản': 'expense_transfer',
+      'Thẻ': 'expense_card',
+    };
+    final key = paymentMap[paymentMethod] ?? paymentMethod;
+    return LocalizationService.getString(key);
   }
 
   DateRange _getDateRangeForFilter() {
@@ -123,13 +154,23 @@ class _ExpensesPageState extends State<ExpensesPage> {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Error loading expenses: $e')));
+      ).showSnackBar(SnackBar(content: Text('${LocalizationService.getString('error_loading_expenses')}$e')));
     }
   }
 
   String _getFilterDisplayText() {
     if (_selectedFilter == 'Chọn ngày' && _selectedDate != null) {
       return '${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}';
+    }
+    // Return localized filter text
+    if (_selectedFilter == 'Hôm nay') {
+      return LocalizationService.getString('filter_today');
+    } else if (_selectedFilter == 'Tuần này') {
+      return LocalizationService.getString('filter_this_week');
+    } else if (_selectedFilter == 'Tháng này') {
+      return LocalizationService.getString('filter_this_month');
+    } else if (_selectedFilter == 'Chọn ngày') {
+      return LocalizationService.getString('filter_select_date');
     }
     return _selectedFilter;
   }
@@ -153,7 +194,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
             if (step == 1) {
               // STEP 1: Amount
               return AlertDialog(
-                title: const Text('Bước 1: Số Tiền'),
+                title: Text(LocalizationService.getString('expense_step1_amount')),
                 contentPadding: const EdgeInsets.all(24.0),
                 content: SizedBox(
                   width: MediaQuery.of(context).size.width * 0.9,
@@ -163,8 +204,8 @@ class _ExpensesPageState extends State<ExpensesPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Category Selection (First)
-                        const Text(
-                          'Chọn Danh Mục',
+                        Text(
+                          LocalizationService.getString('expense_category'),
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
@@ -207,7 +248,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                                       child: Padding(
                                         padding: const EdgeInsets.all(6.0),
                                         child: Text(
-                                          category,
+                                          _getCategoryDisplayName(category),
                                           textAlign: TextAlign.center,
                                           style: TextStyle(
                                             fontSize: 13,
@@ -227,9 +268,9 @@ class _ExpensesPageState extends State<ExpensesPage> {
                         ),
 
                         // Large Amount Input (Second)
-                        const Text(
-                          'Số Tiền (VND)',
-                          style: TextStyle(
+                        Text(
+                          LocalizationService.getString('expense_amount_label'),
+                          style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
                           ),
@@ -278,15 +319,15 @@ class _ExpensesPageState extends State<ExpensesPage> {
                         vertical: 12,
                       ),
                     ),
-                    child: const Text('Hủy', style: TextStyle(fontSize: 16)),
+                    child: Text(LocalizationService.getString('btn_cancel'), style: const TextStyle(fontSize: 16)),
                   ),
                   ElevatedButton(
                     onPressed: () {
                       final amountText = amountController.text.trim();
                       if (amountText.isEmpty) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Vui lòng nhập số tiền'),
+                          SnackBar(
+                            content: Text(LocalizationService.getString('expense_enter_amount')),
                           ),
                         );
                         return;
@@ -295,8 +336,8 @@ class _ExpensesPageState extends State<ExpensesPage> {
                       final amount = int.tryParse(amountText);
                       if (amount == null || amount <= 0) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Vui lòng nhập số tiền hợp lệ'),
+                          SnackBar(
+                            content: Text(LocalizationService.getString('expense_invalid_amount')),
                           ),
                         );
                         return;
@@ -314,14 +355,14 @@ class _ExpensesPageState extends State<ExpensesPage> {
                         vertical: 12,
                       ),
                     ),
-                    child: const Text('Tiếp Tục', style: TextStyle(fontSize: 16)),
+                    child: Text(LocalizationService.getString('expense_continue'), style: const TextStyle(fontSize: 16)),
                   ),
                 ],
               );
             } else {
               // STEP 2: Optional Details
               return AlertDialog(
-                title: const Text('Bước 2: Chi Tiết (Tùy Chọn)', style: TextStyle(fontSize: 18)),
+                title: Text(LocalizationService.getString('expense_step2_details'), style: const TextStyle(fontSize: 18)),
                 contentPadding: const EdgeInsets.all(24.0),
                 content: SizedBox(
                   width: MediaQuery.of(context).size.width * 0.9,
@@ -331,9 +372,9 @@ class _ExpensesPageState extends State<ExpensesPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Description (Main field - always visible)
-                        const Text(
-                          'Mô Tả Ngắn Gọn',
-                          style: TextStyle(
+                        Text(
+                          LocalizationService.getString('expense_description_label'),
+                          style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
                           ),
@@ -346,7 +387,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            hintText: 'Nhập mô tả chi tiêu',
+                            hintText: LocalizationService.getString('expense_description_hint'),
                             contentPadding: const EdgeInsets.symmetric(
                               horizontal: 12,
                               vertical: 12,
@@ -384,7 +425,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                                     MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
-                                    'Chi tiết thêm',
+                                    LocalizationService.getString('expense_more_details'),
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 14,
@@ -412,9 +453,9 @@ class _ExpensesPageState extends State<ExpensesPage> {
                           const SizedBox(height: 16),
 
                           // Date Picker
-                          const Text(
-                            'Ngày Chi Tiêu',
-                            style: TextStyle(
+                          Text(
+                            LocalizationService.getString('expense_date'),
+                            style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 14,
                             ),
@@ -464,9 +505,9 @@ class _ExpensesPageState extends State<ExpensesPage> {
                           const SizedBox(height: 16),
 
                           // Payment Method
-                          const Text(
-                            'Phương Thức Thanh Toán',
-                            style: TextStyle(
+                          Text(
+                            LocalizationService.getString('expense_payment_method'),
+                            style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 14,
                             ),
@@ -483,14 +524,11 @@ class _ExpensesPageState extends State<ExpensesPage> {
                                 vertical: 12,
                               ),
                             ),
-                            items: ['Tiền mặt', 'Chuyển khoản', 'Thẻ']
-                                .map(
-                                  (method) => DropdownMenuItem(
-                                    value: method,
-                                    child: Text(method),
-                                  ),
-                                )
-                                .toList(),
+                            items: [
+                              DropdownMenuItem(value: 'Tiền mặt', child: Text(LocalizationService.getString('expense_cash'))),
+                              DropdownMenuItem(value: 'Chuyển khoản', child: Text(LocalizationService.getString('expense_transfer'))),
+                              DropdownMenuItem(value: 'Thẻ', child: Text(LocalizationService.getString('expense_card'))),
+                            ],
                             onChanged: (value) {
                               if (value != null) {
                                 setStateDialog(() {
@@ -502,9 +540,9 @@ class _ExpensesPageState extends State<ExpensesPage> {
                           const SizedBox(height: 16),
 
                           // Note
-                          const Text(
-                            'Ghi Chú',
-                            style: TextStyle(
+                          Text(
+                            LocalizationService.getString('expense_note_label'),
+                            style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 14,
                             ),
@@ -518,7 +556,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
                               ),
-                              hintText: 'Ghi chú thêm (tùy chọn)',
+                              hintText: LocalizationService.getString('expense_note_hint'),
                               contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 12,
                                 vertical: 12,
@@ -528,9 +566,9 @@ class _ExpensesPageState extends State<ExpensesPage> {
                           const SizedBox(height: 16),
 
                           // Receipt Image Picker
-                          const Text(
-                            'Ảnh Hóa Đơn',
-                            style: TextStyle(
+                          Text(
+                            LocalizationService.getString('expense_select_receipt_image'),
+                            style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 14,
                             ),
@@ -538,7 +576,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                           const SizedBox(height: 8),
                           ElevatedButton.icon(
                             icon: const Icon(Icons.receipt_long),
-                            label: const Text('Chọn Ảnh Hóa Đơn'),
+                            label: Text(LocalizationService.getString('expense_select_receipt_image')),
                             onPressed: () async {
                               // Check if permission is already granted
                               bool hasPermission =
@@ -654,7 +692,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                         vertical: 12,
                       ),
                     ),
-                    child: const Text('Quay Lại', style: TextStyle(fontSize: 16)),
+                    child: Text(LocalizationService.getString('expense_back'), style: const TextStyle(fontSize: 16)),
                   ),
                   ElevatedButton(
                     onPressed: () async {
@@ -665,8 +703,8 @@ class _ExpensesPageState extends State<ExpensesPage> {
                       final amount = int.tryParse(amountText);
                       if (amount == null || amount <= 0) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Số tiền không hợp lệ'),
+                          SnackBar(
+                            content: Text(LocalizationService.getString('error_invalid_amount')),
                           ),
                         );
                         return;
@@ -706,9 +744,9 @@ class _ExpensesPageState extends State<ExpensesPage> {
                         if (!mounted) return;
 
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
+                          SnackBar(
                             backgroundColor: Colors.red,
-                            content: Text('Lỗi khi thêm chi tiêu'),
+                            content: Text(LocalizationService.getString('error_adding_expense')),
                           ),
                         );
                       }
@@ -721,7 +759,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                         vertical: 12,
                       ),
                     ),
-                    child: const Text('Lưu', style: TextStyle(fontSize: 16)),
+                    child: Text(LocalizationService.getString('expense_save'), style: const TextStyle(fontSize: 16)),
                   ),
                 ],
               );
@@ -786,7 +824,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
       builder: (BuildContext dialogContext) {
         return AlertDialog(
           title: Text(
-            expense.category,
+            _getCategoryDisplayName(expense.category),
             style: const TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 18,
@@ -799,8 +837,8 @@ class _ExpensesPageState extends State<ExpensesPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Description
-                const Text(
-                  'Mô Tả',
+                Text(
+                  LocalizationService.getString('dialog_detail_description'),
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
@@ -818,8 +856,8 @@ class _ExpensesPageState extends State<ExpensesPage> {
                 const SizedBox(height: 16),
 
                 // Amount
-                const Text(
-                  'Số Tiền',
+                Text(
+                  LocalizationService.getString('dialog_detail_amount'),
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
@@ -838,8 +876,8 @@ class _ExpensesPageState extends State<ExpensesPage> {
                 const SizedBox(height: 16),
 
                 // Date & Time
-                const Text(
-                  'Thời Gian',
+                Text(
+                  LocalizationService.getString('dialog_detail_time'),
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
@@ -856,8 +894,8 @@ class _ExpensesPageState extends State<ExpensesPage> {
                 const SizedBox(height: 16),
 
                 // Payment Method
-                const Text(
-                  'Phương Thức Thanh Toán',
+                Text(
+                  LocalizationService.getString('dialog_detail_payment'),
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
@@ -875,7 +913,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
-                    expense.paymentMethod,
+                    _getPaymentMethodLabel(expense.paymentMethod),
                     style: TextStyle(
                       fontSize: 14,
                       color: Colors.grey[800],
@@ -887,8 +925,8 @@ class _ExpensesPageState extends State<ExpensesPage> {
 
                 // Note (if exists)
                 if (expense.note != null && expense.note!.isNotEmpty) ...[
-                  const Text(
-                    'Ghi Chú',
+                  Text(
+                    LocalizationService.getString('dialog_detail_note'),
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
@@ -918,8 +956,8 @@ class _ExpensesPageState extends State<ExpensesPage> {
                 // Receipt Image (if exists)
                 if (expense.receiptImagePath != null &&
                     expense.receiptImagePath!.isNotEmpty) ...[
-                  const Text(
-                    'Ảnh Hóa Đơn',
+                  Text(
+                    LocalizationService.getString('dialog_detail_receipt'),
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
@@ -938,8 +976,8 @@ class _ExpensesPageState extends State<ExpensesPage> {
                         errorBuilder: (context, error, stackTrace) {
                           return Container(
                             color: Colors.grey[300],
-                            child: const Center(
-                              child: Text('Không thể tải ảnh'),
+                            child: Center(
+                              child: Text(LocalizationService.getString('message_image_load_error')),
                             ),
                           );
                         },
@@ -958,12 +996,12 @@ class _ExpensesPageState extends State<ExpensesPage> {
                   context: context,
                   builder: (BuildContext confirmContext) {
                     return AlertDialog(
-                      title: const Text('Xóa Chi Tiêu'),
-                      content: Text('Bạn có chắc muốn xóa chi tiêu "${expense.description}"?'),
+                      title: Text(LocalizationService.getString('dialog_delete_expense')),
+                      content: Text('${LocalizationService.getString('error_delete_expense_confirm').replaceAll('{description}', expense.description)}'),
                       actions: [
                         TextButton(
                           onPressed: () => Navigator.pop(confirmContext),
-                          child: const Text('Hủy'),
+                          child: Text(LocalizationService.getString('btn_cancel')),
                         ),
                         ElevatedButton(
                           onPressed: () async {
@@ -977,8 +1015,8 @@ class _ExpensesPageState extends State<ExpensesPage> {
                               Navigator.pop(dialogContext); // Close details dialog
                               
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Chi tiêu đã được xóa'),
+                                SnackBar(
+                                  content: Text(LocalizationService.getString('message_expense_deleted')),
                                   backgroundColor: Colors.green,
                                 ),
                               );
@@ -988,14 +1026,14 @@ class _ExpensesPageState extends State<ExpensesPage> {
                               
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text('Lỗi khi xóa: $e'),
+                                  content: Text('${LocalizationService.getString('error_with_message')}$e'),
                                   backgroundColor: Colors.red,
                                 ),
                               );
                             }
                           },
                           style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                          child: const Text('Xóa'),
+                          child: Text(LocalizationService.getString('dialog_delete')),
                         ),
                       ],
                     );
@@ -1003,7 +1041,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                 );
               },
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-              child: const Text('Xóa'),
+              child: Text(LocalizationService.getString('dialog_delete')),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(dialogContext),
@@ -1015,7 +1053,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                     ? Colors.white
                     : Colors.black,
               ),
-              child: const Text('Đóng'),
+              child: Text(LocalizationService.getString('dialog_close')),
             ),
           ],
         );
@@ -1042,7 +1080,9 @@ class _ExpensesPageState extends State<ExpensesPage> {
           builder: (context, setStateDialog) {
             return AlertDialog(
               title: Text(
-                existingRecurring != null ? 'Chỉnh sửa Chi Phí Cố Định' : 'Thêm Chi Phí Cố Định',
+                existingRecurring != null 
+                  ? LocalizationService.getString('expense_recurring_title_edit')
+                  : LocalizationService.getString('expense_recurring_title_add'),
                 style: const TextStyle(fontSize: 18),
               ),
               contentPadding: const EdgeInsets.all(24.0),
@@ -1054,9 +1094,9 @@ class _ExpensesPageState extends State<ExpensesPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Category
-                      const Text(
-                        'Danh Mục',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                      Text(
+                        LocalizationService.getString('expense_recurring_category'),
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                       ),
                       const SizedBox(height: 8),
                       DropdownButtonFormField<String>(
@@ -1066,7 +1106,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                         ),
                         items: ExpenseService.defaultCategories.map((category) {
-                          return DropdownMenuItem(value: category, child: Text(category));
+                          return DropdownMenuItem(value: category, child: Text(_getCategoryDisplayName(category)));
                         }).toList(),
                         onChanged: (value) {
                           if (value != null) {
@@ -1081,9 +1121,9 @@ class _ExpensesPageState extends State<ExpensesPage> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text(
-                              'Trạng Thái',
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                            Text(
+                              LocalizationService.getString('expense_recurring_status'),
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                             ),
                             Switch(
                               value: isActive,
@@ -1098,9 +1138,9 @@ class _ExpensesPageState extends State<ExpensesPage> {
                         const SizedBox(height: 16),
 
                       // Amount
-                      const Text(
-                        'Số Tiền (VND)',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                      Text(
+                        LocalizationService.getString('expense_amount_label'),
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                       ),
                       const SizedBox(height: 8),
                       Container(
@@ -1125,9 +1165,9 @@ class _ExpensesPageState extends State<ExpensesPage> {
                       const SizedBox(height: 16),
 
                       // Description
-                      const Text(
-                        'Mô Tả',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                      Text(
+                        LocalizationService.getString('expense_recurring_description_label'),
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                       ),
                       const SizedBox(height: 8),
                       TextField(
@@ -1135,16 +1175,16 @@ class _ExpensesPageState extends State<ExpensesPage> {
                         style: const TextStyle(fontSize: 14),
                         decoration: InputDecoration(
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                          hintText: 'Nhập mô tả chi phí cố định',
+                          hintText: LocalizationService.getString('expense_recurring_description_hint'),
                           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                         ),
                       ),
                       const SizedBox(height: 16),
 
                       // Frequency
-                      const Text(
-                        'Tần Suất',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                      Text(
+                        LocalizationService.getString('expense_recurring_frequency'),
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                       ),
                       const SizedBox(height: 8),
                       DropdownButtonFormField<String>(
@@ -1155,12 +1195,12 @@ class _ExpensesPageState extends State<ExpensesPage> {
                         ),
                         items: ['DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY'].map((freq) {
                           final label = freq == 'DAILY'
-                              ? 'Hàng ngày'
+                              ? LocalizationService.getString('expense_daily')
                               : freq == 'WEEKLY'
-                                  ? 'Hàng tuần'
+                                  ? LocalizationService.getString('expense_weekly')
                                   : freq == 'MONTHLY'
-                                      ? 'Hàng tháng'
-                                      : 'Hàng năm';
+                                      ? LocalizationService.getString('expense_monthly')
+                                      : LocalizationService.getString('expense_yearly');
                           return DropdownMenuItem(value: freq, child: Text(label));
                         }).toList(),
                         onChanged: (value) {
@@ -1172,9 +1212,9 @@ class _ExpensesPageState extends State<ExpensesPage> {
                       const SizedBox(height: 16),
 
                       // Start Date
-                      const Text(
-                        'Ngày Bắt Đầu',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                      Text(
+                        LocalizationService.getString('expense_recurring_start_date'),
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                       ),
                       const SizedBox(height: 8),
                       InkWell(
@@ -1221,7 +1261,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                               });
                             },
                           ),
-                          const Text('Có ngày kết thúc', style: TextStyle(fontSize: 14)),
+                          Text(LocalizationService.getString('expense_recurring_has_end_date'), style: const TextStyle(fontSize: 14)),
                         ],
                       ),
 
@@ -1250,7 +1290,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  endDate != null ? '${endDate!.day}/${endDate!.month}/${endDate!.year}' : 'Chọn ngày',
+                                  endDate != null ? '${endDate!.day}/${endDate!.month}/${endDate!.year}' : LocalizationService.getString('expense_recurring_select_date'),
                                   style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
                                 ),
                                 const Icon(Icons.calendar_today, size: 20),
@@ -1262,9 +1302,9 @@ class _ExpensesPageState extends State<ExpensesPage> {
                       ],
 
                       // Payment Method
-                      const Text(
-                        'Phương Thức Thanh Toán',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                      Text(
+                        LocalizationService.getString('expense_recurring_payment_method'),
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                       ),
                       const SizedBox(height: 8),
                       DropdownButtonFormField<String>(
@@ -1273,9 +1313,11 @@ class _ExpensesPageState extends State<ExpensesPage> {
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                         ),
-                        items: ['Tiền mặt', 'Chuyển khoản', 'Thẻ']
-                            .map((method) => DropdownMenuItem(value: method, child: Text(method)))
-                            .toList(),
+                        items: [
+                          DropdownMenuItem(value: 'Tiền mặt', child: Text(LocalizationService.getString('expense_cash'))),
+                          DropdownMenuItem(value: 'Chuyển khoản', child: Text(LocalizationService.getString('expense_transfer'))),
+                          DropdownMenuItem(value: 'Thẻ', child: Text(LocalizationService.getString('expense_card'))),
+                        ],
                         onChanged: (value) {
                           if (value != null) {
                             setStateDialog(() => selectedPaymentMethod = value);
@@ -1285,9 +1327,9 @@ class _ExpensesPageState extends State<ExpensesPage> {
                       const SizedBox(height: 16),
 
                       // Notes
-                      const Text(
-                        'Ghi Chú',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                      Text(
+                        LocalizationService.getString('expense_recurring_notes'),
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                       ),
                       const SizedBox(height: 8),
                       TextField(
@@ -1296,7 +1338,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                         style: const TextStyle(fontSize: 14),
                         decoration: InputDecoration(
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                          hintText: 'Ghi chú thêm (tùy chọn)',
+                          hintText: LocalizationService.getString('expense_recurring_notes_hint'),
                           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                         ),
                       ),
@@ -1317,12 +1359,12 @@ class _ExpensesPageState extends State<ExpensesPage> {
                             context: context,
                             builder: (context) {
                               return AlertDialog(
-                                title: const Text('Xác nhận xóa'),
-                                content: const Text('Bạn có chắc chắn muốn xóa chi phí cố định này?'),
+                                title: Text(LocalizationService.getString('expense_recurring_delete_confirm')),
+                                content: Text(LocalizationService.getString('expense_recurring_delete_message')),
                                 actions: [
                                   TextButton(
                                     onPressed: () => Navigator.pop(context),
-                                    child: const Text('Hủy'),
+                                    child: Text(LocalizationService.getString('btn_cancel')),
                                   ),
                                   ElevatedButton(
                                     onPressed: () async {
@@ -1334,8 +1376,8 @@ class _ExpensesPageState extends State<ExpensesPage> {
                                         Navigator.pop(context);
                                         
                                         ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(
-                                            content: Text('Chi phí cố định đã được xóa'),
+                                          SnackBar(
+                                            content: Text(LocalizationService.getString('error_recurring_deleted')),
                                             backgroundColor: Colors.red,
                                           ),
                                         );
@@ -1344,7 +1386,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                                         ScaffoldMessenger.of(context).showSnackBar(
                                           SnackBar(
                                             backgroundColor: Colors.red,
-                                            content: Text('Lỗi: $e'),
+                                            content: Text('${LocalizationService.getString('error_with_message')}$e'),
                                           ),
                                         );
                                       }
@@ -1353,7 +1395,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                                       backgroundColor: Colors.red,
                                       foregroundColor: Colors.white,
                                     ),
-                                    child: const Text('Xóa'),
+                                    child: Text(LocalizationService.getString('dialog_delete')),
                                   ),
                                 ],
                               );
@@ -1366,7 +1408,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                     const Spacer(),
                     TextButton(
                       onPressed: () => Navigator.pop(context),
-                      child: const Text('Hủy', style: TextStyle(fontSize: 16)),
+                      child: Text(LocalizationService.getString('btn_cancel'), style: const TextStyle(fontSize: 16)),
                     ),
                     const SizedBox(width: 8),
                     ElevatedButton(
@@ -1377,7 +1419,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
 
                         if (amountText.isEmpty) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Vui lòng nhập số tiền')),
+                            SnackBar(content: Text(LocalizationService.getString('expense_enter_amount'))),
                           );
                           return;
                         }
@@ -1385,7 +1427,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                         final amount = int.tryParse(amountText);
                         if (amount == null || amount <= 0) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Vui lòng nhập số tiền hợp lệ')),
+                            SnackBar(content: Text(LocalizationService.getString('expense_invalid_amount'))),
                           );
                           return;
                         }
@@ -1425,7 +1467,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                           Navigator.pop(context);
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text(existingRecurring != null ? 'Chi phí cố định đã được cập nhật' : 'Chi phí cố định đã được thêm'),
+                              content: Text(existingRecurring != null ? LocalizationService.getString('error_recurring_updated') : LocalizationService.getString('error_recurring_added')),
                               backgroundColor: Colors.green,
                             ),
                           );
@@ -1434,13 +1476,13 @@ class _ExpensesPageState extends State<ExpensesPage> {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               backgroundColor: Colors.red,
-                              content: Text('Lỗi: $e'),
+                              content: Text('${LocalizationService.getString('error_with_message')}$e'),
                             ),
                           );
                         }
                       },
                       style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
-                      child: const Text('Lưu', style: TextStyle(fontSize: 16)),
+                      child: Text(LocalizationService.getString('expense_save'), style: const TextStyle(fontSize: 16)),
                     ),
                   ],
                 ),
@@ -1485,7 +1527,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                         children: [
                           Expanded(
                             child: Text(
-                              'Tổng Chi Tiêu - ${_getFilterDisplayText()}',
+                              '${LocalizationService.getString('expense_total_expenses')} - ${_getFilterDisplayText()}',
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 18,
@@ -1503,14 +1545,24 @@ class _ExpensesPageState extends State<ExpensesPage> {
                               fontWeight: FontWeight.bold,
                             ),
                             underline: Container(height: 2, color: Colors.white),
-                            items: ['Hôm nay', 'Tuần này', 'Tháng này', 'Chọn ngày']
-                                .map(
-                                  (filter) => DropdownMenuItem(
-                                    value: filter,
-                                    child: Text(filter),
-                                  ),
-                                )
-                                .toList(),
+                            items: [
+                              DropdownMenuItem(
+                                value: 'Hôm nay',
+                                child: Text(LocalizationService.getString('filter_today')),
+                              ),
+                              DropdownMenuItem(
+                                value: 'Tuần này',
+                                child: Text(LocalizationService.getString('filter_this_week')),
+                              ),
+                              DropdownMenuItem(
+                                value: 'Tháng này',
+                                child: Text(LocalizationService.getString('filter_this_month')),
+                              ),
+                              DropdownMenuItem(
+                                value: 'Chọn ngày',
+                                child: Text(LocalizationService.getString('filter_select_date')),
+                              ),
+                            ],
                             onChanged: (value) async {
                               if (value != null) {
                                 if (value == 'Chọn ngày') {
@@ -1552,9 +1604,9 @@ class _ExpensesPageState extends State<ExpensesPage> {
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text(
-                                    'Tổng Chi',
-                                    style: TextStyle(
+                                  Text(
+                                    LocalizationService.getString('expense_total_expenses'),
+                                    style: const TextStyle(
                                       fontSize: 14,
                                       color: Colors.blueGrey,
                                     ),
@@ -1586,9 +1638,9 @@ class _ExpensesPageState extends State<ExpensesPage> {
                         child: ElevatedButton.icon(
                           onPressed: _showAddExpenseDialog,
                           icon: const Icon(Icons.add, size: 28),
-                          label: const Text(
-                            'Thêm Chi Tiêu',
-                            style: TextStyle(fontSize: 18),
+                          label: Text(
+                            LocalizationService.getString('expense_add'),
+                            style: const TextStyle(fontSize: 18),
                           ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.red.shade400,
@@ -1605,9 +1657,9 @@ class _ExpensesPageState extends State<ExpensesPage> {
                         child: ElevatedButton.icon(
                           onPressed: _showAddRecurringExpenseDialog,
                           icon: const Icon(Icons.repeat, size: 28),
-                          label: const Text(
-                            'Chi Phí Cố Định',
-                            style: TextStyle(fontSize: 18),
+                          label: Text(
+                            LocalizationService.getString('expense_fixed'),
+                            style: const TextStyle(fontSize: 18),
                           ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.orange.shade400,
@@ -1631,7 +1683,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Chi Phí Cố Định',
+                          LocalizationService.getString('expense_fixed'),
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -1708,7 +1760,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                                               const SizedBox(height: 2),
                                               // Next occurrence
                                               Text(
-                                                'Ngày thanh toán tiếp theo: ${nextOccurrence.day}/${nextOccurrence.month}/${nextOccurrence.year}',
+                                                '${LocalizationService.getString('recurring_next_payment')}: ${nextOccurrence.day}/${nextOccurrence.month}/${nextOccurrence.year}',
                                                 style: const TextStyle(
                                                   color: Colors.white,
                                                   fontSize: 14,
@@ -1725,7 +1777,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                                                   ),
                                                   const SizedBox(width: 3),
                                                   Text(
-                                                    recurring.isActive ? 'Đang hoạt động' : 'Đã tắt',
+                                                    recurring.isActive ? LocalizationService.getString('recurring_active') : LocalizationService.getString('recurring_inactive'),
                                                     style: TextStyle(
                                                       color: Colors.amberAccent.shade100,
                                                       fontSize: 13,
@@ -1784,7 +1836,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Danh Mục Chi Tiêu - ${_getFilterDisplayText()}',
+                        '${LocalizationService.getString('expense_categories_header')} - ${_getFilterDisplayText()}',
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -1855,7 +1907,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                                                       crossAxisAlignment: CrossAxisAlignment.start,
                                                       children: [
                                                         Text(
-                                                          category,
+                                                          _getCategoryDisplayName(category),
                                                           style: const TextStyle(
                                                             fontWeight: FontWeight.bold,
                                                             fontSize: 16,
@@ -1867,7 +1919,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                                                           builder: (context, snapshot) {
                                                             if (snapshot.hasData) {
                                                               return Text(
-                                                                '${snapshot.data!.length} giao dịch',
+                                                                '${snapshot.data!.length} ${LocalizationService.getString('expense_transactions')}',
                                                                 style: TextStyle(
                                                                   color: Theme.of(context).brightness == Brightness.dark
                                                                     ? Colors.white
@@ -2000,7 +2052,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                                                                                   borderRadius: BorderRadius.circular(6),
                                                                                 ),
                                                                                 child: Text(
-                                                                                  expense.paymentMethod,
+                                                                                  _getPaymentMethodLabel(expense.paymentMethod),
                                                                                   style: TextStyle(
                                                                                     fontSize: 11,
                                                                                     color: Theme.of(context).brightness == Brightness.dark
@@ -2055,8 +2107,8 @@ class _ExpensesPageState extends State<ExpensesPage> {
                               ),
                             );
                           }
-                          return const Center(
-                            child: Text('Chưa có chi tiêu nào'),
+                          return Center(
+                            child: Text(LocalizationService.getString('message_no_expenses')),
                           );
                         },
                       ),

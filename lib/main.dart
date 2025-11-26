@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'dart:io' show Platform;
@@ -18,6 +20,8 @@ import 'theme/theme_manager.dart';
 import 'services/notification_service.dart';
 import 'services/currency_service.dart';
 import 'services/admob_service.dart';
+import 'services/firebase_service.dart';
+import 'services/localization_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,6 +40,17 @@ void main() async {
 
   // Initialize CurrencyService
   await CurrencyService.init();
+
+  // Load language preference
+  final prefs = await SharedPreferences.getInstance();
+  final savedLanguage = prefs.getString('language') ?? 'vi';
+  LocalizationService.setLanguage(savedLanguage);
+
+  // Initialize Firebase (only on mobile platforms)
+  if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+    await Firebase.initializeApp();
+    await FirebaseService.initialize();
+  }
 
   // Initialize AdMob (only on mobile platforms)
   await AdMobService.initialize();
@@ -58,14 +73,16 @@ class _KetoAppState extends State<KetoApp> {
   bool _isDarkMode = false;
   String _shopName = 'Keto - Sổ Tay Bán Hàng';
   bool _soundEnabled = true;
+  String _language = 'vi';
 
   @override
   void initState() {
     super.initState();
     _isDarkMode = ThemeManager().isDarkMode;
+    _language = LocalizationService.language;
     _loadShopName();
     _loadSoundEnabled();
-    print('KetoApp initialized - isDarkMode: $_isDarkMode');
+    print('KetoApp initialized - isDarkMode: $_isDarkMode, language: $_language');
   }
 
   Future<void> _loadShopName() async {
@@ -107,6 +124,15 @@ class _KetoAppState extends State<KetoApp> {
     });
   }
 
+  void _setLanguage(String language) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('language', language);
+    LocalizationService.setLanguage(language);
+    setState(() {
+      _language = language;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -121,6 +147,8 @@ class _KetoAppState extends State<KetoApp> {
         onShopNameChanged: _setShopName,
         soundEnabled: _soundEnabled,
         onSoundEnabledChanged: _setSoundEnabled,
+        language: _language,
+        onLanguageChanged: _setLanguage,
       ),
     );
   }
@@ -133,6 +161,8 @@ class KetoHomepage extends StatefulWidget {
   final Function(String) onShopNameChanged;
   final bool soundEnabled;
   final Function(bool) onSoundEnabledChanged;
+  final String language;
+  final Function(String) onLanguageChanged;
 
   const KetoHomepage({
     super.key,
@@ -142,6 +172,8 @@ class KetoHomepage extends StatefulWidget {
     required this.onShopNameChanged,
     required this.soundEnabled,
     required this.onSoundEnabledChanged,
+    required this.language,
+    required this.onLanguageChanged,
   });
 
   @override
@@ -239,27 +271,14 @@ class _KetoHomepageState extends State<KetoHomepage> {
                 children: [
                   Row(
                     children: [
-                      Image.asset(
-                        'assets/images/logo.png',
-                        width: 35,
-                        height: 35,
-                        fit: BoxFit.contain,
-                      ),
                       const Text(
-                        'Keto',
+                        'Keto - Sổ Tay Bán Hàng',
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
-                          color: Colors.purple,
+                          color: Colors.white,
                         ),
                       ),
-                      Image.asset(
-                        'assets/images/logo.png',
-                        width: 35,
-                        height: 35,
-                        fit: BoxFit.contain,
-                      ),
-
                     ],
                   ),
                   ElevatedButton.icon(
@@ -374,47 +393,47 @@ class _KetoHomepageState extends State<KetoHomepage> {
           // Main Pages
           NavigationDrawerDestination(
             icon: const Icon(Icons.monetization_on, color: Colors.green),
-            label: const Text('Bán Hàng'),
+            label: Text(LocalizationService.getString('nav_sales')),
           ),
           NavigationDrawerDestination(
             icon: const Icon(Icons.monetization_on, color: Colors.red),
-            label: const Text('Chi Tiêu'),
+            label: Text(LocalizationService.getString('nav_expenses')),
           ),
           NavigationDrawerDestination(
             icon: const Icon(Icons.shelves, color: Colors.orange),
-            label: const Text('Kho Hàng'),
+            label: Text(LocalizationService.getString('nav_inventory')),
           ),
           NavigationDrawerDestination(
             icon: const Icon(Icons.poll, color: Colors.blue),
-            label: const Text('Thống Kê'),
+            label: Text(LocalizationService.getString('nav_statistics')),
           ),
           const Divider(),
           // Product Management & Data Management
           NavigationDrawerDestination(
             icon: const Icon(Icons.shopping_bag, color: Colors.purple),
-            label: const Text('Quản lý Sản phẩm'),
+            label: Text(LocalizationService.getString('nav_product_management')),
           ),
           NavigationDrawerDestination(
             icon: const Icon(Icons.auto_stories, color: Colors.teal),
-            label: const Text('Quản lý Dữ liệu'),
+            label: Text(LocalizationService.getString('nav_data_management')),
           ),
           const Divider(),
           // Settings & Utilities
           NavigationDrawerDestination(
             icon: const Icon(Icons.settings),
-            label: const Text('Cài đặt'),
+            label: Text(LocalizationService.getString('nav_settings')),
           ),
           NavigationDrawerDestination(
             icon: const Icon(Icons.calculate),
-            label: const Text('Các công thức cơ bản'),
+            label: Text(LocalizationService.getString('nav_formulas')),
           ),
           NavigationDrawerDestination(
             icon: const Icon(Icons.privacy_tip),
-            label: const Text('Chính sách bảo mật'),
+            label: Text(LocalizationService.getString('nav_privacy')),
           ),
           NavigationDrawerDestination(
             icon: const Icon(Icons.person),
-            label: const Text('About'),
+            label: Text(LocalizationService.getString('nav_about')),
           ),
         ],
         onDestinationSelected: (index) async {
@@ -486,6 +505,8 @@ class _KetoHomepageState extends State<KetoHomepage> {
                   soundEnabled: widget.soundEnabled,
                   onSoundEnabledChanged: widget.onSoundEnabledChanged,
                   onThemeChanged: widget.onThemeChanged,
+                  language: widget.language,
+                  onLanguageChanged: widget.onLanguageChanged,
                 ),
               ),
             ).then((_) {

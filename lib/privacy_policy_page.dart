@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'services/localization_service.dart';
 
 class PrivacyPolicyPage extends StatelessWidget {
   const PrivacyPolicyPage({super.key});
@@ -7,7 +8,7 @@ class PrivacyPolicyPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Chính sách bảo mật'),
+        title: Text(LocalizationService.getString('nav_privacy')),
         backgroundColor: Colors.black26,
         foregroundColor: Colors.white,
       ),
@@ -19,46 +20,35 @@ class PrivacyPolicyPage extends StatelessWidget {
           children: [
             _buildSectionCard(
               icon: Icons.verified_user,
-              title: 'Quyền truy cập',
-              content: 'Ứng dụng yêu cầu quyền truy cập kho ảnh khi bạn muốn thêm hình ảnh sản phẩm. Bạn có thể từ chối bất kỳ lúc nào.',
+              title: LocalizationService.getString('privacy_access_title'),
+              content: LocalizationService.getString('privacy_access_content'),
               color: Colors.green,
             ),
             _buildSectionCard(
               icon: Icons.security,
-              title: 'Dữ liệu của bạn',
-              content: 'Tất cả dữ liệu bán hàng, chi tiêu và kho hàng của bạn được lưu trữ trực tiếp trên thiết bị của bạn. Chúng tôi không gửi dữ liệu này đến máy chủ hoặc bên thứ ba nào. Bạn hoàn toàn kiểm soát và chịu trách nhiệm với dữ liệu của mình.',
+              title: LocalizationService.getString('privacy_data_title'),
+              content: LocalizationService.getString('privacy_data_content'),
               color: Colors.blue,
             ),
             _buildSectionCard(
               icon: Icons.storage,
-              title: 'Xuất file dữ liệu CSV và JSON',
-              content: 'Ứng dụng cho phép bạn xuất dữ liệu bán hàng, chi tiêu và kho hàng dưới dạng file CSV và JSON để bạn có thể sao lưu hoặc sử dụng trong các ứng dụng khác. Các file này được lưu trong bộ nhớ của thiết bị và hoàn toàn do bạn kiểm soát.',
+              title: LocalizationService.getString('privacy_export_title'),
+              content: LocalizationService.getString('privacy_export_content'),
               color: Colors.orange,
             ),
             _buildSectionCard(
               icon: Icons.delete_forever,
-              title: 'Xóa dữ liệu',
-              content: 'Bạn có thể xóa tất cả dữ liệu của mình bất kỳ lúc nào thông qua mục "Quản lý Dữ liệu" trong menu.',
+              title: LocalizationService.getString('privacy_delete_title'),
+              content: LocalizationService.getString('privacy_delete_content'),
               color: Colors.red,
             ),
             _buildSectionCard(
               icon: Icons.email,
-              title: 'Liên hệ',
-              content: 'Nếu bạn có bất kỳ câu hỏi nào về chính sách bảo mật này, vui lòng liên hệ với chúng tôi.',
+              title: LocalizationService.getString('privacy_contact_title'),
+              content: LocalizationService.getString('privacy_contact_content'),
               color: Colors.purple,
             ),
             const SizedBox(height: 32),
-            Center(
-              child: Text(
-                'Cập nhật lần cuối: Tháng 11, 2025',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[600],
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
           ],
         ),
       ),

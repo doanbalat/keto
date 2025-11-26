@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'services/permission_service.dart';
 import 'services/currency_service.dart';
 import 'services/product_category_service.dart';
+import 'services/localization_service.dart';
 import 'theme/theme_manager.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -13,6 +14,8 @@ class SettingsPage extends StatefulWidget {
   final bool soundEnabled;
   final Function(bool) onSoundEnabledChanged;
   final Function(bool) onThemeChanged;
+  final String language;
+  final Function(String) onLanguageChanged;
 
   const SettingsPage({
     super.key,
@@ -23,6 +26,8 @@ class SettingsPage extends StatefulWidget {
     required this.soundEnabled,
     required this.onSoundEnabledChanged,
     required this.onThemeChanged,
+    required this.language,
+    required this.onLanguageChanged,
   });
 
   @override
@@ -35,6 +40,7 @@ class _SettingsPageState extends State<SettingsPage> {
   late bool _soundEnabled;
   late String _selectedCurrency;
   late bool _isDarkMode;
+  late String _selectedLanguage;
   String _defaultProductCategory = 'Khác'; // Initialize directly with default value
   late TextEditingController _thresholdController;
   late TextEditingController _shopNameController;
@@ -49,6 +55,7 @@ class _SettingsPageState extends State<SettingsPage> {
     _loadDarkMode(); // Load actual dark mode asynchronously
     _selectedCurrency = 'VND'; // Default value
     _loadCurrency(); // Load actual currency asynchronously
+    _selectedLanguage = widget.language;
     _defaultProductCategory = 'Khác'; // Default value
     _loadDefaultProductCategory(); // Load actual default category asynchronously
     // Set initial value to 5 if not provided
@@ -132,7 +139,7 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Cài đặt'),
+        title: Text(LocalizationService.getString('settings_title')),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -140,7 +147,7 @@ class _SettingsPageState extends State<SettingsPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Hiển thị',
+              LocalizationService.getString('settings_display'),
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -157,7 +164,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            'Tên cửa hàng',
+                            LocalizationService.getString('settings_shop_name'),
                             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                               fontWeight: FontWeight.w400,
                             ),
@@ -165,7 +172,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         ),
                         IconButton(
                           icon: const Icon(Icons.refresh, color: Colors.grey),
-                          tooltip: 'Đặt lại tên mặc định',
+                          tooltip: LocalizationService.getString('settings_reset_default'),
                           onPressed: _resetShopName,
                         ),
                       ],
@@ -204,9 +211,9 @@ class _SettingsPageState extends State<SettingsPage> {
                       _isDarkMode ? Icons.dark_mode : Icons.light_mode,
                       color: Colors.blue,
                     ),
-                    title: const Text('Chế độ tối'),
+                    title: Text(LocalizationService.getString('settings_dark_mode')),
                     subtitle: Text(
-                      _isDarkMode ? 'Bật' : 'Tắt',
+                      _isDarkMode ? LocalizationService.getString('settings_on') : LocalizationService.getString('settings_off'),
                       style: TextStyle(
                         color: _isDarkMode ? Colors.blue : Colors.grey,
                       ),
@@ -227,7 +234,56 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             const SizedBox(height: 24),
             Text(
-              'Tiền tệ',
+              LocalizationService.getString('settings_language'),
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+            const SizedBox(height: 16),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Row(
+                  children: [
+                    const Icon(Icons.language, color: Colors.purple),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        LocalizationService.getString('settings_select_language'),
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ),
+                    DropdownButton<String>(
+                      value: _selectedLanguage,
+                      items: LocalizationService.getAvailableLanguages().map((String lang) {
+                        return DropdownMenuItem<String>(
+                          value: lang,
+                          child: Text(
+                            LocalizationService.getLanguageDisplayName(lang),
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (String? newValue) {
+                        if (newValue != null) {
+                          setState(() {
+                            _selectedLanguage = newValue;
+                          });
+                          widget.onLanguageChanged(newValue);
+                        }
+                      },
+                      underline: Container(),
+                      style: const TextStyle(color: Colors.purple),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              LocalizationService.getString('settings_currency'),
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -242,7 +298,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'Chọn loại tiền tệ',
+                        LocalizationService.getString('settings_select_currency'),
                         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                           fontWeight: FontWeight.w400,
                         ),
@@ -276,7 +332,7 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             const SizedBox(height: 24),
             Text(
-              'Âm thanh',
+              LocalizationService.getString('settings_sound'),
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -290,9 +346,9 @@ class _SettingsPageState extends State<SettingsPage> {
                       _soundEnabled ? Icons.volume_up : Icons.volume_off,
                       color: Colors.blue,
                     ),
-                    title: const Text('Âm thanh khi bán hàng'),
+                    title: Text(LocalizationService.getString('settings_sound_on_sale')),
                     subtitle: Text(
-                      _soundEnabled ? 'Bật' : 'Tắt',
+                      _soundEnabled ? LocalizationService.getString('settings_on') : LocalizationService.getString('settings_off'),
                       style: TextStyle(
                         color: _soundEnabled ? Colors.green : Colors.grey,
                       ),
@@ -313,7 +369,7 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             const SizedBox(height: 24),
             Text(
-              'Sản phẩm',
+              LocalizationService.getString('settings_products'),
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -330,7 +386,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            'Loại sản phẩm mặc định',
+                            LocalizationService.getString('settings_default_category'),
                             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                               fontWeight: FontWeight.w400,
                             ),
@@ -388,7 +444,7 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             const SizedBox(height: 24),
             Text(
-              'Kho hàng',
+              LocalizationService.getString('settings_inventory'),
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -405,7 +461,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            'Ngưỡng sắp hết hàng',
+                            LocalizationService.getString('settings_low_stock_threshold'),
                             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                               fontWeight: FontWeight.w400,
                             ),
@@ -444,9 +500,9 @@ class _SettingsPageState extends State<SettingsPage> {
                   const Divider(height: 10),
                   ListTile(
                     leading: const Icon(Icons.notifications, color: Colors.blue),
-                    title: const Text('Nhận thông báo về kho hàng'),
+                    title: Text(LocalizationService.getString('settings_notifications')),
                     subtitle: Text(
-                      _notificationsEnabled ? 'Bật' : 'Tắt',
+                      _notificationsEnabled ? LocalizationService.getString('settings_on') : LocalizationService.getString('settings_off'),
                       style: TextStyle(
                         color: _notificationsEnabled ? Colors.green : Colors.grey,
                       ),
@@ -465,22 +521,21 @@ class _SettingsPageState extends State<SettingsPage> {
                               context: context,
                               builder: (BuildContext ctx) {
                                 return AlertDialog(
-                                  title: const Text('Yêu cầu quyền thông báo'),
-                                  content: const Text(
-                                    'Ứng dụng cần quyền gửi thông báo để nhắc nhở bạn khi hàng sắp hết. '
-                                    'Vui lòng cấp quyền trong cài đặt.',
+                                  title: Text(LocalizationService.getString('dialog_notification_permission')),
+                                  content: Text(
+                                    LocalizationService.getString('dialog_notification_message'),
                                   ),
                                   actions: [
                                     TextButton(
                                       onPressed: () => Navigator.pop(ctx),
-                                      child: const Text('Để sau'),
+                                      child: Text(LocalizationService.getString('dialog_later')),
                                     ),
                                     ElevatedButton(
                                       onPressed: () async {
                                         Navigator.pop(ctx);
                                         await PermissionService.openSettings();
                                       },
-                                      child: const Text('Mở cài đặt'),
+                                      child: Text(LocalizationService.getString('dialog_open_settings')),
                                     ),
                                   ],
                                 );
@@ -502,10 +557,28 @@ class _SettingsPageState extends State<SettingsPage> {
                 ],
               ),
             ),
+            const SizedBox(height: 24),
+            // Test Crash Button (Debug only)
+            Center(
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                ),
+                onPressed: () {
+                  // Force a crash to test Crashlytics
+                  throw Exception('Test crash from settings page');
+                },
+                child: const Text(
+                  'Test Crash (Debug Only)',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            ),
             const SizedBox(height: 200),
             Center(
               child: Text(
-              'Phiên bản 1.0.0',
+              LocalizationService.getString('settings_version'),
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 color: Colors.blue,
                 fontWeight: FontWeight.bold,

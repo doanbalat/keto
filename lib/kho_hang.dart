@@ -6,7 +6,9 @@ import 'services/product_service.dart';
 import 'services/image_service.dart';
 import 'services/permission_service.dart';
 import 'services/notification_service.dart';
+import 'services/firebase_service.dart';
 import 'services/currency_service.dart';
+import 'services/localization_service.dart';
 import 'services/product_category_service.dart';
 import 'services/statistics_cache_service.dart';
 import 'package:image_picker/image_picker.dart';
@@ -43,6 +45,8 @@ class _InventoryPageState extends State<InventoryPage> {
   @override
   void initState() {
     super.initState();
+    // Log screen view to Analytics
+    FirebaseService.logScreenView('Inventory Page');
     _productService = widget.productService ?? ProductService();
     _loadProducts();
     _searchController.addListener(_filterProducts);
@@ -85,7 +89,7 @@ class _InventoryPageState extends State<InventoryPage> {
         if (!matchesSearch) return false;
 
         // Apply category filter if selected
-        if (_selectedCategory != null && _selectedCategory != 'Tất cả') {
+        if (_selectedCategory != null && _selectedCategory != LocalizationService.getString('inventory_all_categories')) {
           if (product.category != _selectedCategory) return false;
         }
 
@@ -124,9 +128,9 @@ class _InventoryPageState extends State<InventoryPage> {
   }
 
   String _getStockStatus(int quantity) {
-    if (quantity == 0) return 'Hết hàng / Không Rõ SL';
-    if (quantity <= widget.lowStockThreshold) return 'Sắp hết';
-    return 'Còn hàng';
+    if (quantity == 0) return LocalizationService.getString('inventory_out_of_stock');
+    if (quantity <= widget.lowStockThreshold) return LocalizationService.getString('inventory_low_stock');
+    return LocalizationService.getString('inventory_in_stock');
   }
 
   int _getTotalInventoryValue() {
@@ -152,7 +156,7 @@ class _InventoryPageState extends State<InventoryPage> {
     if (_cachedCategories != null) {
       return _cachedCategories!;
     }
-    final categories = <String>{'Tất cả'};
+    final categories = <String>{LocalizationService.getString('inventory_all_categories')};
     for (var product in allProducts) {
       categories.add(product.category);
     }
@@ -166,7 +170,7 @@ class _InventoryPageState extends State<InventoryPage> {
       try {
         final NotificationService notificationService = NotificationService();
         await notificationService.showWarning(
-          'Sắp hết hàng',
+          LocalizationService.getString('inventory_low_stock_notification'),
           '${product.name} chỉ còn ${product.stock} ${product.unit}',
         );
         print('Low stock notification sent for: ${product.name}, stock: ${product.stock}');
@@ -194,7 +198,7 @@ class _InventoryPageState extends State<InventoryPage> {
             final isIncreasing = difference > 0;
 
             return AlertDialog(
-              title: Text('Cập nhật kho - ${product.name}'),
+              title: Text('${LocalizationService.getString('inventory_update_title')} - ${product.name}'),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -230,15 +234,15 @@ class _InventoryPageState extends State<InventoryPage> {
                                     TextButton(
                                       onPressed: () =>
                                           Navigator.pop(ctx),
-                                      child: const Text('Hủy'),
+                                      child: Text(LocalizationService.getString('btn_cancel')),
                                     ),
                                     ElevatedButton(
                                       onPressed: () async {
                                         Navigator.pop(ctx);
                                         await PermissionService.openSettings();
                                       },
-                                      child: const Text(
-                                        'Mở cài đặt',
+                                      child: Text(
+                                        LocalizationService.getString('btn_open_settings'),
                                       ),
                                     ),
                                   ],
@@ -296,7 +300,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
-                                    'Chọn ảnh mặt hàng',
+                                    LocalizationService.getString('inventory_select_image_hint'),
                                     style: TextStyle(
                                       color: Colors.grey[600],
                                       fontSize: 14,
@@ -318,7 +322,7 @@ class _InventoryPageState extends State<InventoryPage> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'Kho hiện tại:',
+                            LocalizationService.getString('inventory_current_stock'),
                             style: TextStyle(
                               fontSize: 13,
                               color: Colors.black87,
@@ -339,7 +343,7 @@ class _InventoryPageState extends State<InventoryPage> {
 
                     // Quick action buttons
                     Text(
-                      'Điều chỉnh nhanh:',
+                      LocalizationService.getString('inventory_quick_adjust'),
                       style: TextStyle(
                         fontSize: 12,
                         color: Colors.grey[600],
@@ -440,7 +444,7 @@ class _InventoryPageState extends State<InventoryPage> {
                         });
                       },
                       decoration: InputDecoration(
-                        labelText: 'Nhập số lượng mới',
+                        labelText: LocalizationService.getString('inventory_enter_new_quantity'),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
@@ -471,7 +475,7 @@ class _InventoryPageState extends State<InventoryPage> {
                         );
                       },
                       icon: const Icon(Icons.shopping_cart_checkout),
-                      label: const Text('Nhập hàng với giá khác'),
+                      label: Text(LocalizationService.getString('inventory_import_different_price')),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.orange,
                         foregroundColor: Colors.white,
@@ -495,7 +499,7 @@ class _InventoryPageState extends State<InventoryPage> {
                         });
                       },
                       decoration: InputDecoration(
-                        labelText: 'Đơn vị (cái, kg, ly, hộp, phần, ...)',
+                        labelText: LocalizationService.getString('inventory_unit_hint'),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
@@ -519,7 +523,7 @@ class _InventoryPageState extends State<InventoryPage> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                'Giá bán:',
+                                LocalizationService.getString('inventory_selling_price_label'),
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: Colors.black87,
@@ -540,7 +544,7 @@ class _InventoryPageState extends State<InventoryPage> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                'Giá vốn:',
+                                LocalizationService.getString('inventory_product_label_cost_price') + ':',
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: Colors.black87,
@@ -559,7 +563,7 @@ class _InventoryPageState extends State<InventoryPage> {
                           const SizedBox(height: 6),
                           Divider(height: 12, color: Colors.orange[200]),
                           Text(
-                            'Giá trị kho hiện tại: ${CurrencyService.formatCurrency(product.stock * product.price)}',
+                            '${LocalizationService.getString('inventory_value')}: ${CurrencyService.formatCurrency(product.stock * product.price)}',
                             style: TextStyle(
                               fontSize: 11,
                               color: Colors.black87,
@@ -587,7 +591,7 @@ class _InventoryPageState extends State<InventoryPage> {
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              'Keto tính giá vốn TRUNG BÌNH khi bạn cập nhật kho hàng với mức giá vốn mới.',
+                              LocalizationService.getString('inventory_average_cost_price_note'),
                               style: TextStyle(
                                 fontStyle: FontStyle.italic,
                                 fontWeight: FontWeight.bold,
@@ -606,7 +610,7 @@ class _InventoryPageState extends State<InventoryPage> {
                       children: [
                         TextButton(
                           onPressed: () => Navigator.pop(context),
-                          child: const Text('Hủy'),
+                          child: Text(LocalizationService.getString('btn_cancel')),
                         ),
                         const Spacer(),
                         ElevatedButton(
@@ -621,8 +625,8 @@ class _InventoryPageState extends State<InventoryPage> {
 
                               if (newQuantity < 0) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Số lượng không được âm'),
+                                  SnackBar(
+                                    content: Text(LocalizationService.getString('inventory_quantity_negative')),
                                   ),
                                 );
                                 return;
@@ -638,9 +642,9 @@ class _InventoryPageState extends State<InventoryPage> {
                                 if (savedPath == null) {
                                   if (!mounted) return;
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
+                                    SnackBar(
                                       content:
-                                          Text('Lỗi khi lưu ảnh sản phẩm'),
+                                          Text(LocalizationService.getString('inventory_save_image_error')),
                                       backgroundColor: Colors.red,
                                     ),
                                   );
@@ -673,14 +677,14 @@ class _InventoryPageState extends State<InventoryPage> {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text(
-                                    'Cập nhật kho cho "${product.name}" thành công',
+                                    LocalizationService.getString('inventory_update_success_simple').replaceAll('{name}', product.name),
                                   ),
                                   backgroundColor: Colors.green,
                                 ),
                               );
                             } catch (e) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Lỗi: $e')),
+                                SnackBar(content: Text('${LocalizationService.getString('error_with_message')}$e')),
                               );
                             }
                           },
@@ -688,7 +692,7 @@ class _InventoryPageState extends State<InventoryPage> {
                             backgroundColor: Colors.blue,
                             foregroundColor: Colors.white,
                           ),
-                          child: const Text('Cập nhật'),
+                          child: Text(LocalizationService.getString('btn_save')),
                         ),
                       ],
                     ),
@@ -728,9 +732,9 @@ class _InventoryPageState extends State<InventoryPage> {
                 final newQuantity = int.parse(newQuantityController.text);
 
                 if (newQuantity <= 0) {
-                  errorMessage = 'Số lượng phải lớn hơn 0';
+                  errorMessage = LocalizationService.getString('inventory_quantity_greater_zero');
                 } else if (newCostPrice <= 0) {
-                  errorMessage = 'Giá vốn phải lớn hơn 0';
+                  errorMessage = LocalizationService.getString('inventory_cost_greater_zero');
                 } else {
                   calculatedNewQuantity = product.stock + newQuantity;
                   final totalCostOld = product.costPrice * product.stock;
@@ -740,12 +744,12 @@ class _InventoryPageState extends State<InventoryPage> {
                           .round();
                 }
               } catch (e) {
-                errorMessage = 'Giá trị không hợp lệ';
+                errorMessage = LocalizationService.getString('inventory_invalid_value');
               }
             }
 
             return AlertDialog(
-              title: const Text('Nhập hàng với giá khác'),
+              title: Text(LocalizationService.getString('inventory_import_different_price')),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -762,7 +766,7 @@ class _InventoryPageState extends State<InventoryPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Thông tin hàng hiện tại:',
+                            LocalizationService.getString('inventory_product_info'),
                             style: TextStyle(
                               fontSize: 13,
                               color: Colors.black87,
@@ -774,7 +778,7 @@ class _InventoryPageState extends State<InventoryPage> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                'Số lượng hiện tại:',
+                                LocalizationService.getString('inventory_current_quantity'),
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: Colors.black87,
@@ -795,7 +799,7 @@ class _InventoryPageState extends State<InventoryPage> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                'Giá vốn hiện tại:',
+                                LocalizationService.getString('inventory_current_cost_price_label'),
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: Colors.black87,
@@ -824,7 +828,7 @@ class _InventoryPageState extends State<InventoryPage> {
                         setInnerDialogState(() {});
                       },
                       decoration: InputDecoration(
-                        labelText: 'Giá vốn mới (VND)',
+                        labelText: LocalizationService.getString('inventory_new_cost_price'),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
@@ -842,7 +846,7 @@ class _InventoryPageState extends State<InventoryPage> {
                         setInnerDialogState(() {});
                       },
                       decoration: InputDecoration(
-                        labelText: 'Số lượng mới cần nhập',
+                        labelText: LocalizationService.getString('inventory_new_quantity_needed'),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
@@ -870,7 +874,7 @@ class _InventoryPageState extends State<InventoryPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Tính toán:',
+                            LocalizationService.getString('inventory_calculation_label'),
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
@@ -908,7 +912,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                         MainAxisAlignment.spaceBetween,
                                     children: [
                                       Text(
-                                        'Số lượng mới:',
+                                        LocalizationService.getString('inventory_new_quantity'),
                                         style: TextStyle(
                                           fontSize: 11,
                                           color: Colors.black87,
@@ -943,7 +947,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                         MainAxisAlignment.spaceBetween,
                                     children: [
                                       Text(
-                                        'Giá vốn trung bình:',
+                                        LocalizationService.getString('inventory_average_cost_price'),
                                         style: TextStyle(
                                           fontSize: 11,
                                           color: Colors.black87,
@@ -967,7 +971,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                 const SizedBox(height: 8),
                                 // Calculation breakdown
                                 Text(
-                                  'Công thức: (${product.costPrice} × ${product.stock} + [giá mới] × [số lượng nhập]) ÷ [số lượng mới]',
+                                  LocalizationService.getString('inventory_calculation_formula').replaceAll('{old_cost}', product.costPrice.toString()).replaceAll('{old_quantity}', product.stock.toString()),
                                   style: TextStyle(
                                     fontSize: 10,
                                     color: Colors.grey[600],
@@ -985,7 +989,7 @@ class _InventoryPageState extends State<InventoryPage> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('Hủy'),
+                  child: Text(LocalizationService.getString('btn_cancel')),
                 ),
                 ElevatedButton(
                   onPressed: errorMessage.isNotEmpty
@@ -995,8 +999,8 @@ class _InventoryPageState extends State<InventoryPage> {
                             if (newCostPriceController.text.isEmpty ||
                                 newQuantityController.text.isEmpty) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Vui lòng điền đầy đủ thông tin'),
+                                SnackBar(
+                                  content: Text(LocalizationService.getString('product_fill_required_fields')),
                                   backgroundColor: Colors.red,
                                 ),
                               );
@@ -1010,8 +1014,8 @@ class _InventoryPageState extends State<InventoryPage> {
 
                             if (newQuantity <= 0) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Số lượng phải lớn hơn 0'),
+                                SnackBar(
+                                  content: Text(LocalizationService.getString('inventory_quantity_greater_zero')),
                                   backgroundColor: Colors.red,
                                 ),
                               );
@@ -1020,8 +1024,8 @@ class _InventoryPageState extends State<InventoryPage> {
 
                             if (newCostPrice <= 0) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Giá vốn phải lớn hơn 0'),
+                                SnackBar(
+                                  content: Text(LocalizationService.getString('inventory_cost_greater_zero')),
                                   backgroundColor: Colors.red,
                                 ),
                               );
@@ -1057,14 +1061,17 @@ class _InventoryPageState extends State<InventoryPage> {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(
-                                  'Cập nhật kho cho "${product.name}" thành công\nSố lượng: +$newQuantity, Giá vốn trung bình: ${CurrencyService.formatCurrency(averageCostPrice)}',
+                                  LocalizationService.getString('inventory_update_success')
+                                      .replaceAll('{name}', product.name)
+                                      .replaceAll('{quantity}', newQuantity.toString())
+                                      .replaceAll('{cost_price}', CurrencyService.formatCurrency(averageCostPrice)),
                                 ),
                                 backgroundColor: Colors.green,
                               ),
                             );
                           } catch (e) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Lỗi: $e')),
+                              SnackBar(content: Text('${LocalizationService.getString('error')}: $e')),
                             );
                           }
                         },
@@ -1074,7 +1081,7 @@ class _InventoryPageState extends State<InventoryPage> {
                         : Colors.orange,
                     foregroundColor: Colors.white,
                   ),
-                  child: const Text('Cập nhật'),
+                  child: Text(LocalizationService.getString('btn_update')),
                 ),
               ],
             );
@@ -1093,6 +1100,7 @@ class _InventoryPageState extends State<InventoryPage> {
     String selectedCategory = 'Khác'; // Will be updated from default
     File? selectedImage;
     final ImagePicker _picker = ImagePicker();
+    bool _categoryLoaded = false;
 
     // Load default category from settings
     ProductCategoryService.getDefaultCategory().then((defaultCategory) {
@@ -1104,12 +1112,15 @@ class _InventoryPageState extends State<InventoryPage> {
       builder: (BuildContext context) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
-            // Load default category when dialog is first built
-            if (selectedCategory == 'Khác') {
+            // Load default category when dialog is first built (only once)
+            if (!_categoryLoaded) {
               ProductCategoryService.getDefaultCategory().then((defaultCategory) {
-                setDialogState(() {
-                  selectedCategory = defaultCategory;
-                });
+                if (defaultCategory.isNotEmpty && ProductCategoryService.categories.contains(defaultCategory)) {
+                  setDialogState(() {
+                    selectedCategory = defaultCategory;
+                    _categoryLoaded = true;
+                  });
+                }
               });
             }
             
@@ -1166,9 +1177,9 @@ class _InventoryPageState extends State<InventoryPage> {
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
-                                'Thêm sản phẩm mới',
-                                style: TextStyle(
+                              Text(
+                                LocalizationService.getString('product_add_new_title'),
+                                style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 22,
                                   fontWeight: FontWeight.bold,
@@ -1176,7 +1187,7 @@ class _InventoryPageState extends State<InventoryPage> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                'Quản lý kho hàng',
+                                LocalizationService.getString('product_add_inventory_subtitle'),
                                 style: TextStyle(
                                   color: Colors.white.withValues(alpha: 0.8),
                                   fontSize: 13,
@@ -1214,26 +1225,25 @@ class _InventoryPageState extends State<InventoryPage> {
                                         context: context,
                                         builder: (BuildContext ctx) {
                                           return AlertDialog(
-                                            title: const Text(
-                                              'Yêu cầu quyền truy cập',
+                                            title: Text(
+                                              LocalizationService.getString('permission_required_title'),
                                             ),
-                                            content: const Text(
-                                              'Ứng dụng cần quyền truy cập thư viện ảnh để chọn ảnh sản phẩm. '
-                                              'Vui lòng cấp quyền trong cài đặt.',
+                                            content: Text(
+                                              LocalizationService.getString('permission_gallery_message'),
                                             ),
                                             actions: [
                                               TextButton(
                                                 onPressed: () =>
                                                     Navigator.pop(ctx),
-                                                child: const Text('Hủy'),
+                                                child: Text(LocalizationService.getString('btn_cancel')),
                                               ),
                                               ElevatedButton(
                                                 onPressed: () async {
                                                   Navigator.pop(ctx);
                                                   await PermissionService.openSettings();
                                                 },
-                                                child: const Text(
-                                                  'Mở cài đặt',
+                                                child: Text(
+                                                  LocalizationService.getString('btn_open_settings'),
                                                 ),
                                               ),
                                             ],
@@ -1284,7 +1294,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                             ),
                                             const SizedBox(height: 6),
                                             Text(
-                                              'Chọn ảnh sản phẩm',
+                                              LocalizationService.getString('product_select_image'),
                                               style: TextStyle(
                                                 color: Colors.purple[400],
                                                 fontSize: 13,
@@ -1300,7 +1310,7 @@ class _InventoryPageState extends State<InventoryPage> {
                               TextField(
                                 controller: nameController,
                                 decoration: InputDecoration(
-                                  labelText: 'Tên sản phẩm',
+                                  labelText: LocalizationService.getString('inventory_product_name'),
                                   labelStyle: TextStyle(
                                     color: Theme.of(context).brightness == Brightness.dark
                                         ? Colors.grey[300]
@@ -1338,7 +1348,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                 controller: priceController,
                                 keyboardType: TextInputType.number,
                                 decoration: InputDecoration(
-                                  labelText: 'Giá bán (VND)',
+                                  labelText: LocalizationService.getString('inventory_selling_price'),
                                   labelStyle: TextStyle(
                                     color: Theme.of(context).brightness == Brightness.dark
                                         ? Colors.grey[300]
@@ -1376,7 +1386,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                 controller: costPriceController,
                                 keyboardType: TextInputType.number,
                                 decoration: InputDecoration(
-                                  labelText: 'Giá vốn (VND)',
+                                  labelText: LocalizationService.getString('inventory_cost_price'),
                                   labelStyle: TextStyle(
                                     color: Theme.of(context).brightness == Brightness.dark
                                         ? Colors.grey[300]
@@ -1413,7 +1423,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                 controller: quantityController,
                                 keyboardType: TextInputType.number,
                                 decoration: InputDecoration(
-                                  labelText: 'Số lượng hàng',
+                                  labelText: LocalizationService.getString('inventory_quantity_label'),
                                   labelStyle: TextStyle(
                                     color: Theme.of(context).brightness == Brightness.dark
                                         ? Colors.grey[300]
@@ -1449,7 +1459,7 @@ class _InventoryPageState extends State<InventoryPage> {
                               TextField(
                                 controller: unitController,
                                 decoration: InputDecoration(
-                                  labelText: 'Đơn vị (cái, kg, ly, hộp, phần, ...)',
+                                  labelText: LocalizationService.getString('inventory_unit_hint'),
                                   labelStyle: TextStyle(
                                     color: Theme.of(context).brightness == Brightness.dark
                                         ? Colors.grey[300]
@@ -1486,7 +1496,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                 builder: (context, setDropdownState) {
                                   return InputDecorator(
                                     decoration: InputDecoration(
-                                      labelText: 'Danh mục',
+                                      labelText: LocalizationService.getString('inventory_category_placeholder'),
                                       labelStyle: TextStyle(
                                         color: Theme.of(context).brightness == Brightness.dark
                                             ? Colors.grey[300]
@@ -1555,9 +1565,9 @@ class _InventoryPageState extends State<InventoryPage> {
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                               ),
-                              child: const Text(
-                                'Hủy',
-                                style: TextStyle(
+                              child: Text(
+                                LocalizationService.getString('btn_cancel'),
+                                style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
                                   color: Colors.red,
@@ -1574,9 +1584,9 @@ class _InventoryPageState extends State<InventoryPage> {
                                       priceController.text.isEmpty ||
                                       costPriceController.text.isEmpty) {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
+                                      SnackBar(
                                         content: Text(
-                                          'Vui lòng điền đầy đủ thông tin',
+                                          LocalizationService.getString('product_fill_required_fields'),
                                         ),
                                         backgroundColor: Colors.red,
                                       ),
@@ -1624,7 +1634,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: Text(
-                                        'Thêm sản phẩm "$name" thành công',
+                                        LocalizationService.getString('product_add_success').replaceAll('{name}', name),
                                       ),
                                       backgroundColor: Colors.green,
                                     ),
@@ -1633,7 +1643,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                   if (!mounted) return;
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
-                                      content: Text('Lỗi: $e'),
+                                      content: Text('${LocalizationService.getString('error')}: $e'),
                                       backgroundColor: Colors.red,
                                     ),
                                   );
@@ -1649,9 +1659,9 @@ class _InventoryPageState extends State<InventoryPage> {
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                               ),
-                              child: const Text(
-                                'Thêm sản phẩm',
-                                style: TextStyle(
+                              child: Text(
+                                LocalizationService.getString('btn_add'),
+                                style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -1713,7 +1723,7 @@ class _InventoryPageState extends State<InventoryPage> {
                             },
                             child: _buildStatItem(
                               value: allProducts.length.toString(),
-                              label: 'Tổng\n',
+                              label: '${LocalizationService.getString('inventory_total')}\n',
                               color: Colors.blue,
                               icon: Icons.inventory_2,
                               isActive:
@@ -1732,7 +1742,7 @@ class _InventoryPageState extends State<InventoryPage> {
                             },
                             child: _buildStatItem(
                               value: _getProductsInStock().toString(),
-                              label: 'Còn hàng\n',
+                              label: '${LocalizationService.getString('inventory_in_stock_label')}\n',
                               color: Colors.green,
                               icon: Icons.check_circle,
                               isActive: _activeFilter == 'inStock',
@@ -1750,7 +1760,7 @@ class _InventoryPageState extends State<InventoryPage> {
                             },
                             child: _buildStatItem(
                               value: _getLowStockProducts().toString(),
-                              label: 'Sắp hết\n',
+                              label: '${LocalizationService.getString('inventory_low_stock_label')}\n',
                               color: Colors.orange,
                               icon: Icons.warning,
                               isActive: _activeFilter == 'lowStock',
@@ -1768,7 +1778,7 @@ class _InventoryPageState extends State<InventoryPage> {
                             },
                             child: _buildStatItem(
                               value: _getProductsOutOfStock().toString(),
-                              label: 'Hết hàng /\nKhông Rõ SL',
+                              label: LocalizationService.getString('inventory_out_of_stock_label'),
                               color: Colors.red,
                               icon: Icons.cancel,
                               isActive: _activeFilter == 'outOfStock',
@@ -1787,7 +1797,7 @@ class _InventoryPageState extends State<InventoryPage> {
                             child: _buildStatItem(
                               value:
                                   '${(_getTotalInventoryValue() / 1000000).toStringAsFixed(1)} Tr',
-                              label: 'Giá trị kho\n(VND)',
+                              label: LocalizationService.getString('inventory_total_value'),
                               color: Colors.purple,
                               icon: Icons.monetization_on,
                               isActive: false,
@@ -1810,7 +1820,7 @@ class _InventoryPageState extends State<InventoryPage> {
                     child: TextField(
                       controller: _searchController,
                       decoration: InputDecoration(
-                        hintText: 'Tìm sản phẩm...',
+                        hintText: LocalizationService.getString('inventory_search_placeholder'),
                         prefixIcon: const Icon(Icons.search),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
@@ -1861,12 +1871,22 @@ class _InventoryPageState extends State<InventoryPage> {
                         builder: (context) {
                           String sortBy =
                               'name'; // 'name', 'quantity', 'price'
+                          String searchQuery = '';
                           return StatefulBuilder(
                             builder: (context, setDialogState) {
                               // Sort products based on selected option
                               List<Product> sortedProducts = List.from(
                                 allProducts,
                               );
+                              
+                              // Filter by search query
+                              if (searchQuery.isNotEmpty) {
+                                sortedProducts = sortedProducts.where((product) {
+                                  return product.name.toLowerCase().contains(searchQuery) ||
+                                      product.category.toLowerCase().contains(searchQuery);
+                                }).toList();
+                              }
+                              
                               if (sortBy == 'name') {
                                 sortedProducts.sort(
                                   (a, b) => a.name.compareTo(b.name),
@@ -1933,9 +1953,9 @@ class _InventoryPageState extends State<InventoryPage> {
                                               crossAxisAlignment:
                                                   CrossAxisAlignment.start,
                                               children: [
-                                                const Text(
-                                                  'Xóa Sản Phẩm',
-                                                  style: TextStyle(
+                                                Text(
+                                                  LocalizationService.getString('product_delete_confirm_title'),
+                                                  style: const TextStyle(
                                                     color: Colors.white,
                                                     fontSize: 22,
                                                     fontWeight: FontWeight.bold,
@@ -1943,7 +1963,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                                 ),
                                                 const SizedBox(height: 4),
                                                 Text(
-                                                  'Quản lý kho hàng',
+                                                  LocalizationService.getString('inventory_management_subtitle'),
                                                   style: TextStyle(
                                                     color: Colors.white
                                                         .withValues(alpha: 0.8),
@@ -1953,6 +1973,25 @@ class _InventoryPageState extends State<InventoryPage> {
                                               ],
                                             ),
                                           ],
+                                        ),
+                                      ),
+                                      // Search bar
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                        child: TextField(
+                                          onChanged: (value) {
+                                            setDialogState(() {
+                                              searchQuery = value.toLowerCase();
+                                            });
+                                          },
+                                          decoration: InputDecoration(
+                                            hintText: LocalizationService.getString('inventory_search_placeholder'),
+                                            prefixIcon: const Icon(Icons.search),
+                                            border: OutlineInputBorder(
+                                              borderRadius: BorderRadius.circular(12),
+                                            ),
+                                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                          ),
                                         ),
                                       ),
                                       // Sort buttons
@@ -1971,9 +2010,9 @@ class _InventoryPageState extends State<InventoryPage> {
                                                   Icons.sort_by_alpha,
                                                   size: 16,
                                                 ),
-                                                label: const Text(
-                                                  'Tên',
-                                                  style: TextStyle(
+                                                label: Text(
+                                                  LocalizationService.getString('inventory_sort_by_name'),
+                                                  style: const TextStyle(
                                                     fontSize: 12,
                                                   ),
                                                 ),
@@ -2012,9 +2051,9 @@ class _InventoryPageState extends State<InventoryPage> {
                                                   Icons.inventory,
                                                   size: 16,
                                                 ),
-                                                label: const Text(
-                                                  'Số lượng',
-                                                  style: TextStyle(
+                                                label: Text(
+                                                  LocalizationService.getString('inventory_sort_by_quantity'),
+                                                  style: const TextStyle(
                                                     fontSize: 12,
                                                   ),
                                                 ),
@@ -2053,9 +2092,9 @@ class _InventoryPageState extends State<InventoryPage> {
                                                   Icons.attach_money,
                                                   size: 16,
                                                 ),
-                                                label: const Text(
-                                                  'Giá',
-                                                  style: TextStyle(
+                                                label: Text(
+                                                  LocalizationService.getString('inventory_sort_by_price'),
+                                                  style: const TextStyle(
                                                     fontSize: 12,
                                                   ),
                                                 ),
@@ -2162,9 +2201,9 @@ class _InventoryPageState extends State<InventoryPage> {
                                                                 height: 20,
                                                               ),
                                                               // Title
-                                                              const Text(
-                                                                'Xác nhận xóa',
-                                                                style: TextStyle(
+                                                              Text(
+                                                                LocalizationService.getString('product_delete_confirm_title'),
+                                                                style: const TextStyle(
                                                                   fontSize: 20,
                                                                   fontWeight:
                                                                       FontWeight
@@ -2239,7 +2278,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                                                                 CrossAxisAlignment.start,
                                                                             children: [
                                                                               Text(
-                                                                                'Tên sản phẩm',
+                                                                                LocalizationService.getString('inventory_product_label_name'),
                                                                                 style: TextStyle(
                                                                                   fontSize: 12,
                                                                                   color: Theme.of(context).brightness == Brightness.dark ? Colors.grey[400] : Colors.grey[600],
@@ -2300,7 +2339,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                                                                 CrossAxisAlignment.start,
                                                                             children: [
                                                                               Text(
-                                                                                'Giá bán',
+                                                                                LocalizationService.getString('inventory_product_label_selling_price'),
                                                                                 style: TextStyle(
                                                                                   fontSize: 12,
                                                                                   color: Theme.of(context).brightness == Brightness.dark ? Colors.grey[400] : Colors.grey[600],
@@ -2327,7 +2366,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                                                                 CrossAxisAlignment.start,
                                                                             children: [
                                                                               Text(
-                                                                                'Giá vốn',
+                                                                                LocalizationService.getString('inventory_product_label_cost_price'),
                                                                                 style: TextStyle(
                                                                                   fontSize: 12,
                                                                                   color: Theme.of(context).brightness == Brightness.dark ? Colors.grey[400] : Colors.grey[600],
@@ -2368,9 +2407,9 @@ class _InventoryPageState extends State<InventoryPage> {
                                                                     color: Theme.of(context).brightness == Brightness.dark ? Colors.grey[300] : Colors.grey[700],
                                                                   ),
                                                                   children: [
-                                                                    const TextSpan(
+                                                                    TextSpan(
                                                                       text:
-                                                                          'Bạn có chắc chắn muốn xóa ',
+                                                                          LocalizationService.getString('product_delete_confirm_part1'),
                                                                     ),
                                                                     TextSpan(
                                                                       text:
@@ -2382,9 +2421,9 @@ class _InventoryPageState extends State<InventoryPage> {
                                                                             .red,
                                                                       ),
                                                                     ),
-                                                                    const TextSpan(
+                                                                    TextSpan(
                                                                       text:
-                                                                          '? Hành động này không thể hoàn tác.',
+                                                                          LocalizationService.getString('product_delete_confirm_part2'),
                                                                     ),
                                                                   ],
                                                                 ),
@@ -2420,7 +2459,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                                                         ),
                                                                       ),
                                                                       child: Text(
-                                                                        'Hủy',
+                                                                        LocalizationService.getString('btn_cancel'),
                                                                         style: TextStyle(
                                                                           fontSize:
                                                                               14,
@@ -2468,7 +2507,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                                                             ).showSnackBar(
                                                                               SnackBar(
                                                                                 content: Text(
-                                                                                  'Đã xóa "${product.name}"',
+                                                                                  LocalizationService.getString('product_delete_success').replaceAll('{name}', product.name),
                                                                                 ),
                                                                                 backgroundColor: Colors.green,
                                                                               ),
@@ -2482,10 +2521,10 @@ class _InventoryPageState extends State<InventoryPage> {
                                                                             ScaffoldMessenger.of(
                                                                               context,
                                                                             ).showSnackBar(
-                                                                              const SnackBar(
+                                                                              SnackBar(
                                                                                 backgroundColor: Colors.red,
                                                                                 content: Text(
-                                                                                  'Lỗi khi xóa sản phẩm',
+                                                                                  LocalizationService.getString('product_delete_error'),
                                                                                 ),
                                                                               ),
                                                                             );
@@ -2504,7 +2543,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                                                             SnackBar(
                                                                               backgroundColor: Colors.red,
                                                                               content: Text(
-                                                                                'Lỗi: $e',
+                                                                                '${LocalizationService.getString('error')}: $e',
                                                                               ),
                                                                             ),
                                                                           );
@@ -2526,9 +2565,9 @@ class _InventoryPageState extends State<InventoryPage> {
                                                                               ),
                                                                         ),
                                                                       ),
-                                                                      child: const Text(
-                                                                        'Xóa',
-                                                                        style: TextStyle(
+                                                                      child: Text(
+                                                                        LocalizationService.getString('btn_delete'),
+                                                                        style: const TextStyle(
                                                                           fontSize:
                                                                               14,
                                                                           fontWeight:
@@ -2627,7 +2666,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                                               children: [
                                                                 Expanded(
                                                                   child: Text(
-                                                                    'Giá bán: ${CurrencyService.formatCurrency(product.price)}',
+                                                                    '${LocalizationService.getString('inventory_product_label_selling_price')}: ${CurrencyService.formatCurrency(product.price)}',
                                                                     style: TextStyle(
                                                                       fontSize:
                                                                           12,
@@ -2645,7 +2684,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                                               height: 2,
                                                             ),
                                                             Text(
-                                                              'Giá vốn: ${CurrencyService.formatCurrency(product.costPrice)}',
+                                                              '${LocalizationService.getString('inventory_product_label_cost_price')}: ${CurrencyService.formatCurrency(product.costPrice)}',
                                                               style: TextStyle(
                                                                 fontSize: 12,
                                                                 color: Colors.purple,
@@ -2781,9 +2820,9 @@ class _InventoryPageState extends State<InventoryPage> {
                                                                               20,
                                                                         ),
                                                                         // Title
-                                                                        const Text(
-                                                                          'Xác nhận xóa',
-                                                                          style: TextStyle(
+                                                                        Text(
+                                                                          LocalizationService.getString('product_delete_confirm_title'),
+                                                                          style: const TextStyle(
                                                                             fontSize:
                                                                                 20,
                                                                             fontWeight:
@@ -2821,7 +2860,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                                                                       crossAxisAlignment: CrossAxisAlignment.start,
                                                                                       children: [
                                                                                         Text(
-                                                                                          'Tên sản phẩm',
+                                                                                          LocalizationService.getString('inventory_product_label_name'),
                                                                                           style: TextStyle(
                                                                                             fontSize: 12,
                                                                                             color: Colors.grey[600],
@@ -2876,7 +2915,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                                                                       crossAxisAlignment: CrossAxisAlignment.start,
                                                                                       children: [
                                                                                         Text(
-                                                                                          'Giá bán',
+                                                                                          LocalizationService.getString('inventory_product_label_selling_price'),
                                                                                           style: TextStyle(
                                                                                             fontSize: 12,
                                                                                             color: Colors.grey[600],
@@ -2902,7 +2941,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                                                                       crossAxisAlignment: CrossAxisAlignment.start,
                                                                                       children: [
                                                                                         Text(
-                                                                                          'Giá vốn',
+                                                                                          LocalizationService.getString('inventory_product_label_cost_price'),
                                                                                           style: TextStyle(
                                                                                             fontSize: 12,
                                                                                             color: Colors.grey[600],
@@ -2942,8 +2981,8 @@ class _InventoryPageState extends State<InventoryPage> {
                                                                               color: Colors.grey[700],
                                                                             ),
                                                                             children: [
-                                                                              const TextSpan(
-                                                                                text: 'Bạn có chắc chắn muốn xóa ',
+                                                                              TextSpan(
+                                                                                text: LocalizationService.getString('product_delete_confirm_part1'),
                                                                               ),
                                                                               TextSpan(
                                                                                 text: '\"${product.name}\"',
@@ -2952,8 +2991,8 @@ class _InventoryPageState extends State<InventoryPage> {
                                                                                   color: Colors.red,
                                                                                 ),
                                                                               ),
-                                                                              const TextSpan(
-                                                                                text: '? Hành động này không thể hoàn tác.',
+                                                                              TextSpan(
+                                                                                text: LocalizationService.getString('product_delete_confirm_part2'),
                                                                               ),
                                                                             ],
                                                                           ),
@@ -2984,9 +3023,9 @@ class _InventoryPageState extends State<InventoryPage> {
                                                                                     ),
                                                                                   ),
                                                                                 ),
-                                                                                child: const Text(
-                                                                                  'Hủy',
-                                                                                  style: TextStyle(
+                                                                                child: Text(
+                                                                                  LocalizationService.getString('btn_cancel'),
+                                                                                  style: const TextStyle(
                                                                                     fontSize: 14,
                                                                                     fontWeight: FontWeight.w600,
                                                                                     color: Colors.grey,
@@ -3030,7 +3069,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                                                                       ).showSnackBar(
                                                                                         SnackBar(
                                                                                           content: Text(
-                                                                                            'Đã xóa "${product.name}"',
+                                                                                            LocalizationService.getString('product_delete_success').replaceAll('{name}', product.name),
                                                                                           ),
                                                                                           backgroundColor: Colors.green,
                                                                                         ),
@@ -3043,10 +3082,10 @@ class _InventoryPageState extends State<InventoryPage> {
                                                                                       ScaffoldMessenger.of(
                                                                                         context,
                                                                                       ).showSnackBar(
-                                                                                        const SnackBar(
+                                                                                        SnackBar(
                                                                                           backgroundColor: Colors.red,
                                                                                           content: Text(
-                                                                                            'Lỗi khi xóa sản phẩm',
+                                                                                            LocalizationService.getString('product_delete_error'),
                                                                                           ),
                                                                                         ),
                                                                                       );
@@ -3064,7 +3103,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                                                                       SnackBar(
                                                                                         backgroundColor: Colors.red,
                                                                                         content: Text(
-                                                                                          'Lỗi: $e',
+                                                                                          '${LocalizationService.getString('error')}: $e',
                                                                                         ),
                                                                                       ),
                                                                                     );
@@ -3082,9 +3121,9 @@ class _InventoryPageState extends State<InventoryPage> {
                                                                                     ),
                                                                                   ),
                                                                                 ),
-                                                                                child: const Text(
-                                                                                  'Xóa',
-                                                                                  style: TextStyle(
+                                                                                child: Text(
+                                                                                  LocalizationService.getString('btn_delete'),
+                                                                                  style: const TextStyle(
                                                                                     fontSize: 14,
                                                                                     fontWeight: FontWeight.bold,
                                                                                   ),
@@ -3179,7 +3218,7 @@ class _InventoryPageState extends State<InventoryPage> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
-                                'Tên',
+                                LocalizationService.getString('inventory_sort_by_name'),
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: _sortBy == 'name'
@@ -3246,7 +3285,7 @@ class _InventoryPageState extends State<InventoryPage> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
-                                'Số lượng',
+                                LocalizationService.getString('inventory_sort_by_quantity'),
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: _sortBy == 'quantity'
@@ -3279,14 +3318,14 @@ class _InventoryPageState extends State<InventoryPage> {
                   Expanded(
                     child: Container(
                       decoration: BoxDecoration(
-                        color: _selectedCategory != null && _selectedCategory != 'Tất cả'
+                        color: _selectedCategory != null && _selectedCategory != LocalizationService.getString('category_all')
                             ? Colors.purple.withValues(alpha: 0.15)
                             : Theme.of(context).brightness == Brightness.dark
                                 ? const Color(0xFF2A2A2A)
                                 : Colors.grey[200],
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                          color: _selectedCategory != null && _selectedCategory != 'Tất cả'
+                          color: _selectedCategory != null && _selectedCategory != LocalizationService.getString('category_all')
                               ? Colors.purple
                               : Colors.transparent,
                           width: 1.5,
@@ -3297,13 +3336,13 @@ class _InventoryPageState extends State<InventoryPage> {
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 8),
                           child: DropdownButton<String>(
-                            value: _selectedCategory ?? 'Tất cả',
+                            value: _selectedCategory ?? LocalizationService.getString('inventory_all_categories'),
                             isExpanded: true,
                             underline: const SizedBox.shrink(),
                             isDense: true,
                             icon: Icon(
                               Icons.arrow_drop_down,
-                              color: _selectedCategory != null && _selectedCategory != 'Tất cả'
+                              color: _selectedCategory != null && _selectedCategory != LocalizationService.getString('inventory_all_categories')
                                   ? Colors.purple
                                   : Theme.of(context).brightness == Brightness.dark
                                       ? Colors.grey[300]
@@ -3332,7 +3371,7 @@ class _InventoryPageState extends State<InventoryPage> {
                             }).toList(),
                             onChanged: (String? newValue) {
                               setState(() {
-                                _selectedCategory = newValue == 'Tất cả' ? null : newValue;
+                                _selectedCategory = newValue == LocalizationService.getString('inventory_all_categories') ? null : newValue;
                                 _filterProducts();
                               });
                             },
@@ -3356,8 +3395,8 @@ class _InventoryPageState extends State<InventoryPage> {
                           const SizedBox(height: 12),
                           Text(
                             _searchController.text.isEmpty
-                                ? 'Chưa có sản phẩm nào'
-                                : 'Không tìm thấy sản phẩm',
+                                ? LocalizationService.getString('product_no_products')
+                                : LocalizationService.getString('product_no_results'),
                             style: TextStyle(
                               fontSize: 16,
                               color: Colors.grey[600],
@@ -3434,7 +3473,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                                 children: [
                                                   Expanded(
                                                     child: Text(
-                                                      'Giá bán: ${CurrencyService.formatCurrency(product.price)}',
+                                                      '${LocalizationService.getString('inventory_product_label_selling_price')}: ${CurrencyService.formatCurrency(product.price)}',
                                                       style: TextStyle(
                                                         fontSize: 13,
                                                         color: Theme.of(context).brightness == Brightness.dark
@@ -3445,7 +3484,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                                   ),
                                                   Expanded(
                                                     child: Text(
-                                                      ' Giá vốn: ${CurrencyService.formatCurrency(product.costPrice)}',
+                                                      ' ${LocalizationService.getString('inventory_product_label_cost_price')}: ${CurrencyService.formatCurrency(product.costPrice)}',
                                                       style: TextStyle(
                                                         fontSize: 13,
                                                         color: Theme.of(context).brightness == Brightness.dark
@@ -3638,7 +3677,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                         Column(
                                           children: [
                                             Text(
-                                              'Giá bán: ${CurrencyService.formatCurrency(product.price)}',
+                                              '${LocalizationService.getString('inventory_product_label_selling_price')}: ${CurrencyService.formatCurrency(product.price)}',
                                               style: const TextStyle(
                                                 fontSize: 14,
                                                 color: Colors.green,
@@ -3650,7 +3689,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                             ),
                                             const SizedBox(height: 2),
                                             Text(
-                                              'Giá vốn: ${CurrencyService.formatCurrency(product.costPrice)}',
+                                              '${LocalizationService.getString('inventory_product_label_cost_price')}: ${CurrencyService.formatCurrency(product.costPrice)}',
                                               style: TextStyle(
                                                 fontSize: 13,
                                                 color: Colors.purple[600],

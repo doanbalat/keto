@@ -10,6 +10,7 @@ import 'scripts/generate_test_data.dart';
 import 'services/export_service.dart';
 import 'services/string_codec_service.dart';
 import 'services/permission_service.dart';
+import 'services/localization_service.dart';
 
 class DebugScreen extends StatefulWidget {
   const DebugScreen({super.key});
@@ -29,8 +30,8 @@ class _DebugScreenState extends State<DebugScreen> {
 
   Future<void> _resetDatabase() async {
     final confirmed = await _showConfirmationDialog(
-      'Xóa toàn bộ dữ liệu',
-      'Bạn có chắc chắn muốn xóa TẤT CẢ dữ liệu? Hành động này không thể hoàn tác!',
+      LocalizationService.getString('data_delete_all'),
+      LocalizationService.getString('error_delete_expense_confirm'),
       isDangerous: true,
     );
 
@@ -38,21 +39,21 @@ class _DebugScreenState extends State<DebugScreen> {
 
     setState(() {
       _isLoading = true;
-      _statusMessage = 'Đang xóa dữ liệu...';
+      _statusMessage = LocalizationService.getString('error_creating_export');
     });
 
     try {
       await _db.clearAllData();
 
       setState(() {
-        _statusMessage = '✅ Đã xóa toàn bộ dữ liệu thành công!\n\nDang làm mới ứng dụng...';
+        _statusMessage = '✅ ${LocalizationService.getString('data_delete_all')}\n\n${LocalizationService.getString('error_creating_export')}...';
         _isLoading = false;
       });
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Database đã được reset thành công'),
+          SnackBar(
+            content: Text('${LocalizationService.getString("data_delete_all")} ${LocalizationService.getString("error")}'),
             backgroundColor: Colors.green,
           ),
         );
@@ -65,7 +66,7 @@ class _DebugScreenState extends State<DebugScreen> {
       }
     } catch (e) {
       setState(() {
-        _statusMessage = '❌ Lỗi: $e';
+        _statusMessage = '❌ ${LocalizationService.getString('error_with_message')} $e';
         _isLoading = false;
       });
     }
@@ -73,8 +74,8 @@ class _DebugScreenState extends State<DebugScreen> {
 
   Future<void> _deleteAllSales() async {
     final confirmed = await _showConfirmationDialog(
-      'Xóa tất cả dữ liệu bán hàng',
-      'Bạn có chắc chắn muốn xóa tất cả dữ liệu bán hàng?',
+      LocalizationService.getString('data_delete_sales'),
+      LocalizationService.getString('dialog_confirm_delete'),
       isDangerous: true,
     );
 
@@ -82,7 +83,7 @@ class _DebugScreenState extends State<DebugScreen> {
 
     setState(() {
       _isLoading = true;
-      _statusMessage = 'Đang xóa dữ liệu bán hàng...';
+      _statusMessage = LocalizationService.getString('error_creating_export');
     });
 
     try {
@@ -92,21 +93,21 @@ class _DebugScreenState extends State<DebugScreen> {
       }
 
       setState(() {
-        _statusMessage = '✅ Đã xóa ${soldItems.length} giao dịch bán hàng!';
+        _statusMessage = '✅ ${LocalizationService.getString('data_delete_sales')}: ${soldItems.length}!';
         _isLoading = false;
       });
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Đã xóa ${soldItems.length} giao dịch bán hàng'),
+            content: Text('${LocalizationService.getString('data_delete_sales')}: ${soldItems.length}'),
             backgroundColor: Colors.green,
           ),
         );
       }
     } catch (e) {
       setState(() {
-        _statusMessage = '❌ Lỗi: $e';
+        _statusMessage = '❌ ${LocalizationService.getString('error_with_message')} $e';
         _isLoading = false;
       });
     }
@@ -114,8 +115,8 @@ class _DebugScreenState extends State<DebugScreen> {
 
   Future<void> _deleteAllExpenses() async {
     final confirmed = await _showConfirmationDialog(
-      'Xóa tất cả chi phí',
-      'Bạn có chắc chắn muốn xóa tất cả dữ liệu chi phí?',
+      LocalizationService.getString('data_delete_expenses'),
+      LocalizationService.getString('dialog_confirm_delete'),
       isDangerous: true,
     );
 
@@ -123,7 +124,7 @@ class _DebugScreenState extends State<DebugScreen> {
 
     setState(() {
       _isLoading = true;
-      _statusMessage = 'Đang xóa chi phí...';
+      _statusMessage = LocalizationService.getString('error_creating_export');
     });
 
     try {
@@ -133,21 +134,21 @@ class _DebugScreenState extends State<DebugScreen> {
       }
 
       setState(() {
-        _statusMessage = '✅ Đã xóa ${expenses.length} chi phí!';
+        _statusMessage = '✅ ${LocalizationService.getString('data_delete_expenses')}: ${expenses.length}!';
         _isLoading = false;
       });
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Đã xóa ${expenses.length} chi phí'),
+            content: Text('${LocalizationService.getString('data_delete_expenses')}: ${expenses.length}'),
             backgroundColor: Colors.green,
           ),
         );
       }
     } catch (e) {
       setState(() {
-        _statusMessage = '❌ Lỗi: $e';
+        _statusMessage = '❌ ${LocalizationService.getString('error_with_message')} $e';
         _isLoading = false;
       });
     }
@@ -156,7 +157,7 @@ class _DebugScreenState extends State<DebugScreen> {
   Future<void> _showDatabaseStats() async {
     setState(() {
       _isLoading = true;
-      _statusMessage = 'Đang tải thông tin database...';
+      _statusMessage = LocalizationService.getString('error_loading_data');
     });
 
     try {
@@ -170,21 +171,21 @@ class _DebugScreenState extends State<DebugScreen> {
       setState(() {
         _statusMessage =
             '''
-📊 Thống kê Database:
+📊 ${LocalizationService.getString('data_stats')}:
 ━━━━━━━━━━━━━━━━━━━━━━
-📦 Sản phẩm: ${products.length}
-💰 Giao dịch bán: ${soldItems.length}
-💸 Chi phí: ${expenses.length}
+📦 ${LocalizationService.getString('data_products_count')}: ${products.length}
+💰 ${LocalizationService.getString('data_transactions')}: ${soldItems.length}
+💸 ${LocalizationService.getString('data_expenses')}: ${expenses.length}
 ━━━━━━━━━━━━━━━━━━━━━━
-Hôm nay:
-  Doanh thu: ${_formatCurrency(totalRevenue)}
-  Chi phí: ${_formatCurrency(totalExpenses)}
+${LocalizationService.getString('data_today')}:
+  ${LocalizationService.getString('data_revenue')}: ${_formatCurrency(totalRevenue)}
+  ${LocalizationService.getString('data_cost')}: ${_formatCurrency(totalExpenses)}
 ''';
         _isLoading = false;
       });
     } catch (e) {
       setState(() {
-        _statusMessage = '❌ Lỗi: $e';
+        _statusMessage = '❌ ${LocalizationService.getString('error_with_message')} $e';
         _isLoading = false;
       });
     }
@@ -196,8 +197,8 @@ Hôm nay:
 
   Future<void> _generateTestData() async {
     final confirmed = await _showConfirmationDialog(
-      'Tạo dữ liệu test',
-      'Bạn có muốn tạo 1 tháng dữ liệu test (bao gồm 10 sản phẩm, 30 ngày giao dịch và chi phí)?',
+      LocalizationService.getString('data_generate_test'),
+      LocalizationService.getString('dialog_confirm_test_data'),
     );
 
     if (confirmed != true) return;
@@ -215,7 +216,7 @@ Hôm nay:
 
     setState(() {
       _isLoading = true;
-      _statusMessage = 'Đang tạo dữ liệu test...';
+      _statusMessage = LocalizationService.getString('error_creating_export');
       _currentStage = '';
       _progress = 0;
       _progressTotal = 100;
@@ -225,15 +226,15 @@ Hôm nay:
       await TestDataGenerator.generateTestData();
 
       setState(() {
-        _statusMessage = '✅ Đã tạo dữ liệu test thành công!';
+        _statusMessage = '✅ ${LocalizationService.getString('data_generate_test')} thành công!';
         _isLoading = false;
         _currentStage = '';
       });
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Dữ liệu test đã được tạo'),
+          SnackBar(
+            content: Text('✅ ${LocalizationService.getString('data_generate_test')}'),
             backgroundColor: Colors.green,
           ),
         );
@@ -242,7 +243,7 @@ Hôm nay:
       }
     } catch (e) {
       setState(() {
-        _statusMessage = '❌ Lỗi: $e';
+        _statusMessage = '❌ ${LocalizationService.getString('error_with_message')} $e';
         _isLoading = false;
         _currentStage = '';
       });
@@ -292,7 +293,7 @@ Hôm nay:
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Import/Export dữ liệu',
+                            LocalizationService.getString('data_export_import_string'),
                             style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
@@ -301,7 +302,7 @@ Hôm nay:
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Chia sẻ dữ liệu như Factorio blueprint',
+                            LocalizationService.getString('data_import_export'),
                             style: TextStyle(
                               fontSize: 13,
                               color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
@@ -318,8 +319,8 @@ Hôm nay:
                 _buildExportOption(
                   context,
                   icon: '📤',
-                  title: 'Xuất (Export)',
-                  description: 'Copy chuỗi rồi nhập vào thiết bị khác',
+                  title: LocalizationService.getString('data_export_string'),
+                  description: LocalizationService.getString('data_export_desc'),
                   onTap: () {
                     Navigator.of(context).pop();
                     _showExportStringDialog();
@@ -329,8 +330,8 @@ Hôm nay:
                 _buildExportOption(
                   context,
                   icon: '📥',
-                  title: 'Nhập (Import)',
-                  description: 'Nhập chuỗi để copy dữ liệu',
+                  title: LocalizationService.getString('data_import_string'),
+                  description: LocalizationService.getString('data_import_desc'),
                   onTap: () {
                     Navigator.of(context).pop();
                     _showImportStringDialog();
@@ -354,7 +355,7 @@ Hôm nay:
                       ),
                     ),
                     child: Text(
-                      'Hủy',
+                      LocalizationService.getString('btn_cancel'),
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -374,7 +375,7 @@ Hôm nay:
   Future<void> _showExportStringDialog() async {
     setState(() {
       _isLoading = true;
-      _statusMessage = 'Đang tạo chuỗi export...';
+      _statusMessage = LocalizationService.getString('error_creating_export');
     });
 
     try {
@@ -418,7 +419,7 @@ Hôm nay:
                 children: [
                   // Header
                   Text(
-                    'Chuỗi Dữ Liệu (Data String)',
+                    LocalizationService.getString('data_export_string'),
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -438,7 +439,7 @@ Hôm nay:
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '📊 Thông tin:',
+                          LocalizationService.getString('data_info_title'),
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             color: isDarkMode ? Colors.white : Colors.black,
@@ -446,10 +447,10 @@ Hôm nay:
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          '📦 Sản phẩm: ${stats['products'] ?? 0}\n'
-                          '💰 Giao dịch: ${stats['soldItems'] ?? 0}\n'
-                          '💸 Chi phí: ${stats['expenses'] ?? 0}\n'
-                          '🔗 Độ dài chuỗi: ${stats['stringLength'] ?? 0} ký tự',
+                          '📦 ${LocalizationService.getString('data_products_count')}: ${stats['products'] ?? 0}\n'
+                          '💰 ${LocalizationService.getString('data_transactions')}: ${stats['soldItems'] ?? 0}\n'
+                          '💸 ${LocalizationService.getString('data_expenses')}: ${stats['expenses'] ?? 0}\n'
+                          '🔗 ${LocalizationService.getString('data_string_length')}: ${stats['stringLength'] ?? 0} ${LocalizationService.getString('data_character')}',
                           style: TextStyle(
                             fontSize: 13,
                             color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
@@ -502,7 +503,7 @@ Hôm nay:
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                        '💡 Sao chép dãy ký tự ở trên rồi chép vào app Keto trên thiết bị khác.',
+                        LocalizationService.getString('data_copy_string'),
                         style: TextStyle(
                           fontSize: 12,
                           color: Colors.orange.shade800,
@@ -524,14 +525,14 @@ Hôm nay:
                             ScaffoldMessenger.of(context).clearSnackBars();
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: const Text('✅ Chuỗi đã được sao chép!'),
+                                content: Text('✅ ${LocalizationService.getString("btn_save")}'),
                                 backgroundColor: Colors.green,
                                 duration: const Duration(seconds: 2),
                               ),
                             );
                           },
                           icon: const Icon(Icons.copy),
-                          label: const Text('Sao chép'),
+                          label: Text(LocalizationService.getString('btn_save')),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.blue,
                             foregroundColor: Colors.white,
@@ -548,7 +549,7 @@ Hôm nay:
                             ),
                           ),
                           child: Text(
-                            'Đóng',
+                            LocalizationService.getString('btn_close'),
                             style: TextStyle(
                               color: isDarkMode ? Colors.grey[400] : Colors.grey[700],
                             ),
@@ -566,7 +567,7 @@ Hôm nay:
     } catch (e) {
       if (mounted) {
         setState(() {
-          _statusMessage = '❌ Lỗi tạo chuỗi: $e';
+          _statusMessage = '❌ ${LocalizationService.getString("error_creating_export")}: $e';
           _isLoading = false;
         });
       }
@@ -598,7 +599,7 @@ Hôm nay:
               children: [
                 // Header
                 Text(
-                  'Nhập Dữ Liệu',
+                  LocalizationService.getString('data_import_string'),
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -607,7 +608,7 @@ Hôm nay:
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Dán chuỗi dữ liệu được xuất từ một thiết bị khác',
+                  LocalizationService.getString('data_paste_string'),
                   style: TextStyle(
                     fontSize: 13,
                     color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
@@ -638,8 +639,8 @@ Hôm nay:
                         onPressed: () {
                           if (controller.text.isEmpty) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('❌ Vui lòng dán chuỗi dữ liệu'),
+                              SnackBar(
+                                content: Text(LocalizationService.getString('data_error_empty_string')),
                                 backgroundColor: Colors.red,
                               ),
                             );
@@ -649,7 +650,7 @@ Hôm nay:
                           _processImportString(controller.text);
                         },
                         icon: const Icon(Icons.upload),
-                        label: const Text('Nhập'),
+                        label: Text(LocalizationService.getString('data_import_string')),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.green,
                           foregroundColor: Colors.white,
@@ -666,7 +667,7 @@ Hôm nay:
                           ),
                         ),
                         child: Text(
-                          'Hủy',
+                          LocalizationService.getString('btn_cancel'),
                           style: TextStyle(
                             color: isDarkMode ? Colors.grey[400] : Colors.grey[700],
                           ),
@@ -685,15 +686,15 @@ Hôm nay:
 
   Future<void> _processImportString(String encodedString) async {
     final confirmed = await _showConfirmationDialog(
-      'Xác nhận nhập dữ liệu',
-      'Dữ liệu được nhập sẽ được thêm vào dữ liệu hiện tại.\n\nBạn có chắc chắn muốn tiếp tục?',
+      LocalizationService.getString('dialog_confirm_delete'),
+      LocalizationService.getString('data_paste_string'),
     );
 
     if (confirmed != true) return;
 
     setState(() {
       _isLoading = true;
-      _statusMessage = 'Đang xử lý chuỗi nhập...';
+      _statusMessage = LocalizationService.getString('error_creating_export');
     });
 
     try {
@@ -706,7 +707,7 @@ Hôm nay:
 
       if (mounted) {
         setState(() {
-          _statusMessage = 'Đang nhập dữ liệu vào database...';
+          _statusMessage = LocalizationService.getString('error_creating_export');
         });
       }
 
@@ -717,13 +718,13 @@ Hôm nay:
 
       if (mounted) {
         setState(() {
-          _statusMessage = '''✅ Nhập dữ liệu thành công!
+          _statusMessage = '''✅ ${LocalizationService.getString('data_import_string')}!
 
-📊 Kết quả nhập:
+📊 ${LocalizationService.getString('data_info_title')}
 ━━━━━━━━━━━━━━━━━━━━━━
-📦 Sản phẩm: $productCount
-💰 Giao dịch: $salesCount
-💸 Chi phí: $expenseCount
+📦 ${LocalizationService.getString('data_products_count')}: $productCount
+💰 ${LocalizationService.getString('data_transactions')}: $salesCount
+💸 ${LocalizationService.getString('data_expenses')}: $expenseCount
 ━━━━━━━━━━━━━━━━━━━━━━
 
 💡 Ghi chú:
@@ -736,7 +737,7 @@ Hôm nay:
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('✅ Nhập dữ liệu thành công: $productCount sản phẩm, $salesCount giao dịch, $expenseCount chi phí'),
+            content: Text('✅ ${LocalizationService.getString('data_import_string')}: $productCount ${LocalizationService.getString('data_products_count')}, $salesCount ${LocalizationService.getString('data_transactions')}, $expenseCount ${LocalizationService.getString('data_expenses')}'),
             backgroundColor: Colors.green,
             duration: const Duration(seconds: 4),
           ),
@@ -751,7 +752,7 @@ Hôm nay:
     } catch (e) {
       if (mounted) {
         setState(() {
-          _statusMessage = '''❌ Lỗi nhập dữ liệu:
+          _statusMessage = '''❌ ${LocalizationService.getString('error_creating_export')}:
           
 $e
 
@@ -765,7 +766,7 @@ Chi tiết:
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('❌ Lỗi nhập dữ liệu: $e'),
+            content: Text('❌ ${LocalizationService.getString('error_creating_export')}: $e'),
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 4),
           ),
@@ -814,7 +815,7 @@ Chi tiết:
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Xuất dữ liệu',
+                            LocalizationService.getString('data_export_file'),
                             style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
@@ -823,7 +824,7 @@ Chi tiết:
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Chọn định dạng xuất dữ liệu',
+                            LocalizationService.getString('data_view_stats'),
                             style: TextStyle(
                               fontSize: 13,
                               color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
@@ -840,8 +841,8 @@ Chi tiết:
                 _buildExportOption(
                   context,
                   icon: '🔗',
-                  title: 'Import/Export String',
-                  description: 'Chuỗi nhỏ gọn để chia sẻ dữ liệu giữa các máy',
+                  title: LocalizationService.getString('data_export_import_string'),
+                  description: LocalizationService.getString('data_import_export'),
                   onTap: () {
                     Navigator.of(context).pop();
                     _showStringExportImportDialog();
@@ -852,7 +853,7 @@ Chi tiết:
                   context,
                   icon: '{..}',
                   title: 'JSON',
-                  description: 'Để backup hoặc import vào hệ thống khác',
+                  description: LocalizationService.getString('data_view_stats'),
                   onTap: () {
                     Navigator.of(context).pop();
                     _exportData(ExportFormat.json);
@@ -863,7 +864,7 @@ Chi tiết:
                   context,
                   icon: '📊',
                   title: 'CSV',
-                  description: 'Để mở trong Excel hoặc Google Sheets',
+                  description: LocalizationService.getString('data_json_csv'),
                   onTap: () {
                     Navigator.of(context).pop();
                     _exportData(ExportFormat.csv);
@@ -887,7 +888,7 @@ Chi tiết:
                       ),
                     ),
                     child: Text(
-                      'Hủy',
+                      LocalizationService.getString('btn_cancel'),
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -1099,14 +1100,14 @@ Vui lòng kiểm tra:
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Hủy'),
+              child: Text(LocalizationService.getString('btn_cancel')),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(true),
               style: TextButton.styleFrom(
                 foregroundColor: isDangerous ? Colors.red : Colors.blue,
               ),
-              child: const Text('Xác nhận'),
+              child: Text(LocalizationService.getString('btn_ok')),
             ),
           ],
         );
@@ -1118,7 +1119,7 @@ Vui lòng kiểm tra:
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Quản lý Database'),
+        title: Text(LocalizationService.getString('nav_data_management')),
         backgroundColor: Colors.orange,
         foregroundColor: Colors.white,
       ),
@@ -1204,7 +1205,7 @@ Vui lòng kiểm tra:
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            'Cảnh báo: Các thao tác này có thể xóa dữ liệu vĩnh viễn!\nKhông thể khôi phúc dữ liệu sau khi xóa!',
+                            LocalizationService.getString('data_warning_banner'),
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               color: Theme.of(context).brightness == Brightness.dark
@@ -1243,30 +1244,30 @@ Vui lòng kiểm tra:
                   ],
 
                   // Database Stats
-                  _buildSectionTitle('📊 Thống kê Database'),
+                  _buildSectionTitle('📊 ${LocalizationService.getString('data_stats')}'),
                   _buildActionButton(
                     icon: Icons.info_outline,
-                    label: 'Xem thống kê Database',
+                    label: LocalizationService.getString('data_view_stats'),
                     color: Colors.blue,
                     onPressed: _showDatabaseStats,
                   ),
                   const SizedBox(height: 24),
 
                   // Import/Export String Section
-                  _buildSectionTitle('🔗 Copy nhanh dữ liệu sang Keto app trên máy khác'),
+                  _buildSectionTitle('🔗 ${LocalizationService.getString('data_import_export')}'),
                   _buildActionButton(
                     icon: Icons.link,
-                    label: 'Import/Export String',
+                    label: LocalizationService.getString('data_export_import_string'),
                     color: Colors.cyan,
                     onPressed: _showStringExportImportDialog,
                   ),
                   const SizedBox(height: 24),
 
                   // Export Data Section
-                  _buildSectionTitle('📤 Xuất file'),
+                  _buildSectionTitle('📤 ${LocalizationService.getString('data_export_file')}'),
                   _buildActionButton(
                     icon: Icons.download,
-                    label: 'JSON / CSV Export',
+                    label: LocalizationService.getString('data_json_csv'),
                     color: Colors.green,
                     onPressed: _showExportDialog,
                   ),
@@ -1274,10 +1275,10 @@ Vui lòng kiểm tra:
 
                   // Test Data Generation (only visible in debug/profile mode)
                   if (!kReleaseMode) ...[                  
-                    _buildSectionTitle('🧪 Test Thử Nghiệm App'),
+                    _buildSectionTitle('🧪 ${LocalizationService.getString('data_test_data')}'),
                     _buildActionButton(
                       icon: Icons.auto_awesome,
-                      label: 'Tạo dữ liệu để test (30 ngày)',
+                      label: LocalizationService.getString('data_generate_test'),
                       color: Colors.purple,
                       onPressed: _generateTestData,
                     ),
@@ -1285,27 +1286,27 @@ Vui lòng kiểm tra:
                   ],
 
                   // Selective Delete
-                  _buildSectionTitle('🗑️ Xóa từng phần'),
+                  _buildSectionTitle('🗑️ ${LocalizationService.getString('data_delete_section')}'),
                   _buildActionButton(
                     icon: Icons.delete_outline,
-                    label: 'Xóa tất cả dữ liệu bán hàng',
+                    label: LocalizationService.getString('data_delete_sales'),
                     color: Colors.red.shade300,
                     onPressed: _deleteAllSales,
                   ),
                   const SizedBox(height: 12),
                   _buildActionButton(
                     icon: Icons.delete_outline,
-                    label: 'Xóa tất cả chi phí',
+                    label: LocalizationService.getString('data_delete_expenses'),
                     color: Colors.red.shade300,
                     onPressed: _deleteAllExpenses,
                   ),
                   const SizedBox(height: 24),
 
                   // Danger Zone
-                  _buildSectionTitle('⚠️ Vùng nguy hiểm'),
+                  _buildSectionTitle('⚠️ ${LocalizationService.getString('data_danger_zone')}'),
                   _buildActionButton(
                     icon: Icons.delete_forever,
-                    label: 'XÓA TOÀN BỘ DATABASE',
+                    label: LocalizationService.getString('data_delete_all'),
                     color: Colors.red,
                     onPressed: _resetDatabase,
                   ),
@@ -1329,7 +1330,7 @@ Vui lòng kiểm tra:
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                'Gợi ý',
+                                LocalizationService.getString('data_tip'),
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   color: Theme.of(context).brightness == Brightness.dark
@@ -1341,14 +1342,12 @@ Vui lòng kiểm tra:
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            '• "Xem thống kê Database" kiểm tra tổng số dữ liệu hiện tại\n'
-                            '• "Import/Export String" sao chép dữ liệu sang app khác (như Factorio blueprint)\n'
-                            '• "JSON / CSV Export" xuất dữ liệu:\n'
-                            '  - JSON: Để backup hoặc import vào hệ thống khác\n'
-                            '  - CSV: Để mở trong Excel hoặc Google Sheets\n'
-                            '• "Tạo dữ liệu test" tạo 30 ngày dữ liệu (10 sản phẩm + giao dịch + chi phí)\n'
-                            '• "Xóa dữ liệu bán hàng/chi phí" xóa từng phần mà không ảnh hưởng đến sản phẩm\n'
-                            '• ⚠️ "XÓA TOÀN BỘ DATABASE" xóa mọi dữ liệu - KHÔNG THỂ KHÔI PHỤC',
+                            '• ${LocalizationService.getString('data_view_stats')}\n'
+                            '• ${LocalizationService.getString('data_export_import_string')}\n'
+                            '• ${LocalizationService.getString('data_json_csv')}\n'
+                            '• ${LocalizationService.getString('data_generate_test')}\n'
+                            '• ${LocalizationService.getString('data_delete_sales')}\n'
+                            '• ⚠️ ${LocalizationService.getString('data_delete_all')}',
                             style: TextStyle(
                               fontSize: 13,
                               color: Theme.of(context).brightness == Brightness.dark
