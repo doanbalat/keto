@@ -30,16 +30,16 @@ class AdMobService {
   // Structure: {Platform: {AdPlacement: AdUnitId}}
   static const Map<String, Map<AdPlacement, String>> _adUnitIds = {
     'android': {
-      AdPlacement.bannerStatistics: 'ca-app-pub-3940256099942544/6300978111',
-      AdPlacement.bannerAdPage: 'ca-app-pub-3940256099942544/6300978111',
-      AdPlacement.interstitialStatistics: 'ca-app-pub-3940256099942544/1033173712',
-      AdPlacement.interstitialAdPage: 'ca-app-pub-3940256099942544/1033173712',
+      AdPlacement.bannerStatistics: 'ca-app-pub-1784675756610391/4726082215',
+      AdPlacement.bannerAdPage: 'ca-app-pub-1784675756610391/4726082215',
+      AdPlacement.interstitialStatistics: 'ca-app-pub-1784675756610391/1696346775',
+      AdPlacement.interstitialAdPage: 'ca-app-pub-1784675756610391/1696346775',
     },
     'ios': {
-      AdPlacement.bannerStatistics: 'ca-app-pub-3940256099942544/2934735716',
-      AdPlacement.bannerAdPage: 'ca-app-pub-3940256099942544/2934735716',
-      AdPlacement.interstitialStatistics: 'ca-app-pub-3940256099942544/4411468910',
-      AdPlacement.interstitialAdPage: 'ca-app-pub-3940256099942544/4411468910',
+      AdPlacement.bannerStatistics: 'ca-app-pub-1784675756610391/4726082215',
+      AdPlacement.bannerAdPage: 'ca-app-pub-1784675756610391/4726082215',
+      AdPlacement.interstitialStatistics: 'ca-app-pub-1784675756610391/1696346775',
+      AdPlacement.interstitialAdPage: 'ca-app-pub-1784675756610391/1696346775',
     },
   };
 
