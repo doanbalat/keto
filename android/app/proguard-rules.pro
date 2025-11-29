@@ -37,6 +37,10 @@
 ## Image picker and permissions
 -keep class androidx.core.content.FileProvider { *; }
 
+## Google Play Core (for Flutter deferred components)
+-dontwarn com.google.android.play.core.**
+-keep class com.google.android.play.core.** { *; }
+
 ## Preserve line numbers for debugging stack traces
 -keepattributes SourceFile,LineNumberTable
 -renamesourcefileattribute SourceFile

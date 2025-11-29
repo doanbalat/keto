@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'services/permission_service.dart';
 import 'services/currency_service.dart';
 import 'services/product_category_service.dart';
 import 'services/localization_service.dart';
 import 'theme/theme_manager.dart';
+import 'privacy_policy_page.dart';
 
 class SettingsPage extends StatefulWidget {
   final int lowStockThreshold;
@@ -558,34 +560,55 @@ class _SettingsPageState extends State<SettingsPage> {
               ),
             ),
             const SizedBox(height: 24),
-            // Test Crash Button (Debug only)
-            Center(
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+            // Test Crash Button (Debug only - hidden in production)
+            if (kDebugMode)
+              Center(
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                  ),
+                  onPressed: () {
+                    // Force a crash to test Crashlytics
+                    throw Exception('Test crash from settings page');
+                  },
+                  child: const Text(
+                    'Test Crash (Debug Only)',
+                    style: TextStyle(color: Colors.white),
+                  ),
                 ),
+              ),
+            const SizedBox(height: 24),
+            Center(
+              child: ElevatedButton.icon(
                 onPressed: () {
-                  // Force a crash to test Crashlytics
-                  throw Exception('Test crash from settings page');
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const PrivacyPolicyPage(),
+                    ),
+                  );
                 },
-                child: const Text(
-                  'Test Crash (Debug Only)',
-                  style: TextStyle(color: Colors.white),
+                icon: const Icon(Icons.privacy_tip),
+                label: const Text('View Privacy Policy'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  backgroundColor: Colors.blue,
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Center(
+              child: Text(
+                LocalizationService.getString('settings_version'),
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: Colors.blue,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
                 ),
               ),
             ),
             const SizedBox(height: 200),
-            Center(
-              child: Text(
-              LocalizationService.getString('settings_version'),
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: Colors.blue,
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
-              ),
-              ),
-            ),
           ],
         ),
       ),

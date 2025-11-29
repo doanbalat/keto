@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'services/admob_service.dart';
@@ -24,8 +23,8 @@ class _AdPageState extends State<AdPage> {
 	}
 
 	bool _isAdmobSupported() {
-		// Only Android and iOS support Google Mobile Ads
-		return true; // For now, try on all platforms
+		return Theme.of(context).platform == TargetPlatform.android ||
+         Theme.of(context).platform == TargetPlatform.iOS;
 	}
 
 	Future<void> _loadBannerAds() async {

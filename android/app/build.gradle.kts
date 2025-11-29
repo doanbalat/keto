@@ -7,6 +7,10 @@ plugins {
     id("com.google.firebase.crashlytics")
 }
 
+// Load key.properties for release signing (if it exists)
+val keystorePropsFile = rootProject.file("../key.properties")
+val hasKeystoreProps = keystorePropsFile.exists()
+
 android {
     namespace = "com.doanbalat.keto"
     compileSdk = flutter.compileSdkVersion
@@ -41,11 +45,31 @@ android {
         }
     }
 
+    signingConfigs {
+        if (hasKeystoreProps) {
+            create("release") {
+                val lines = keystorePropsFile.readLines()
+                val propsMap = lines
+                    .filter { it.isNotBlank() && !it.startsWith("#") && it.contains("=") }
+                    .associate { 
+                        val (key, value) = it.split("=", limit = 2)
+                        key.trim() to value.trim().removeSurrounding("\"")
+                    }
+                
+                keyAlias = propsMap["keyAlias"] ?: ""
+                keyPassword = propsMap["keyPassword"] ?: ""
+                storeFile = propsMap["storeFile"]?.let { rootProject.file("../${it}") }
+                storePassword = propsMap["storePassword"] ?: ""
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            // Replace with proper release signing configuration before publishing to Play Store.
-            signingConfig = signingConfigs.getByName("debug")
+            // Use release signing config if key.properties exists
+            if (hasKeystoreProps) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             
             // Enable ProGuard minification and code obfuscation for production
             isMinifyEnabled = true
@@ -78,7 +102,14 @@ android {
 }
 
 dependencies {
+    // Core library desugaring for Java 8+ features
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.3")
+    
+    // Firebase BOM for version management
+    implementation(platform("com.google.firebase:firebase-bom:33.6.0"))
+    
+    // Multidex support
+    implementation("androidx.multidex:multidex:2.0.1")
 }
 
 flutter {

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -82,7 +82,7 @@ class _KetoAppState extends State<KetoApp> {
     _language = LocalizationService.language;
     _loadShopName();
     _loadSoundEnabled();
-    print('KetoApp initialized - isDarkMode: $_isDarkMode, language: $_language');
+    if (kDebugMode) print('KetoApp initialized - isDarkMode: $_isDarkMode, language: $_language');
   }
 
   Future<void> _loadShopName() async {
@@ -100,11 +100,11 @@ class _KetoAppState extends State<KetoApp> {
   }
 
   void _setTheme(bool isDarkMode) async {
-    print('Setting theme to: $isDarkMode');
+    if (kDebugMode) print('Setting theme to: $isDarkMode');
     await ThemeManager().setDarkMode(isDarkMode);
     setState(() {
       _isDarkMode = isDarkMode;
-      print('KetoApp state updated - isDarkMode: $_isDarkMode');
+      if (kDebugMode) print('KetoApp state updated - isDarkMode: $_isDarkMode');
     });
   }
 
