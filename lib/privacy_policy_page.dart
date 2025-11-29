@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'services/localization_service.dart';
 
 class PrivacyPolicyPage extends StatelessWidget {
@@ -18,6 +19,52 @@ class PrivacyPolicyPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // External Policy Link
+            Card(
+              color: Colors.blue.withValues(alpha: 0.1),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Row(
+                  children: [
+                    const Icon(Icons.link, color: Colors.blue, size: 24),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Full Privacy Policy',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.blue,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          GestureDetector(
+                            onTap: () {
+                              launchUrl(
+                                Uri.parse('https://github.com/doanbalat/docs/blob/main/keto/privacy-policy.md'),
+                                mode: LaunchMode.externalApplication,
+                              );
+                            },
+                            child: const Text(
+                              'View on GitHub →',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.lightBlue,
+                                decoration: TextDecoration.underline,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
             _buildSectionCard(
               icon: Icons.verified_user,
               title: LocalizationService.getString('privacy_access_title'),
