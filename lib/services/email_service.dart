@@ -18,7 +18,10 @@ class EmailService {
     
     try {
       if (await canLaunchUrl(Uri.parse(mailtoUrl))) {
-        await launchUrl(Uri.parse(mailtoUrl));
+        await launchUrl(
+          Uri.parse(mailtoUrl),
+          mode: LaunchMode.externalApplication,
+        );
       } else {
         throw 'Could not launch email client';
       }

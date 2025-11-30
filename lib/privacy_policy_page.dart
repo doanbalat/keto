@@ -96,6 +96,18 @@ class PrivacyPolicyPage extends StatelessWidget {
               color: Colors.purple,
             ),
             const SizedBox(height: 32),
+            // Version footer
+            Center(
+              child: Text(
+                'v${LocalizationService.appVersion}',
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
           ],
         ),
       ),

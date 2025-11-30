@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'ad_page.dart';
+import 'services/localization_service.dart';
 import 'widgets/feedback_form_dialog.dart';
 class AboutPage extends StatefulWidget {
   const AboutPage({super.key});
@@ -411,10 +412,12 @@ class _AboutPageContentState extends State<_AboutPageContent> {
                 color: Colors.blue,
                 isDarkMode: isDarkMode,
                 onTap: () {
-                  showDialog(
-                    context: context,
-                    builder: (context) => const FeedbackFormDialog(),
-                  );
+                  if (mounted) {
+                    showDialog(
+                      context: context,
+                      builder: (context) => const FeedbackFormDialog(),
+                    );
+                  }
                 },
               ),
             ],
@@ -627,7 +630,7 @@ class _Footer extends StatelessWidget {
         const SizedBox(height: 8),
         Center(
           child: Text(
-            'v1.0.0',
+            'v${LocalizationService.appVersion}',
             style: TextStyle(
               fontSize: 10,
               color: isDarkMode ? Colors.grey[600] : Colors.grey[500],

@@ -599,13 +599,16 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             const SizedBox(height: 24),
             Center(
-              child: Text(
-                LocalizationService.getString('settings_version'),
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: Colors.blue,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                ),
+              child: Column(
+                children: [
+                  Text(
+                    'v${LocalizationService.appVersion}',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.grey,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 200),

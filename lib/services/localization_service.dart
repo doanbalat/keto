@@ -1,4 +1,7 @@
 class LocalizationService {
+  // App version - change this once to update everywhere
+  static const String appVersion = '1.0.1';
+
   // Current language: 'vi' or 'en'
   static String language = 'vi';
 
@@ -45,7 +48,7 @@ class LocalizationService {
     'settings_inventory': 'Kho hàng',
     'settings_low_stock_threshold': 'Ngưỡng sắp hết hàng',
     'settings_notifications': 'Nhận thông báo về kho hàng',
-    'settings_version': 'Phiên bản 1.0.0',
+    'settings_version': 'Phiên bản $appVersion',
     'settings_language': 'Ngôn ngữ',
     'settings_select_language': 'Chọn ngôn ngữ',
 
@@ -445,7 +448,7 @@ class LocalizationService {
     'settings_inventory': 'Inventory',
     'settings_low_stock_threshold': 'Low Stock Threshold',
     'settings_notifications': 'Receive Inventory Notifications',
-    'settings_version': 'Version 1.0.0',
+    'settings_version': 'Version $appVersion',
     'settings_language': 'Language',
     'settings_select_language': 'Select Language',
 
