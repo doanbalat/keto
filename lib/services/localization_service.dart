@@ -23,7 +23,7 @@ class LocalizationService {
     'privacy_access_title': 'Quyền truy cập',
     'privacy_access_content': 'Ứng dụng yêu cầu quyền truy cập kho ảnh khi bạn muốn thêm hình ảnh sản phẩm. Bạn có thể từ chối bất kỳ lúc nào.',
     'privacy_data_title': 'Dữ liệu của bạn',
-    'privacy_data_content': 'Tất cả dữ liệu bán hàng, chi tiêu và kho hàng của bạn được lưu trữ trực tiếp trên thiết bị của bạn. Chúng tôi không gửi dữ liệu này đến máy chủ hoặc bên thứ ba nào. Bạn hoàn toàn kiểm soát và chịu trách nhiệm với dữ liệu của mình.',
+    'privacy_data_content': 'Tất cả dữ liệu bán hàng của bạn được lưu trữ trên thiết bị. Chúng tôi sử dụng Firebase để phân tích lỗi và Google AdMob để hiển thị quảng cáo. Ngoài ra, chúng tôi không chia sẻ dữ liệu cá nhân của bạn.',
     'privacy_export_title': 'Xuất file dữ liệu CSV và JSON, hoặc String',
     'privacy_export_content': 'Ứng dụng cho phép bạn xuất dữ liệu bán hàng, chi tiêu và kho hàng dưới dạng file CSV, JSON hoặc String để bạn có thể sao lưu hoặc sử dụng trong các ứng dụng khác. Các file này được lưu trong bộ nhớ của thiết bị và hoàn toàn do bạn kiểm soát.',
     'privacy_delete_title': 'Xóa dữ liệu',
@@ -308,6 +308,11 @@ class LocalizationService {
     'sales_hide': 'Ẩn',
     'sales_in_stock': 'Trong kho',
     'sales_quantity_want_to_sell': 'Số lượng muốn bán',
+    'sales_no_products': 'Không tìm thấy sản phẩm',
+    'sales_go_to_product_management': 'Vui lòng vào "Quản lý sản phẩm" để thêm sản phẩm',
+    'sales_generate_test_data': 'Tạo dữ liệu thử nghiệm',
+    'sales_please_wait': 'Vui lòng chờ trong giây lát...',
+    'sales_test_data_created': 'Tạo dữ liệu thành công!',
 
     // Expenses Page (chi_tieu.dart)
     'expense_step1_amount': 'Bước 1: Số Tiền',
@@ -423,7 +428,7 @@ class LocalizationService {
     'privacy_access_title': 'Access Permissions',
     'privacy_access_content': 'The app requests access to your photo gallery when you want to add product images. You can deny this permission at any time.',
     'privacy_data_title': 'Your Data',
-    'privacy_data_content': 'All your sales data, expenses, and inventory are stored directly on your device. We do not send this data to any server or third party. You have complete control over and responsibility for your data.',
+    'privacy_data_content': 'All your sales data is stored locally. We use Firebase for crash reporting and Google AdMob for ads. We do not share your personal data with other third parties.',
     'privacy_export_title': 'Export Data as CSV, JSON, or String',
     'privacy_export_content': 'The app allows you to export your sales data, expenses, and inventory as CSV, JSON, or String files so you can back up or use them in other applications. These files are stored on your device and are completely under your control.',
     'privacy_delete_title': 'Delete Data',
@@ -575,6 +580,11 @@ class LocalizationService {
     'sales_hide': 'Hide',
     'sales_in_stock': 'In Stock',
     'sales_quantity_want_to_sell': 'Quantity to Sell',
+    'sales_no_products': 'No products found',
+    'sales_go_to_product_management': 'Please go to "Product Management" to add products',
+    'sales_generate_test_data': 'Generate Test Data',
+    'sales_please_wait': 'Please wait a moment...',
+    'sales_test_data_created': 'Test data created successfully!',
 
     // Expenses
     'expense_amount': 'Amount (VND)',

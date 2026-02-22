@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:just_audio/just_audio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:responsive_builder/responsive_builder.dart';
+import 'package:flutter/foundation.dart';
 import 'models/product_model.dart';
 import 'models/sold_item_model.dart';
 import 'services/product_service.dart';
@@ -38,7 +39,7 @@ class _SalesPageState extends State<SalesPage> {
   bool _showSoldItems = false;
 
   late final ProductService _productService;
-  late AudioPlayer _audioPlayer;
+  AudioPlayer? _audioPlayer;
   bool _audioPlayerInitialized = false;
 
   late List<Product> allProducts;
@@ -69,24 +70,19 @@ class _SalesPageState extends State<SalesPage> {
   }
 
   Future<void> _initializeAudioPlayer() async {
+    // Skip audio specific initialization on Windows if just_audio is not supported or creates issues
+    if (kIsWeb || Platform.isWindows || Platform.isLinux) {
+      if (kDebugMode) print('Audio player not fully supported on this platform - skipping initialization');
+      _audioPlayerInitialized = false;
+      return;
+    }
+    
     try {
-      // Skip audio initialization on Windows (just_audio not supported)
-      if (Platform.isWindows) {
-        print('Audio player not supported on Windows - skipping initialization');
-        _audioPlayerInitialized = false;
-        return;
-      }
-      
-      try {
-        _audioPlayer = AudioPlayer();
-        _audioPlayerInitialized = true;
-        print('Audio player initialized successfully');
-      } catch (e) {
-        print('Failed to create AudioPlayer instance: $e');
-        _audioPlayerInitialized = false;
-      }
+      _audioPlayer = AudioPlayer();
+      _audioPlayerInitialized = true;
+      if (kDebugMode) print('Audio player initialized successfully');
     } catch (e) {
-      print('Error in audio initialization: $e');
+      if (kDebugMode) print('Failed to create AudioPlayer instance: $e');
       _audioPlayerInitialized = false;
     }
   }
@@ -304,9 +300,9 @@ class _SalesPageState extends State<SalesPage> {
         }
 
         // Play sound without waiting (fire and forget)
-        if (_audioPlayerInitialized && widget.soundEnabled) {
-          _audioPlayer.setAsset('assets/sounds/Kaching.mp3').then((_) {
-            _audioPlayer.play().catchError((e) => print('Audio error: $e'));
+        if (_audioPlayerInitialized && widget.soundEnabled && _audioPlayer != null) {
+          _audioPlayer!.setAsset('assets/sounds/Kaching.mp3').then((_) {
+            _audioPlayer!.play().catchError((e) => print('Audio error: $e'));
           }).catchError((e) {
             print('Audio setup error: $e');
           });
@@ -414,7 +410,7 @@ class _SalesPageState extends State<SalesPage> {
                             decoration: BoxDecoration(
                               color: Theme.of(context).brightness == Brightness.dark
                                   ? const Color.fromARGB(116, 20, 5, 5)
-                                  : const Color.fromARGB(255, 255, 253, 191),
+                                  : const Color.fromARGB(255, 250, 247, 153),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Material(
@@ -1000,7 +996,7 @@ class _SalesPageState extends State<SalesPage> {
   void dispose() {
     searchController.dispose();
     soldItemsScrollController.dispose();
-    _audioPlayer.dispose();
+    _audioPlayer?.dispose();
     super.dispose();
   }
 
@@ -1171,7 +1167,13 @@ class _SalesPageState extends State<SalesPage> {
                       children: [
                         const Icon(Icons.attach_money, size: 16, color: Colors.green),
                         const SizedBox(width: 2),
-                        Text(LocalizationService.getString('sales_selling_price'), style: const TextStyle(fontSize: 12)),
+                        Flexible(
+                          child: Text(
+                            LocalizationService.getString('sales_selling_price'),
+                            style: const TextStyle(fontSize: 12),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
                         if (_sortBy == 'price')
                           const SizedBox(width: 2),
                         if (_sortBy == 'price')
@@ -1217,12 +1219,12 @@ class _SalesPageState extends State<SalesPage> {
                             ),
                             const SizedBox(height: 16),
                             Text(
-                              'Không tìm thấy sản phẩm',
+                              LocalizationService.getString('sales_no_products'),
                               style: Theme.of(context).textTheme.bodyLarge,
                             ),
                             const SizedBox(height: 12),
                             Text(
-                              'Vui lòng vào "Quản lý sản phẩm" để thêm sản phẩm',
+                              LocalizationService.getString('sales_go_to_product_management'),
                               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                 color: Colors.grey[600],
                               ),
@@ -1237,13 +1239,13 @@ class _SalesPageState extends State<SalesPage> {
                                   barrierDismissible: false,
                                   builder: (BuildContext context) {
                                     return AlertDialog(
-                                      title: const Text('Tạo dữ liệu thử nghiệm'),
-                                      content: const Column(
+                                      title: Text(LocalizationService.getString('sales_generate_test_data')),
+                                      content: Column(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
                                           CircularProgressIndicator(),
                                           SizedBox(height: 16),
-                                          Text('Vui lòng chờ trong giây lát...'),
+                                          Text(LocalizationService.getString('sales_please_wait')),
                                         ],
                                       ),
                                     );
@@ -1254,24 +1256,25 @@ class _SalesPageState extends State<SalesPage> {
                                   await TestDataGenerator.generateTestData();
                                   
                                   // Dismiss loading dialog
-                                  if (!mounted) return;
+                                  if (!context.mounted) return;
                                   Navigator.of(context).pop();
 
                                   // Reload data
                                   await _initializeData();
 
-                                  if (!mounted) return;
+                                  if (!context.mounted) return;
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('✅ Tạo dữ liệu thành công!'),
+                                    SnackBar(
+                                      content: Text('✅ ${LocalizationService.getString("sales_test_data_created")}'),
                                       backgroundColor: Colors.green,
                                     ),
                                   );
                                 } catch (e) {
                                   // Dismiss loading dialog
-                                  if (!mounted) return;
+                                  if (!context.mounted) return;
                                   Navigator.of(context).pop();
 
+                                  if(!context.mounted) return;
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: Text('❌ Lỗi: $e'),
@@ -1281,7 +1284,7 @@ class _SalesPageState extends State<SalesPage> {
                                 }
                               },
                               icon: const Icon(Icons.add_box),
-                              label: const Text('Tạo dữ liệu thử nghiệm'),
+                              label: Text(LocalizationService.getString('sales_generate_test_data')),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.blue,
                                 foregroundColor: Colors.white,
@@ -1306,7 +1309,7 @@ class _SalesPageState extends State<SalesPage> {
                                 });
                               },
                               icon: const Icon(Icons.shopping_bag),
-                              label: const Text('Quản lý sản phẩm'),
+                              label: Text(LocalizationService.getString('nav_product_management')),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.purple,
                                 foregroundColor: Colors.white,

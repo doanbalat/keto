@@ -13,9 +13,15 @@
 // or platform-specific plugins.
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:keto/main.dart';
+import 'package:keto/app.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+  });
+
   testWidgets('Keto app compiles and KetoApp widget exists', (WidgetTester tester) async {
     // This is a basic smoke test to ensure the main app widget compiles
     // and can be instantiated without errors.

@@ -1,9 +1,15 @@
 import 'package:flutter/foundation.dart' show kDebugMode;
 import '../database/database_helper.dart';
+import '../database/expense_repository.dart';
 import '../models/expense_model.dart';
 
 class ExpenseService {
   final DatabaseHelper _dbHelper = DatabaseHelper();
+  late final ExpenseRepository _expenseRepo;
+
+  ExpenseService() {
+    _expenseRepo = ExpenseRepository(dbHelper: _dbHelper);
+  }
 
   // Common expense categories for quick selection
   static const List<String> defaultCategories = [
@@ -41,7 +47,7 @@ class ExpenseService {
         paymentMethod: paymentMethod,
       );
 
-      final id = await _dbHelper.insertExpense(expense);
+      final id = await _expenseRepo.insertExpense(expense);
       return id > 0;
     } catch (e) {
       if (kDebugMode) print('Error adding expense: $e');
@@ -52,7 +58,7 @@ class ExpenseService {
   /// Get all expenses (ordered by timestamp, newest first)
   Future<List<Expense>> getAllExpenses() async {
     try {
-      return await _dbHelper.getAllExpenses();
+      return await _expenseRepo.getAllExpenses();
     } catch (e) {
       if (kDebugMode) print('Error getting all expenses: $e');
       return [];
@@ -62,7 +68,7 @@ class ExpenseService {
   /// Get today's expenses
   Future<List<Expense>> getTodayExpenses() async {
     try {
-      return await _dbHelper.getExpensesForToday();
+      return await _expenseRepo.getExpensesForToday();
     } catch (e) {
       if (kDebugMode) print('Error getting today expenses: $e');
       return [];
@@ -75,7 +81,7 @@ class ExpenseService {
     DateTime end,
   ) async {
     try {
-      return await _dbHelper.getExpensesByDateRange(start, end);
+      return await _expenseRepo.getExpensesByDateRange(start, end);
     } catch (e) {
       if (kDebugMode) print('Error getting expenses by date range: $e');
       return [];
@@ -85,7 +91,7 @@ class ExpenseService {
   /// Get expenses by category
   Future<List<Expense>> getExpensesByCategory(String category) async {
     try {
-      return await _dbHelper.getExpensesByCategory(category);
+      return await _expenseRepo.getExpensesByCategory(category);
     } catch (e) {
       if (kDebugMode) print('Error getting expenses by category: $e');
       return [];
@@ -95,7 +101,7 @@ class ExpenseService {
   /// Delete an expense
   Future<bool> deleteExpense(int id) async {
     try {
-      final result = await _dbHelper.deleteExpense(id);
+      final result = await _expenseRepo.deleteExpense(id);
       return result > 0;
     } catch (e) {
       if (kDebugMode) print('Error deleting expense: $e');

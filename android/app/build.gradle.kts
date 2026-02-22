@@ -90,15 +90,8 @@ android {
         }
     }
     
-    // Split APKs per ABI to reduce individual APK size
-    splits {
-        abi {
-            isEnable = true
-            reset()
-            include("armeabi-v7a", "arm64-v8a", "x86_64")
-            isUniversalApk = true // Generate a universal APK as well
-        }
-    }
+    // Note: ABI splits should NOT be used with app bundles
+    // App bundles handle multi-APK generation automatically
 }
 
 dependencies {

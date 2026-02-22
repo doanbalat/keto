@@ -1,0 +1,43 @@
+What’s Bad / Risky (highest impact)
+
+Privacy/compliance mismatch (big one):
+Your in-app strings say “we don’t send data to any server/third party” (see localization_service.dart:1), but the app includes Firebase Analytics/Crashlytics and Google AdMob. Those are third parties by definition.
+Your in-app privacy page links to an external policy and also claims local-only data handling: privacy_policy_page.dart:1.
+This is a real app-store and user-trustu st risk. Fix the wording/policy to reflect reality and provide opt-outs where needed.
+Test suite is failing on Windows due to LateInitializationErrors:
+Audio player: _audioPlayer in SalesPage is late and not initialized on Windows but is disposed anyway (failure points to ban_hang.dart and dispose around line ~1003).
+Currency formatter: CurrencyService uses a late formatter that isn’t initialized in widget tests, causing crashes in currency_service.dart and surfaced by ExpensesPage (see failures referencing chi_tieu.dart).
+Result: automated quality gate is currently red, making regressions likely.
+Large “god files” / maintainability:
+Several screens are extremely large (kho_hang.dart ~3000+ lines; quan_ly_database.dart ~1400; settings_page.dart ~600; main.dart ~550). This slows development, increases bugs, and makes testing/refactoring hard.
+Analyzer issues that point to real runtime risks:
+Many use_build_context_synchronously warnings in key screens: ban_hang.dart, chi_tieu.dart, kho_hang.dart, quan_ly_san_pham.dart. These can produce “called after dispose” crashes.
+Heavy print usage flagged by avoid_print (production hygiene + noise + potential privacy leaks if printing sensitive data).
+Potential performance bottleneck in DB read paths:
+getAllSoldItems() does N+1 queries (fetch list, then fetch product per sold item) in database_helper.dart:1. Works for small datasets, but can become slow with many transactions.
+What Can Be Improved (practical)
+
+Reliability + correctness
+Remove/guard late fields that depend on platform support (audio, formatters).
+Fix BuildContext async-gap usage (use if (!mounted) return; patterns in the right places).
+Architecture
+Introduce a lightweight state management approach (Provider/Riverpod/etc.) to reduce passing callbacks through constructors and to make screens testable.
+Break large screens into smaller widgets and move DB/service logic out of UI files.
+Data layer
+Optimize sold-item queries (SQL join or bulk-fetch products and map by id).
+Add basic migration/versioning discipline (you already have _databaseVersion; keep it consistent and tested).
+Export/import robustness
+Current export path logic uses Android cache directory rewriting; it’s brittle across OEMs/platforms: export_service.dart:1. Prefer a stable documents directory strategy per platform.
+What Needs To Be Done (roadmap, prioritized)
+
+Now (must-do before “serious release”)
+Fix privacy policy + in-app claims to match AdMob/Firebase usage (and add disclosure/consent if targeting regions that require it).
+Fix failing tests and the underlying late initialization issues (audio + currency formatter).
+Address the highest-volume use_build_context_synchronously warnings in core flows (sales/expenses/inventory).
+Next (to speed iteration and reduce bugs)
+Split kho_hang.dart, quan_ly_database.dart, settings_page.dart, main.dart into smaller widgets/modules.
+Replace ad-hoc print with a consistent logging strategy (and ensure no sensitive data is logged).
+Optimize DB access patterns for sold items + stats.
+Later (scale/product polish)
+Improve onboarding: first-run guidance, sample data toggle, and clearer backup/restore UX.
+Accessibility/localization completeness checks (you have a localization system—ensure coverage and test it).

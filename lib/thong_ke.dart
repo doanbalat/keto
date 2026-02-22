@@ -1211,12 +1211,21 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
                     ),
                     bottomTitles: AxisTitles(
                       sideTitles: SideTitles(
-                        showTitles: true,
+                        showTitles: sortedDateStrings.length <= 15,
                         reservedSize: 30,
                         interval: 1,
                         getTitlesWidget: (double value, TitleMeta meta) {
                           if (value.toInt() >= 0 &&
                               value.toInt() < sortedDateStrings.length) {
+                            // Show all labels on large screens, skip labels on small screens
+                            final screenWidth = MediaQuery.of(context).size.width;
+                            final isSmallScreen = screenWidth < 400;
+                            
+                            // On small screens, show every other label to prevent overlap
+                            if (isSmallScreen && value.toInt() % 2 != 0) {
+                              return const SizedBox.shrink();
+                            }
+                            
                             return Padding(
                               padding: const EdgeInsets.only(top: 8.0),
                               child: Text(

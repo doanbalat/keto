@@ -348,7 +348,7 @@ class _AboutPageContentState extends State<_AboutPageContent> {
               _AboutFeature(
                 icon: Icons.trending_up,
                 title: 'Complete Management',
-                description: 'The app helps you manage sales, expenses, inventory, and revenue reports in a much much simple way. Intended for "Các cô, các chú bán hàng nhỏ lẻ" and any young entrepreneurs.',
+                description: 'The app helps you manage sales, expenses, inventory, and revenue reports in a much much simple way. Intended for small businesses and any young entrepreneurs.',
                 isDarkMode: isDarkMode,
               ),
               const SizedBox(height: 20),

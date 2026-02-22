@@ -23,11 +23,12 @@ void main() {
     testWidgets('SalesPage initializes with correct default parameters',
         (WidgetTester tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
+        MaterialApp(
           home: SalesPage(
             soundEnabled: true,
             lowStockThreshold: 5,
             notificationsEnabled: true,
+            productService: MockProductService(),
           ),
         ),
       );
@@ -56,8 +57,8 @@ void main() {
     testWidgets('Search bar is displayed and has correct decoration',
         (WidgetTester tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: SalesPage(),
+        MaterialApp(
+          home: SalesPage(productService: MockProductService()),
         ),
       );
 
@@ -68,31 +69,27 @@ void main() {
       // Find the hint text
       final hintText = find.text('Tìm kiếm mặt hàng');
       expect(hintText, findsOneWidget);
-    }, skip: true); // Skip due to database timer issue
+    });
 
     testWidgets('Search bar input is functional',
         (WidgetTester tester) async {
-      // NOTE: This test is skipped because SalesPage calls _initializeData() in initState(),
-      // which triggers a database query with a 10-second timeout. In the test environment,
-      // this timer is still pending when the test ends, causing a failure.
-      // The widget itself works fine - this is a testing infrastructure issue.
       await tester.pumpWidget(
-        const MaterialApp(
-          home: SalesPage(),
+        MaterialApp(
+          home: SalesPage(productService: MockProductService()),
         ),
       );
 
       // Find search bar
       final searchBar = find.byType(TextField);
       expect(searchBar, findsOneWidget);
-    }, skip: true);
+    });
 
 
     testWidgets('Clear button appears when search text exists',
         (WidgetTester tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: SalesPage(),
+        MaterialApp(
+          home: SalesPage(productService: MockProductService()),
         ),
       );
 
@@ -104,13 +101,13 @@ void main() {
       // Find clear button
       final clearButton = find.byIcon(Icons.clear);
       expect(clearButton, findsOneWidget);
-    }, skip: true); // Skip due to database timer issue
+    });
 
     testWidgets('Clear button clears search text',
         (WidgetTester tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: SalesPage(),
+        MaterialApp(
+          home: SalesPage(productService: MockProductService()),
         ),
       );
 
@@ -126,7 +123,7 @@ void main() {
 
       // Search bar should be empty
       expect(find.byIcon(Icons.clear), findsNothing);
-    }, skip: true); // Skip due to database timer issue
+    });
   });
 
   group('Sorting Button Tests', () {
@@ -299,8 +296,8 @@ void main() {
         (WidgetTester tester) async {
       // Set up a slow pump to allow loading to complete
       await tester.pumpWidget(
-        const MaterialApp(
-          home: SalesPage(),
+        MaterialApp(
+          home: SalesPage(productService: MockProductService()),
         ),
       );
 
@@ -315,8 +312,8 @@ void main() {
     testWidgets('Empty state shows helpful message',
         (WidgetTester tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: SalesPage(),
+        MaterialApp(
+          home: SalesPage(productService: MockProductService()),
         ),
       );
 
@@ -330,8 +327,8 @@ void main() {
     testWidgets('Product cards are displayed correctly',
         (WidgetTester tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: SalesPage(),
+        MaterialApp(
+          home: SalesPage(productService: MockProductService()),
         ),
       );
 
@@ -344,8 +341,8 @@ void main() {
     testWidgets('Product cards are tappable',
         (WidgetTester tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: SalesPage(),
+        MaterialApp(
+          home: SalesPage(productService: MockProductService()),
         ),
       );
 
@@ -365,8 +362,8 @@ void main() {
     testWidgets('Increment and decrement buttons are present',
         (WidgetTester tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: SalesPage(),
+        MaterialApp(
+          home: SalesPage(productService: MockProductService()),
         ),
       );
 
@@ -379,8 +376,8 @@ void main() {
     testWidgets('Increment button is functional',
         (WidgetTester tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: SalesPage(),
+        MaterialApp(
+          home: SalesPage(productService: MockProductService()),
         ),
       );
 
@@ -397,8 +394,8 @@ void main() {
     testWidgets('Decrement button is functional',
         (WidgetTester tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: SalesPage(),
+        MaterialApp(
+          home: SalesPage(productService: MockProductService()),
         ),
       );
 
@@ -415,8 +412,8 @@ void main() {
     testWidgets('Quantity input dialog opens on quantity container tap',
         (WidgetTester tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: SalesPage(),
+        MaterialApp(
+          home: SalesPage(productService: MockProductService()),
         ),
       );
 
@@ -431,8 +428,8 @@ void main() {
     testWidgets('Large numbers are formatted with thousand separators',
         (WidgetTester tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: SalesPage(),
+        MaterialApp(
+          home: SalesPage(productService: MockProductService()),
         ),
       );
 
@@ -444,8 +441,8 @@ void main() {
     testWidgets('VND currency symbol is displayed',
         (WidgetTester tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: SalesPage(),
+        MaterialApp(
+          home: SalesPage(productService: MockProductService()),
         ),
       );
 
@@ -460,8 +457,8 @@ void main() {
     testWidgets('Sold items section has visibility toggle',
         (WidgetTester tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: SalesPage(),
+        MaterialApp(
+          home: SalesPage(productService: MockProductService()),
         ),
       );
 
@@ -473,8 +470,8 @@ void main() {
     testWidgets('Show/Hide button is functional',
         (WidgetTester tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: SalesPage(),
+        MaterialApp(
+          home: SalesPage(productService: MockProductService()),
         ),
       );
 
@@ -493,8 +490,8 @@ void main() {
     testWidgets('Sold items list displays correctly',
         (WidgetTester tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: SalesPage(),
+        MaterialApp(
+          home: SalesPage(productService: MockProductService()),
         ),
       );
 
@@ -510,7 +507,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: ThemeData.light(),
-          home: const SalesPage(),
+          home: SalesPage(productService: MockProductService()),
         ),
       );
 
@@ -524,7 +521,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: ThemeData.dark(),
-          home: const SalesPage(),
+          home: SalesPage(productService: MockProductService()),
         ),
       );
 
@@ -538,8 +535,8 @@ void main() {
     testWidgets('Sound setting is respected',
         (WidgetTester tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: SalesPage(soundEnabled: false),
+        MaterialApp(
+          home: SalesPage(soundEnabled: false, productService: MockProductService()),
         ),
       );
 
@@ -551,8 +548,8 @@ void main() {
     testWidgets('Low stock threshold setting is used',
         (WidgetTester tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: SalesPage(lowStockThreshold: 10),
+        MaterialApp(
+          home: SalesPage(lowStockThreshold: 10, productService: MockProductService()),
         ),
       );
 
@@ -564,8 +561,8 @@ void main() {
     testWidgets('Notification setting is respected',
         (WidgetTester tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: SalesPage(notificationsEnabled: false),
+        MaterialApp(
+          home: SalesPage(notificationsEnabled: false, productService: MockProductService()),
         ),
       );
 
@@ -579,8 +576,8 @@ void main() {
     testWidgets('Dialog can be dismissed without input',
         (WidgetTester tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: SalesPage(),
+        MaterialApp(
+          home: SalesPage(productService: MockProductService()),
         ),
       );
 
@@ -592,8 +589,8 @@ void main() {
     testWidgets('Dialog input validation works',
         (WidgetTester tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: SalesPage(),
+        MaterialApp(
+          home: SalesPage(productService: MockProductService()),
         ),
       );
 
@@ -607,8 +604,8 @@ void main() {
     testWidgets('Widget initializes state correctly',
         (WidgetTester tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: SalesPage(),
+        MaterialApp(
+          home: SalesPage(productService: MockProductService()),
         ),
       );
 
@@ -620,8 +617,8 @@ void main() {
     testWidgets('Widget disposes resources on unmount',
         (WidgetTester tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: SalesPage(),
+        MaterialApp(
+          home: SalesPage(productService: MockProductService()),
         ),
       );
 
@@ -642,8 +639,8 @@ void main() {
     testWidgets('Multiple instances can exist',
         (WidgetTester tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: SalesPage(),
+        MaterialApp(
+          home: SalesPage(productService: MockProductService()),
         ),
       );
 
@@ -662,8 +659,8 @@ void main() {
       addTearDown(tester.binding.window.clearPhysicalSizeTestValue);
 
       await tester.pumpWidget(
-        const MaterialApp(
-          home: SalesPage(),
+        MaterialApp(
+          home: SalesPage(productService: MockProductService()),
         ),
       );
 
@@ -679,8 +676,8 @@ void main() {
       addTearDown(tester.binding.window.clearPhysicalSizeTestValue);
 
       await tester.pumpWidget(
-        const MaterialApp(
-          home: SalesPage(),
+        MaterialApp(
+          home: SalesPage(productService: MockProductService()),
         ),
       );
 
@@ -696,8 +693,8 @@ void main() {
       addTearDown(tester.binding.window.clearPhysicalSizeTestValue);
 
       await tester.pumpWidget(
-        const MaterialApp(
-          home: SalesPage(),
+        MaterialApp(
+          home: SalesPage(productService: MockProductService()),
         ),
       );
 
@@ -711,8 +708,8 @@ void main() {
     testWidgets('All main UI elements are visible',
         (WidgetTester tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: SalesPage(),
+        MaterialApp(
+          home: SalesPage(productService: MockProductService()),
         ),
       );
 
@@ -728,8 +725,8 @@ void main() {
     testWidgets('Bottom navigation area is accessible',
         (WidgetTester tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: SalesPage(),
+        MaterialApp(
+          home: SalesPage(productService: MockProductService()),
         ),
       );
 
@@ -743,8 +740,8 @@ void main() {
     testWidgets('Widget functions on Android platform',
         (WidgetTester tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: SalesPage(),
+        MaterialApp(
+          home: SalesPage(productService: MockProductService()),
         ),
       );
 
@@ -756,8 +753,8 @@ void main() {
     testWidgets('Widget functions on iOS platform',
         (WidgetTester tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: SalesPage(),
+        MaterialApp(
+          home: SalesPage(productService: MockProductService()),
         ),
       );
 

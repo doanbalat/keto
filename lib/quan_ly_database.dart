@@ -3,6 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'dart:io';
 import 'database/database_helper.dart';
+import 'database/product_repository.dart';
+import 'database/sales_repository.dart';
+import 'database/expense_repository.dart';
 import 'models/product_model.dart';
 import 'models/sold_item_model.dart';
 import 'models/expense_model.dart';
@@ -12,21 +15,32 @@ import 'services/string_codec_service.dart';
 import 'services/permission_service.dart';
 import 'services/localization_service.dart';
 
-class DebugScreen extends StatefulWidget {
-  const DebugScreen({super.key});
+class DatabaseManagementPage extends StatefulWidget {
+  const DatabaseManagementPage({super.key});
 
   @override
-  State<DebugScreen> createState() => _DebugScreenState();
+  State<DatabaseManagementPage> createState() => _DatabaseManagementPageState();
 }
 
-class _DebugScreenState extends State<DebugScreen> {
+class _DatabaseManagementPageState extends State<DatabaseManagementPage> {
   final DatabaseHelper _db = DatabaseHelper();
+  late final ProductRepository _productRepo;
+  late final SalesRepository _salesRepo;
+  late final ExpenseRepository _expenseRepo;
 
   bool _isLoading = false;
   String _statusMessage = '';
   String _currentStage = '';
   int _progress = 0;
   int _progressTotal = 100;
+
+  @override
+  void initState() {
+    super.initState();
+    _productRepo = ProductRepository(dbHelper: _db);
+    _salesRepo = SalesRepository(dbHelper: _db);
+    _expenseRepo = ExpenseRepository(dbHelper: _db);
+  }
 
   Future<void> _resetDatabase() async {
     final confirmed = await _showConfirmationDialog(
@@ -87,9 +101,9 @@ class _DebugScreenState extends State<DebugScreen> {
     });
 
     try {
-      final soldItems = await _db.getAllSoldItems();
+      final soldItems = await _salesRepo.getAllSoldItems();
       for (var item in soldItems) {
-        await _db.deleteSoldItem(item.id);
+        await _salesRepo.deleteSoldItem(item.id);
       }
 
       setState(() {
@@ -128,9 +142,9 @@ class _DebugScreenState extends State<DebugScreen> {
     });
 
     try {
-      final expenses = await _db.getAllExpenses();
+      final expenses = await _expenseRepo.getAllExpenses();
       for (var expense in expenses) {
-        await _db.deleteExpense(expense.id);
+        await _expenseRepo.deleteExpense(expense.id);
       }
 
       setState(() {
@@ -161,12 +175,12 @@ class _DebugScreenState extends State<DebugScreen> {
     });
 
     try {
-      final products = await _db.getAllProducts();
-      final soldItems = await _db.getAllSoldItems();
-      final expenses = await _db.getAllExpenses();
+      final products = await _productRepo.getAllProducts();
+      final soldItems = await _salesRepo.getAllSoldItems();
+      final expenses = await _expenseRepo.getAllExpenses();
 
-      final totalRevenue = await _db.getTotalSalesToday();
-      final totalExpenses = await _db.getTotalExpensesToday();
+      final totalRevenue = await _salesRepo.getTotalSalesToday();
+      final totalExpenses = await _expenseRepo.getTotalExpensesToday();
 
       setState(() {
         _statusMessage =
@@ -379,9 +393,9 @@ ${LocalizationService.getString('data_today')}:
     });
 
     try {
-      final products = await _db.getAllProducts();
-      final soldItems = await _db.getAllSoldItems();
-      final expenses = await _db.getAllExpenses();
+      final products = await _productRepo.getAllProducts();
+      final soldItems = await _salesRepo.getAllSoldItems();
+      final expenses = await _expenseRepo.getAllExpenses();
 
       if (mounted) {
         setState(() {
@@ -712,9 +726,9 @@ ${LocalizationService.getString('data_today')}:
       }
 
       // Import data
-      final productCount = await _db.importProducts(products);
-      final salesCount = await _db.importSoldItems(soldItems);
-      final expenseCount = await _db.importExpenses(expenses);
+      final productCount = await _productRepo.importProducts(products);
+      final salesCount = await _salesRepo.importSoldItems(soldItems);
+      final expenseCount = await _expenseRepo.importExpenses(expenses);
 
       if (mounted) {
         setState(() {
@@ -994,9 +1008,9 @@ Chi tiết:
         }
       }
 
-      final products = await _db.getAllProducts();
-      final soldItems = await _db.getAllSoldItems();
-      final expenses = await _db.getAllExpenses();
+      final products = await _productRepo.getAllProducts();
+      final soldItems = await _salesRepo.getAllSoldItems();
+      final expenses = await _expenseRepo.getAllExpenses();
 
       if (mounted) {
         setState(() {

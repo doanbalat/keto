@@ -1,17 +1,26 @@
 import 'package:flutter/foundation.dart' show kDebugMode;
 import '../database/database_helper.dart';
+import '../database/product_repository.dart';
+import '../database/sales_repository.dart';
 import '../models/product_model.dart';
 import '../models/sold_item_model.dart';
 
 class ProductService {
   final DatabaseHelper _dbHelper = DatabaseHelper();
+  late final ProductRepository _productRepo;
+  late final SalesRepository _salesRepo;
+
+  ProductService() {
+    _productRepo = ProductRepository(dbHelper: _dbHelper);
+    _salesRepo = SalesRepository(dbHelper: _dbHelper);
+  }
 
   // ============ PRODUCT SERVICE METHODS ============
 
   /// Get all products from database
   Future<List<Product>> getAllProducts() async {
     try {
-      return await _dbHelper.getAllProducts();
+      return await _productRepo.getAllProducts();
     } catch (e) {
       if (kDebugMode) print('Error getting all products: $e');
       return [];
@@ -24,7 +33,7 @@ class ProductService {
       if (query.isEmpty) {
         return await getAllProducts();
       }
-      return await _dbHelper.searchProducts(query);
+      return await _productRepo.searchProducts(query);
     } catch (e) {
       if (kDebugMode) print('Error searching products: $e');
       return [];
@@ -57,7 +66,7 @@ class ProductService {
         imagePath: imagePath,
       );
 
-      final id = await _dbHelper.insertProduct(product);
+      final id = await _productRepo.insertProduct(product);
       return id;
     } catch (e) {
       if (kDebugMode) print('Error adding product: $e');
@@ -68,7 +77,7 @@ class ProductService {
   /// Update product
   Future<bool> updateProduct(Product product) async {
     try {
-      await _dbHelper.updateProduct(product);
+      await _productRepo.updateProduct(product);
       return true;
     } catch (e) {
       if (kDebugMode) print('Error updating product: $e');
@@ -79,7 +88,7 @@ class ProductService {
   /// Delete product (soft delete - marks as inactive)
   Future<bool> deleteProduct(int productId) async {
     try {
-      await _dbHelper.deleteProduct(productId);
+      await _productRepo.deleteProduct(productId);
       return true;
     } catch (e) {
       if (kDebugMode) print('Error deleting product: $e');
@@ -90,7 +99,7 @@ class ProductService {
   /// Permanently delete product and all its sold items
   Future<bool> hardDeleteProduct(int productId) async {
     try {
-      await _dbHelper.hardDeleteProduct(productId);
+      await _productRepo.hardDeleteProduct(productId);
       return true;
     } catch (e) {
       if (kDebugMode) print('Error hard deleting product: $e');
@@ -101,7 +110,7 @@ class ProductService {
   /// Get product by ID
   Future<Product?> getProductById(int id) async {
     try {
-      return await _dbHelper.getProductById(id);
+      return await _productRepo.getProductById(id);
     } catch (e) {
       if (kDebugMode) print('Error getting product: $e');
       return null;
@@ -133,7 +142,7 @@ class ProductService {
         customerName: customerName,
       );
 
-      await _dbHelper.insertSoldItem(soldItem);
+      await _salesRepo.insertSoldItem(soldItem);
       return true;
     } catch (e) {
       if (kDebugMode) print('Error adding sold item: $e');
@@ -142,9 +151,10 @@ class ProductService {
   }
 
   /// Get all sold items
+  /// Optimized to use JOIN via SalesRepository
   Future<List<SoldItem>> getAllSoldItems() async {
     try {
-      return await _dbHelper.getAllSoldItems();
+      return await _salesRepo.getAllSoldItems();
     } catch (e) {
       if (kDebugMode) print('Error getting sold items: $e');
       return [];
@@ -152,9 +162,10 @@ class ProductService {
   }
 
   /// Get today's sold items
+  /// Optimized to use JOIN via SalesRepository
   Future<List<SoldItem>> getTodaySoldItems() async {
     try {
-      return await _dbHelper.getSoldItemsForToday();
+      return await _salesRepo.getSoldItemsForToday();
     } catch (e) {
       if (kDebugMode) print('Error getting today\'s sold items: $e');
       return [];
@@ -167,7 +178,7 @@ class ProductService {
     DateTime end,
   ) async {
     try {
-      return await _dbHelper.getSoldItemsByDateRange(start, end);
+      return await _salesRepo.getSoldItemsByDateRange(start, end);
     } catch (e) {
       if (kDebugMode) print('Error getting sold items by date range: $e');
       return [];
@@ -177,7 +188,7 @@ class ProductService {
   /// Delete sold item
   Future<bool> deleteSoldItem(int soldItemId) async {
     try {
-      await _dbHelper.deleteSoldItem(soldItemId);
+      await _salesRepo.deleteSoldItem(soldItemId);
       return true;
     } catch (e) {
       if (kDebugMode) print('Error deleting sold item: $e');
@@ -190,7 +201,7 @@ class ProductService {
   /// Get today's total sales revenue
   Future<int> getTodayTotalSales() async {
     try {
-      return await _dbHelper.getTotalSalesToday();
+      return await _salesRepo.getTotalSalesToday();
     } catch (e) {
       if (kDebugMode) print('Error getting today\'s total sales: $e');
       return 0;
@@ -200,7 +211,7 @@ class ProductService {
   /// Get today's total profit
   Future<int> getTodayTotalProfit() async {
     try {
-      return await _dbHelper.getTotalProfitToday();
+      return await _salesRepo.getTotalProfitToday();
     } catch (e) {
       if (kDebugMode) print('Error getting today\'s total profit: $e');
       return 0;
@@ -210,7 +221,7 @@ class ProductService {
   /// Get total items sold today
   Future<int> getTodayTotalItemsSold() async {
     try {
-      return await _dbHelper.getTotalItemsSoldToday();
+      return await _salesRepo.getTotalItemsSoldToday();
     } catch (e) {
       if (kDebugMode) print('Error getting today\'s total items sold: $e');
       return 0;

@@ -19,8 +19,8 @@ class CurrencyService {
     'EUR': 'de_DE',
   };
 
-  static late String _currentCurrency;
-  static late NumberFormat _numberFormatter;
+  static String _currentCurrency = _defaultCurrency;
+  static NumberFormat? _numberFormatter;
 
   /// Initialize CurrencyService with stored currency preference
   static Future<void> init() async {
@@ -59,7 +59,8 @@ class CurrencyService {
 
   /// Format amount with current currency symbol (symbol appears after amount)
   static String formatCurrency(int amount) {
-    final formatted = _numberFormatter.format(amount);
+    if (_numberFormatter == null) _updateFormatter();
+    final formatted = _numberFormatter!.format(amount);
     return '$formatted ${getCurrentSymbol()}';
   }
 
@@ -79,6 +80,9 @@ class CurrencyService {
 
   /// Update the number formatter based on current currency
   static void _updateFormatter() {
+    if (!_currencySymbols.containsKey(_currentCurrency)) {
+       _currentCurrency = _defaultCurrency;
+    }
     final locale = _currencyLocales[_currentCurrency] ?? 'vi_VN';
     _numberFormatter = NumberFormat.decimalPattern(locale);
   }
